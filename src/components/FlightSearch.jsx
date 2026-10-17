@@ -4,7 +4,6 @@ import {
   Calendar, 
   Search,
   ChevronDown, 
-  PlaneTakeoff, 
   PlaneLanding 
 } from 'lucide-react';
 import { airports } from "../data/airports";

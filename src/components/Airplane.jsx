@@ -1,28 +1,11 @@
-import { useRef, useMemo } from 'react'
+import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { useGLTF, Line } from '@react-three/drei'
+import { useGLTF } from '@react-three/drei'
 
 export default function Airplane() {
 
   const orbitRef = useRef()
   const { scene } = useGLTF('/airplane.glb')
-  //Trayectoria
-  const trailPoints = useMemo(() => {
-    const points = []
-    const radius = 13.9 // Radio de la órbita alrededor del planeta
-    const trailAngle = Math.PI * 0.45 // Ángulo de inclinación de la órbita
-    const trailGap = 0.205
-    const segments = 80 // Número de segmentos para suavizar la curva
-
-    for (let i = 0; i <= segments; i++) {
-      const angle = (i / segments) * trailAngle
-      const x = radius * Math.cos(angle)
-      const z = radius * Math.sin(angle)
-      points.push([x, 0, z])
-    }
-    return points
-  }, [])
-
   useFrame(() => {
     if (orbitRef.current) {
       orbitRef.current.rotation.y += 0.0065 

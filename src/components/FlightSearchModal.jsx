@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../features/auth/context/AuthContext";
 import {
   X,
   Plane,
@@ -39,6 +41,9 @@ export default function FlightSearchModal({
   onClose,
   searchData,
 }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
   useEffect(() => {
     if (!isOpen) return;
     const handleEscape = (event) => {
@@ -224,11 +229,13 @@ export default function FlightSearchModal({
 
                       <button
                         type="button"
-                        onClick={() =>
-                          alert(
-                            `Próximo paso: asientos del vuelo ${flight.flightNumber}`
-                          )
-                        }
+                        onClick={() => {
+                          const reservation = { pathname: "/reservas", state: { selectedFlight: flight } };
+                          if (isAuthenticated) navigate(reservation.pathname, { state: reservation.state });
+                          else navigate("/login", {
+                            state: { from: reservation, backgroundLocation: location },
+                          });
+                        }}
                         className="bg-[#3b2b7a] hover:bg-[#2c205e]
                                    text-white rounded-full
                                    px-5 py-3 font-semibold
