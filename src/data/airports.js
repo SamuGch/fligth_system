@@ -5,3 +5,5 @@ export const airports = [
   { code: "SAL", city: "San Salvador", country: "El Salvador" },
   { code: "LAX", city: "Los Ángeles", country: "Estados Unidos" },
 ];
+
+//pruebaa 
