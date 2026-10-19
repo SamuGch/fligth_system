@@ -5,12 +5,47 @@ import {
     Lock, 
     Eye, 
     EyeOff, 
-    LogIn } from "lucide-react";
+    LogIn,
+    Loader2 } from "lucide-react";
 
 export default function LoginModal({ isOpen, onClose }) {
-  const [showPassword, setShowPassword] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const {rememberMe, setRememberMe} = useState(false);
+
+    const {isLoading, setIsLoading} = useState(false);
+    const [error, setError] = useState("");
 
   if (!isOpen) return null;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError("");
+     if (!email || !password) {
+      setError("Por favor, completa todos los campos.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    setTimeout(() => {
+      setIsLoading(false);
+      
+      // Simular validación de credenciales
+      if (email === "demo@correo.com" && password === "123456") {
+              alert("¡Inicio de sesión exitoso!");
+              // Aquí iría tu lógica real: guardar token, redirigir, etc.
+              
+              // Limpiar formulario y cerrar modal
+              setEmail("");
+              setPassword("");
+              onClose();
+            } else {
+              setError("Credenciales incorrectas. Pista: demo@correo.com / 123456");
+            }
+          }, 1500); // Simula 1.5 segundos de retraso de red
+        };
 
   return (
     <div

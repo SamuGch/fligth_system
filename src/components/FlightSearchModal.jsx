@@ -4,8 +4,9 @@ import {
   Plane,
   Clock3,
   CalendarDays,
-  ArrowRight,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { airports } from "../data/airports";
 
 const mockFlights = [
   {
@@ -39,6 +40,8 @@ export default function FlightSearchModal({
   onClose,
   searchData,
 }) {
+  const navigate = useNavigate();
+
   useEffect(() => {
     if (!isOpen) return;
     const handleEscape = (event) => {
@@ -60,6 +63,30 @@ export default function FlightSearchModal({
       flight.origin === origin &&
       flight.destination === destination
   );
+
+  const handleSelectFlight = (flight) => {
+    const originAirport = airports.find(
+      (airport) => airport.code === flight.origin
+    );
+    const destinationAirport = airports.find(
+      (airport) => airport.code === flight.destination
+    );
+
+    onClose();
+    navigate("/seleccion-asientos", {
+      state: {
+        flight: {
+          ...flight,
+          originCity: originAirport?.city ?? flight.origin,
+          destinationCity:
+            destinationAirport?.city ?? flight.destination,
+          departureTime: flight.departure,
+          arrivalTime: flight.arrival,
+        },
+        passengers: searchData?.passengers,
+      },
+    });
+  };
 
   return (
     <div
@@ -224,20 +251,13 @@ export default function FlightSearchModal({
 
                       <button
                         type="button"
-                        onClick={() =>
-                          alert(
-                            `Próximo paso: asientos del vuelo ${flight.flightNumber}`
-                          )
-                        }
-                        className="bg-[#3b2b7a] hover:bg-[#2c205e]
-                                   text-white rounded-full
-                                   px-5 py-3 font-semibold
-                                   flex items-center
-                                   justify-center gap-2
-                                   cursor-pointer transition-colors"
+                        onClick={() => handleSelectFlight(flight)}
+                        className="bg-[#3b2b7a] hover:bg-[#2b205c]
+                                  text-white px-6 py-3 rounded-full
+                                  font-semibold transition-colors
+                                  cursor-pointer"
                       >
                         Seleccionar
-                        <ArrowRight size={17} />
                       </button>
                     </div>
                   </div>
