@@ -6,8 +6,9 @@ import {
   Plane,
   Clock3,
   CalendarDays,
-  ArrowRight,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { airports } from "../data/airports";
 
 const mockFlights = [
   {
@@ -65,6 +66,30 @@ export default function FlightSearchModal({
       flight.origin === origin &&
       flight.destination === destination
   );
+
+  const handleSelectFlight = (flight) => {
+    const originAirport = airports.find(
+      (airport) => airport.code === flight.origin
+    );
+    const destinationAirport = airports.find(
+      (airport) => airport.code === flight.destination
+    );
+
+    onClose();
+    navigate("/seleccion-asientos", {
+      state: {
+        flight: {
+          ...flight,
+          originCity: originAirport?.city ?? flight.origin,
+          destinationCity:
+            destinationAirport?.city ?? flight.destination,
+          departureTime: flight.departure,
+          arrivalTime: flight.arrival,
+        },
+        passengers: searchData?.passengers,
+      },
+    });
+  };
 
   return (
     <div
@@ -229,13 +254,11 @@ export default function FlightSearchModal({
 
                       <button
                         type="button"
-                        onClick={() => {
-                          const reservation = { pathname: "/reservas", state: { selectedFlight: flight } };
-                          if (isAuthenticated) navigate(reservation.pathname, { state: reservation.state });
-                          else navigate("/login", {
-                            state: { from: reservation, backgroundLocation: location },
-                          });
-                        }}
+                        onClick={() =>
+                          alert(
+                            `Próximo paso: asientos del vuelo ${flight.flightNumber}`
+                          )
+                        }
                         className="bg-[#3b2b7a] hover:bg-[#2c205e]
                                    text-white rounded-full
                                    px-5 py-3 font-semibold
@@ -244,7 +267,6 @@ export default function FlightSearchModal({
                                    cursor-pointer transition-colors"
                       >
                         Seleccionar
-                        <ArrowRight size={17} />
                       </button>
                     </div>
                   </div>
