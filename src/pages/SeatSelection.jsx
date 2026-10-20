@@ -1,5 +1,5 @@
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Plane,
@@ -299,8 +299,7 @@ function CabinSection({
 function FlightInfo({ flight }) {
   return (
     <div
-      className="bg-violet-50 border border-slate-300
-                 rounded-3xl shadow-sm p-5
+      className="bg-white p-5 sm:p-7
                  flex flex-col lg:flex-row
                  lg:items-center gap-6"
     >
@@ -405,16 +404,8 @@ export default function SeatSelection() {
 
   const [selectedSeats, setSelectedSeats] = useState([]);
   const passengerCount = selectedSeats.length;
-  const [activeSection, setActiveSection] = useState("all");
   const [message, setMessage] = useState("");
-
-  const sections = useMemo(() => {
-    if (activeSection === "all") return CABIN;
-
-    return CABIN.filter(
-      (section) => section.id === activeSection
-    );
-  }, [activeSection]);
+  const sections = CABIN;
 
   const handleSeatClick = (seat) => {
     setMessage("");
@@ -461,16 +452,14 @@ export default function SeatSelection() {
 
   return (
     <div
-      className="min-h-screen bg-linear-to-br
-                 from-slate-200 via-violet-100
-                 to-slate-300 px-3 sm:px-6 py-5"
+      className="min-h-screen w-full bg-slate-50"
     >
-      <div className="max-w-[1600px] mx-auto">
+      <div className="min-h-screen w-full">
         {/* Encabezado principal */}
         <header
           className="bg-linear-to-r from-[#29205f]
                      via-[#3b2b7a] to-[#5843a3]
-                     rounded-t-3xl px-5 sm:px-8
+                     w-full px-5 sm:px-8 lg:px-12
                      py-5 text-white"
         >
           <div
@@ -547,18 +536,17 @@ export default function SeatSelection() {
 
         {/* Distribución de dos columnas */}
         <div
-          className="bg-white rounded-b-3xl
-                     shadow-2xl p-3 sm:p-5
+          className="min-h-[calc(100vh-104px)] bg-white
+                     px-3 py-5 sm:px-6 lg:px-12
                      grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_390px]
-                     gap-5"
+                     gap-5 lg:gap-8"
         >
           {/* Columna izquierda */}
           <main className="min-w-0 space-y-2">
             <FlightInfo flight={flight} />
 
             <section
-              className="bg-violet-50 border border-slate-300
-                         rounded-3xl p-4 sm:p-6"
+              className="bg-violet-50 p-4 sm:p-6 lg:p-8"
             >
               <div
                 className="flex flex-col lg:flex-row
@@ -588,8 +576,7 @@ export default function SeatSelection() {
                            gap-4 items-start"
               >
                 <div
-                  className="bg-slate-50 rounded-4xl
-                             border border-slate-100
+                  className="bg-slate-50
                              overflow-x-auto p-4 sm:p-6"
                 >
                   <div className="min-w-max">
@@ -680,7 +667,7 @@ export default function SeatSelection() {
           </main>
 
           {/* Columna derecha */}
-          <aside className="bg-violet-50 border border-slate-300 rounded-3xl p-5 sm:p-6 flex flex-col min-w-0">
+          <aside className="bg-violet-50 p-5 sm:p-6 lg:p-8 flex flex-col min-w-0">
             <div className="flex items-center justify-between gap-2 pb-5 border-b border-slate-400">
               <h2 className="text-xl font-bold
                            text-[#21194d]"

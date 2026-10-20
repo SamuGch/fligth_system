@@ -9,34 +9,60 @@ import { OrbitControls } from '@react-three/drei';
 import { useEffect, useRef, useState } from 'react';
 import Earth from './components/Earth';
 import Airplane from './components/Airplane';
-import {useState} from 'react'; 
-import LoginModal from './components/LoginModal';
-import FlightSearchModal from './components/FlightSearchModal';
 import FlightSearch from './components/FlightSearch'; 
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './features/auth/context/AuthContext';
-import ModalShell from './features/auth/components/ModalShell';
 
 
 function Home() {
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [flightSearchOpen, setFlightSearchOpen] = useState(false);
-  const [searchData, setSearchData] = useState({
-  tripType: "round",
-  origin: "GUA",
-  destination: "MIA",
-  departureDate: "2026-10-15",
-  returnDate: "2026-10-20",
-  passengers: 1,
-  seatClass: "Economica",
-});
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, signOut } = useAuth();
+  const accountMenuRef = useRef(null);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [accountMenuError, setAccountMenuError] = useState('');
+  const [signingOut, setSigningOut] = useState(false);
 
-const updateSearch = (field, value) => {
-  setSearchData((prev) => ({
-    ...prev,
-    [field]: value,
-  }));
-};
+  useEffect(() => {
+    if (!accountMenuOpen) return undefined;
+
+    const closeOnOutsideClick = (event) => {
+      if (!accountMenuRef.current?.contains(event.target)) {
+        setAccountMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setAccountMenuOpen(false);
+    };
+
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [accountMenuOpen]);
+
+  const openAccountDestination = (path) => {
+    setAccountMenuOpen(false);
+    setAccountMenuError('');
+    navigate(path);
+  };
+
+  const leaveAccount = async () => {
+    setSigningOut(true);
+    setAccountMenuError('');
+    try {
+      await signOut();
+      setAccountMenuOpen(false);
+    } catch (signOutError) {
+      setAccountMenuError(
+        signOutError.message || 'No fue posible cerrar la sesión.',
+      );
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   return (
     <div
@@ -128,8 +154,6 @@ const updateSearch = (field, value) => {
           </div>
         </div>
       </nav>
-      <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
-      <FlightSearchModal isOpen={flightSearchOpen} onClose={() => setFlightSearchOpen(false)} />
 
       {/* Hero Section */}
       <main className="mx-4 sm:mx-6 lg:mx-12 xl:mx-35 px-4 sm:px-8 lg:px-10 pt-10 md:pt-0 md:-mt-10 lg:-mt-16 flex flex-col md:flex-row items-center *:justify-between">

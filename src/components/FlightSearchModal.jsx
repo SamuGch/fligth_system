@@ -1,13 +1,11 @@
 import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../features/auth/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import {
   X,
   Plane,
   Clock3,
   CalendarDays,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { airports } from "../data/airports";
 
 const mockFlights = [
@@ -43,8 +41,6 @@ export default function FlightSearchModal({
   searchData,
 }) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { isAuthenticated } = useAuth();
   useEffect(() => {
     if (!isOpen) return;
     const handleEscape = (event) => {
@@ -254,11 +250,7 @@ export default function FlightSearchModal({
 
                       <button
                         type="button"
-                        onClick={() =>
-                          alert(
-                            `Próximo paso: asientos del vuelo ${flight.flightNumber}`
-                          )
-                        }
+                        onClick={() => handleSelectFlight(flight)}
                         className="bg-[#3b2b7a] hover:bg-[#2c205e]
                                    text-white rounded-full
                                    px-5 py-3 font-semibold

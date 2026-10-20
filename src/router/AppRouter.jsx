@@ -10,6 +10,7 @@ import {
   ProfilePage,
   ReservationsPage,
 } from "../features/account/pages/AccountPages";
+import SeatSelection from "../pages/SeatSelection";
 
 export default function AppRouter() {
   const location = useLocation();
@@ -19,6 +20,7 @@ export default function AppRouter() {
     <>
       <Routes location={backgroundLocation || location}>
         <Route path="/" element={<Home />} />
+        <Route path="/seleccion-asientos" element={<SeatSelection />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/perfil" element={<ProfilePage />} />
