@@ -14,7 +14,7 @@ function AccountLayout({ title, children }) {
   return (
     <main className="min-h-dvh bg-slate-50 p-5">
       <nav className="mx-auto flex max-w-3xl items-center justify-between">
-        <Link to="/">La Aurora</Link>
+        <Link to="/">Air Travel</Link>
         <button onClick={() => void leave()} className="text-sm text-violet-700">
           Cerrar sesión
         </button>

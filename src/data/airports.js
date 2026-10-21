@@ -6,4 +6,4 @@ export const airports = [
   { code: "LAX", city: "Los Ángeles", country: "Estados Unidos" },
 ];
 
-//pruebaa 
+//pruebaa

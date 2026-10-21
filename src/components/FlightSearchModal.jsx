@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   X,
@@ -7,33 +7,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { airports } from "../data/airports";
-
-const mockFlights = [
-  {
-    id: 1,
-    airline: "Avianca",
-    flightNumber: "AV123",
-    origin: "GUA",
-    destination: "MIA",
-    departure: "08:00",
-    arrival: "11:00",
-    duration: "3 h",
-    price: 950,
-    availableSeats: 45,
-  },
-  {
-    id: 2,
-    airline: "Avianca",
-    flightNumber: "AV125",
-    origin: "GUA",
-    destination: "MIA",
-    departure: "14:30",
-    arrival: "17:30",
-    duration: "3 h",
-    price: 1250,
-    availableSeats: 28,
-  },
-];
+import { searchFlights } from "../services/flightService";
 
 export default function FlightSearchModal({
   isOpen,
@@ -41,6 +15,14 @@ export default function FlightSearchModal({
   searchData,
 }) {
   const navigate = useNavigate();
+  const [flights, setFlights] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const origin = searchData?.origin || "GUA";
+  const destination = searchData?.destination || "MIA";
+  const departureDate = searchData?.departureDate;
+
   useEffect(() => {
     if (!isOpen) return;
     const handleEscape = (event) => {
@@ -52,16 +34,49 @@ export default function FlightSearchModal({
     };
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    let cancelled = false;
+
+    async function cargarVuelos() {
+      setLoading(true);
+      setError("");
+      setFlights([]);
+
+      try {
+        const resultados = await searchFlights({
+          origin,
+          destination,
+          departureDate,
+        });
+
+        if (!cancelled) {
+          setFlights(resultados);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "No fue posible buscar vuelos.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void cargarVuelos();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, origin, destination, departureDate]);
+
   if (!isOpen) return null;
-
-  const origin = searchData?.origin || "GUA";
-  const destination = searchData?.destination || "MIA";
-
-  const flights = mockFlights.filter(
-    (flight) =>
-      flight.origin === origin &&
-      flight.destination === destination
-  );
 
   const handleSelectFlight = (flight) => {
     const originAirport = airports.find(
@@ -76,9 +91,14 @@ export default function FlightSearchModal({
       state: {
         flight: {
           ...flight,
-          originCity: originAirport?.city ?? flight.origin,
+          originCity:
+            flight.originCity ??
+            originAirport?.city ??
+            flight.origin,
           destinationCity:
-            destinationAirport?.city ?? flight.destination,
+            flight.destinationCity ??
+            destinationAirport?.city ??
+            flight.destination,
           departureTime: flight.departure,
           arrivalTime: flight.arrival,
         },
@@ -148,7 +168,15 @@ export default function FlightSearchModal({
             </span>
           </div>
 
-          {flights.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-14 text-slate-600">
+              Buscando vuelos disponibles...
+            </div>
+          ) : error ? (
+            <div role="alert" className="text-center py-14 text-red-600">
+              {error}
+            </div>
+          ) : flights.length === 0 ? (
             <div className="text-center py-14 text-slate-600">
               No encontramos vuelos para esta búsqueda.
             </div>
@@ -241,10 +269,14 @@ export default function FlightSearchModal({
                         </p>
                         <p className="text-2xl font-extrabold
                                       text-[#3b2b7a]">
-                          Q{flight.price.toLocaleString("es-GT")}
+                          {flight.price == null
+                            ? "No disponible"
+                            : `Q${flight.price.toLocaleString("es-GT")}`}
                         </p>
                         <p className="text-xs text-slate-500">
-                          {flight.availableSeats} asientos
+                          {flight.availableSeats == null
+                            ? "Asientos no disponibles"
+                            : `${flight.availableSeats} asientos`}
                         </p>
                       </div>
 

@@ -11,6 +11,7 @@ import {
   ReservationsPage,
 } from "../features/account/pages/AccountPages";
 import SeatSelection from "../pages/SeatSelection";
+import CheckoutPage from "../pages/CheckoutPage";
 
 export default function AppRouter() {
   const location = useLocation();
@@ -23,12 +24,10 @@ export default function AppRouter() {
         <Route path="/seleccion-asientos" element={<SeatSelection />} />
 
         <Route element={<ProtectedRoute />}>
+          <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/perfil" element={<ProfilePage />} />
           <Route path="/reservas" element={<ReservationsPage />} />
-          <Route
-            path="/historial-compras"
-            element={<ReservationsPage history />}
-          />
+          <Route path="/historial-compras" element={<ReservationsPage history />} />
         </Route>
 
         {/* Permite abrir directamente una URL modal conservando Home detrás. */}

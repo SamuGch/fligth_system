@@ -1,5 +1,4 @@
-
-export const mockFlights = [
+{/*export const mockFlights = [
   {
     id: 1,
     flightNumber: "AV123",
@@ -45,4 +44,5 @@ export const mockFlights = [
       Business: { available: 6, price: 2300 },
     },
   },
-];
+];  
+*/}

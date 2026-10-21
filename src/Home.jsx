@@ -80,20 +80,20 @@ function Home() {
           <div className="hidden md:flex items-center gap-4 text-sm font-medium">
             <a href="#" className="relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-white">Vuelos</a>
             <span className="text-white/40">|</span>
-            <a href="#" className="text-white/80 hover:text-white transition-colors">Hoteles</a>
+            {/* <a href="#" className="text-white/80 hover:text-white transition-colors">Hoteles</a> */}
           </div>
         </div>
 
         {/* Center Logo */}
         <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center justify-center text-center whitespace-nowrap">
-          <h1 className="text-sm sm:text-base lg:text-xl font-bold tracking-widest uppercase">Air </h1>
+          <h1 className="text-sm sm:text-base lg:text-xl font-bold tracking-widest uppercase">Air Travel</h1>
           <p className="hidden sm:block text-[0.5rem] lg:text-[0.55rem] tracking-widest text-white/70">Vuelos que te llevan más lejos</p>
         </div>
 
         {/* Right Links */}
         <div className="flex items-center justify-end gap-3 lg:gap-8 lg:w-1/3">
           <div className="hidden md:flex items-center gap-4 text-sm font-medium">
-            <a href="#" className="text-white/80 hover:text-white transition-colors">Ofertas</a>
+            {/* <a href="#" className="text-white/80 hover:text-white transition-colors">Ofertas</a> */}
             <span className="text-white/40">|</span>
             <a href="#" className="text-white/80 hover:text-white transition-colors">Ayuda</a>
           </div>

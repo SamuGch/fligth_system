@@ -39,10 +39,29 @@ export default function AuthModal({ mode }) {
     );
   }, [backgroundLocation, navigate]);
 
+  const continueAfterAuth = useCallback(() => {
+    const returnTo = location.state?.returnTo;
+    const checkoutData = location.state?.checkoutData;
+
+    if (returnTo === "/checkout" && checkoutData) {
+      navigate("/checkout", {
+        replace: true,
+        state: checkoutData,
+      });
+
+      return;
+    }
+
+    close();
+  }, [location.state, navigate, close]);
+
   const switchMode = () => {
     navigate(isRegister ? "/login" : "/registro", {
       replace: true,
-      state: { backgroundLocation },
+      state: {
+        ...location.state,
+        backgroundLocation,
+      },
     });
   };
 
@@ -75,6 +94,7 @@ export default function AuthModal({ mode }) {
           navigate("/auth/confirm-email", {
             replace: true,
             state: {
+              ...location.state,
               email: form.email,
               backgroundLocation,
             },
@@ -97,7 +117,14 @@ export default function AuthModal({ mode }) {
   const continueWithGoogle = async () => {
     setStatus({ loading: true, error: "", success: false });
     try {
-      sessionStorage.setItem("authRedirect", JSON.stringify(backgroundLocation));
+      sessionStorage.setItem(
+        "authRedirect",
+        JSON.stringify({
+          backgroundLocation,
+          returnTo: location.state?.returnTo,
+          checkoutData: location.state?.checkoutData,
+        }),
+      );
       await signInWithGoogle();
     } catch (authError) {
       setStatus({ loading: false, error: authError.message, success: false });
@@ -113,10 +140,12 @@ export default function AuthModal({ mode }) {
           </h1>
           <button
             type="button"
-            onClick={close}
+            onClick={continueAfterAuth}
             className="mt-5 rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white"
           >
-            Continuar
+            {location.state?.returnTo === "/checkout"
+              ? "Continuar al pago"
+              : "Continuar"}
           </button>
         </div>
       </ModalShell>

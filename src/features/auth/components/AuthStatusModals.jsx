@@ -23,54 +23,124 @@ function useModalNavigation() {
   return { location, navigate, backgroundLocation, close };
 }
 
+
+
 export function AuthCallbackModal() {
   const { loading, session, syncStatus, error, syncProfile } = useAuth();
   const { navigate } = useModalNavigation();
-  const [backgroundLocation] = useState(() => {
-    try {
-      return JSON.parse(sessionStorage.getItem("authRedirect")) || { pathname: "/" };
-    } catch {
-      return { pathname: "/" };
-    }
-  }, []);
 
-  const close = useCallback(() => {
+  const [redirectData] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem("authRedirect");
+
+      if (!saved) {
+        return {
+          backgroundLocation: { pathname: "/" },
+        };
+      }
+
+      const parsed = JSON.parse(saved);
+
+      // Compatibilidad con el formato anterior.
+      if (parsed.pathname) {
+        return {
+          backgroundLocation: parsed,
+        };
+      }
+
+      return parsed;
+    } catch {
+      return {
+        backgroundLocation: { pathname: "/" },
+      };
+    }
+  });
+
+  const completed =
+    !loading &&
+    Boolean(session) &&
+    syncStatus === "synced";
+
+  const continueAfterGoogle = useCallback(() => {
+    if (!completed) return;
+
+    const { backgroundLocation, returnTo, checkoutData } =
+      redirectData;
+
     sessionStorage.removeItem("authRedirect");
+
+    if (returnTo === "/checkout" && checkoutData) {
+      navigate("/checkout", {
+        replace: true,
+        state: checkoutData,
+      });
+
+      return;
+    }
+
     navigate(
       {
-        pathname: backgroundLocation.pathname || "/",
-        search: backgroundLocation.search || "",
-        hash: backgroundLocation.hash || "",
+        pathname: backgroundLocation?.pathname || "/",
+        search: backgroundLocation?.search || "",
+        hash: backgroundLocation?.hash || "",
       },
-      { replace: true, state: backgroundLocation.state },
+      {
+        replace: true,
+        state: backgroundLocation?.state,
+      }
     );
-  }, [backgroundLocation, navigate]);
+  }, [completed, redirectData, navigate]);
 
-  const completed = !loading && session && syncStatus === "synced";
+  const returnToCheckout =
+    redirectData.returnTo === "/checkout" &&
+    Boolean(redirectData.checkoutData);
 
   return (
-    <ModalShell onClose={close} titleId="auth-status-title">
+    <ModalShell
+      onClose={continueAfterGoogle}
+      titleId="auth-status-title"
+    >
       <div className="py-8 text-center">
-        <h1 id="auth-status-title" className="text-2xl font-bold text-slate-900">
+        <h1
+          id="auth-status-title"
+          className="text-2xl font-bold text-slate-900"
+        >
           {error
             ? "No pudimos completar el acceso"
             : completed
               ? "Sesión iniciada correctamente"
               : "Completando inicio de sesión"}
         </h1>
-        <p className={`mt-3 ${error ? "text-red-700" : "text-slate-600"}`}>
+
+        <p
+          className={`mt-3 ${
+            error ? "text-red-700" : "text-slate-600"
+          }`}
+        >
           {error ||
             (completed
               ? "Ya puedes continuar."
               : "Estamos verificando tu cuenta y preparando tu perfil…")}
         </p>
+
         {completed && (
-          <button type="button" onClick={close} className="mt-5 rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white">
-            Continuar
+          <button
+            type="button"
+            onClick={continueAfterGoogle}
+            className="mt-5 rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white"
+          >
+            {returnToCheckout
+              ? "Continuar al pago"
+              : "Continuar"}
           </button>
         )}
+
         {session && syncStatus === "error" && (
-          <button type="button" onClick={() => void syncProfile(session)} className="mt-5 rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white">
+          <button
+            type="button"
+            onClick={() => void syncProfile(session)}
+            className="mt-5 rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white"
+          >
             Reintentar sincronización
           </button>
         )}
@@ -78,6 +148,7 @@ export function AuthCallbackModal() {
     </ModalShell>
   );
 }
+
 
 export function ConfirmEmailModal() {
   const { location, navigate, backgroundLocation, close } = useModalNavigation();
@@ -93,7 +164,15 @@ export function ConfirmEmailModal() {
         </p>
         <button
           type="button"
-          onClick={() => navigate("/login", { replace: true, state: { from: location.state?.from, backgroundLocation } })}
+          onClick={() =>
+            navigate("/login", {
+              replace: true,
+              state: {
+                ...location.state,
+                backgroundLocation,
+              },
+            })
+          }
           className="mt-5 rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white"
         >
           Ir a iniciar sesión

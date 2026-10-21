@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Plane,
@@ -16,40 +16,14 @@ import {
   Users,
   Clock3,
 } from "lucide-react";
+import { obtenerAsientosPorAvion, obtenerTiposAsiento } from "../services/asientoService";
+import { useAuth } from "../features/auth/context/AuthContext";
+import { guardarSeleccion, obtenerSeleccion, } from "../services/seatSelectionStorage";
 
-// Configuración visual de la cabina.
-// Posteriormente vendrá de Avion, Asiento y Tipo_asiento.
-const CABIN = [
-  {
-    id: "Business",
-    label: "Business",
-    start: 1,
-    end: 5,
-    columns: ["A", "C", "D", "F"],
-    price: 2300,
-    icon: Crown,
-    theme: "violet",
-  },
-  {
-    id: "Preferente",
-    label: "Preferente",
-    start: 6,
-    end: 12,
-    columns: ["A", "B", "C", "D", "E", "F"],
-    price: 1250,
-    icon: Star,
-    theme: "amber",
-  },
-  {
-    id: "Economica",
-    label: "Económica",
-    start: 13,
-    end: 28,
-    columns: ["A", "B", "C", "D", "E", "F"],
-    price: 950,
-    icon: Armchair,
-    theme: "emerald",
-  },
+const CABIN_THEMES = [
+  { name: "violet", icon: Crown },
+  { name: "amber", icon: Star },
+  { name: "emerald", icon: Armchair },
 ];
 
 const CLASS_THEME = {
@@ -67,52 +41,41 @@ const CLASS_THEME = {
   },
 };
 
-// Disponibilidad simulada, estable entre renders.
-// No representa una reserva real.
-function createMockSeats() {
-  const seats = [];
+function adaptarAsiento(asiento, tiposAsiento) {
+  const tipoAsientoId =
+    asiento.tipoAsientoId ?? asiento.tipo_asiento_id;
+  const tipo = tiposAsiento.find(
+    (item) => Number(item.id) === Number(tipoAsientoId),
+  );
+  const nombreClase = tipo?.nombre ?? tipo?.name ?? "Sin clase";
+  const clases = {
+    Ejecutiva: "business",
+    Premium: "premium",
+    Economica: "economy",
+  };
+  const activo = asiento.activo === true;
+  const ocupado = asiento.ocupado === true;
 
-  CABIN.forEach((section) => {
-    for (let row = section.start; row <= section.end; row++) {
-      section.columns.forEach((letter) => {
-        const code = `${row}${letter}`;
-        const seed = row * 13 + letter.charCodeAt(0);
-
-        let status = "Disponible";
-
-        if (seed % 13 === 0) {
-          status = "Ocupado";
-        } else if (seed % 11 === 0) {
-          status = "Reservado";
-        }
-
-        // Dejamos estos asientos libres para la demostración.
-        if (code === "15C" || code === "15D") {
-          status = "Disponible";
-        }
-
-        seats.push({
-          id: code,
-          row,
-          letter,
-          classId: section.id,
-          classLabel: section.label,
-          price: section.price,
-          status,
-        });
-      });
-    }
-  });
-
-  return seats;
+  return {
+    id: String(asiento.numero),
+    databaseId: asiento.id,
+    avionId: asiento.avionId ?? asiento.avion_id,
+    row: Number(asiento.fila),
+    letter: String(asiento.letra),
+    classId: clases[nombreClase] ?? "economy",
+    classLabel: nombreClase,
+    tipoAsientoId,
+    price: 0,
+    activo,
+    ocupado,
+    status: ocupado ? "Ocupado" : activo ? "Disponible" : "No disponible",
+  };
 }
-
-const MOCK_SEATS = createMockSeats();
 
 const STATUS_COLORS = {
   Disponible:
     "bg-emerald-300 border-emerald-500 hover:bg-emerald-400",
-  Reservado:
+  "No disponible":
     "bg-amber-300 border-amber-500 cursor-not-allowed",
   Ocupado:
     "bg-rose-300 border-rose-500 cursor-not-allowed",
@@ -208,7 +171,7 @@ function CabinSection({
         key={seat.id}
         seat={seat}
         selected={selectedSeats.some(
-          (item) => item.id === seat.id
+          (item) => item.databaseId === seat.databaseId
         )}
         onClick={onSeatClick}
       />
@@ -385,7 +348,17 @@ function FlightInfo({ flight }) {
 export default function SeatSelection() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAuthenticated } = useAuth();
   const { flightId } = useParams();
+  const avionId =
+    location.state?.flight?.avionId ??
+    location.state?.flight?.avion_id ??
+    location.state?.avionId;
+    console.log("===== DATOS RECIBIDOS =====");
+    console.log("flightId:", flightId);
+    console.log("location.state:", location.state);
+    console.log("avionId:", avionId);
+    console.log("===========================");
 
   // Datos que envía FlightSearchModal.
   // El fallback permite probar la pantalla directamente.
@@ -401,26 +374,138 @@ export default function SeatSelection() {
     arrivalTime: "11:00",
     duration: "3 h",
   };
+  const vueloId = flight.id ?? flightId;
 
   const [selectedSeats, setSelectedSeats] = useState([]);
-  const passengerCount = selectedSeats.length;
+  const [asientos, setAsientos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const sections = CABIN;
+
+  useEffect(() => {
+    let cancelado = false;
+
+    async function cargarAsientos() {
+      setLoading(true);
+      setError("");
+      setAsientos([]);
+      setSelectedSeats([]);
+
+      try {
+        const [asientosAPI, tiposAsiento] = await Promise.all([
+          obtenerAsientosPorAvion(avionId),
+          obtenerTiposAsiento(),
+        ]);
+        if (cancelado) return;
+
+        const asientosOrdenados = asientosAPI
+          .map((asiento) => adaptarAsiento(asiento, tiposAsiento))
+          .sort(
+            (a, b) =>
+              a.row - b.row || a.letter.localeCompare(b.letter),
+          );
+
+        setAsientos(asientosOrdenados);
+        const idsGuardados = obtenerSeleccion(vueloId, avionId);
+
+        const asientosRestaurados = asientosOrdenados.filter(
+          (asiento) =>
+            idsGuardados.some(
+              (id) => String(id) === String(asiento.databaseId),
+            ) &&
+            asiento.activo &&
+            !asiento.ocupado,
+        );
+
+        setSelectedSeats(asientosRestaurados);
+      } catch (err) {
+        if (!cancelado) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "No se pudieron obtener los asientos.",
+          );
+        }
+      } finally {
+        if (!cancelado) setLoading(false);
+        if (!avionId) {
+          throw new Error( "No se encontró el avión asociado al vuelo seleccionado." );
+        }
+      }
+    }
+
+    void cargarAsientos();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [avionId, vueloId]);
+
+  useEffect(() => {
+    if (loading || error || !avionId || !vueloId) {
+      return;
+    }
+
+    guardarSeleccion(vueloId, avionId, selectedSeats);
+  }, [
+    selectedSeats,
+    loading,
+    error,
+    avionId,
+    vueloId,
+  ]);
+
+  const sections = useMemo(() => {
+    const grouped = new Map();
+
+    asientos.forEach((seat) => {
+      const key = seat.classId ?? "sin-clase";
+      let section = grouped.get(key);
+
+      if (!section) {
+        section = {
+          id: key,
+          label: seat.classLabel,
+          start: seat.row,
+          end: seat.row,
+          columns: new Set(),
+          price: seat.price,
+        };
+        grouped.set(key, section);
+      }
+
+      section.start = Math.min(section.start, seat.row);
+      section.end = Math.max(section.end, seat.row);
+      section.columns.add(seat.letter);
+    });
+
+    return Array.from(grouped.values())
+      .map((section, index) => {
+        const theme = CABIN_THEMES[index % CABIN_THEMES.length];
+        return {
+          ...section,
+          columns: Array.from(section.columns).sort((a, b) =>
+            a.localeCompare(b),
+          ),
+          icon: theme.icon,
+          theme: theme.name,
+        };
+      })
+      .sort((a, b) => a.start - b.start);
+  }, [asientos]);
 
   const handleSeatClick = (seat) => {
     setMessage("");
-    if (selectedSeats.some((item) => item.id === seat.id)) {
-        setSelectedSeats((prev) =>
-          prev.filter((item) => item.id !== seat.id)
-        );
-        return;
-      }
+    if (!seat.activo || seat.ocupado) return;
 
-      if (seat.status !== "Disponible") {
-        return;
-      }
-
-    setSelectedSeats((prev) => [...prev, seat]);
+    setSelectedSeats((prev) => {
+      const existe = prev.some(
+        (item) => item.databaseId === seat.databaseId,
+      );
+      return existe
+        ? prev.filter((item) => item.databaseId !== seat.databaseId)
+        : [...prev, seat];
+    });
   };
 
   const subtotal = selectedSeats.reduce(
@@ -432,23 +517,43 @@ export default function SeatSelection() {
   const serviceFee = selectedSeats.length * 45;
   const total = subtotal + serviceFee;
 
+  const handleExit = () => {
+    navigate("/", {
+      replace: true,
+    });
+  };
+
   const handleContinue = () => {
     if (selectedSeats.length === 0) {
       setMessage("Debes seleccionar al menos un asiento.");
       return;
     }
 
-    navigate("/pasajeros", {
+    const checkoutData = {
+      flight,
+      passengers: selectedSeats.length,
+      selectedSeats,
+      subtotal,
+      serviceFee,
+      total,
+    };
+
+    if (isAuthenticated) {
+      navigate("/checkout", {
+        state: checkoutData,
+      });
+      return;
+    }
+
+    navigate("/login", {
       state: {
-        flight,
-        passengers: selectedSeats.length,
-        selectedSeats,
-        subtotal,
-        serviceFee,
-        total,
+        backgroundLocation: location,
+        returnTo: "/checkout",
+        checkoutData,
       },
     });
   };
+
 
   return (
     <div
@@ -457,7 +562,7 @@ export default function SeatSelection() {
       <div className="min-h-screen w-full">
         {/* Encabezado principal */}
         <header
-          className="bg-linear-to-r from-[#29205f]
+          className="sticky top-0 z-50 bg-linear-to-r from-[#29205f]
                      via-[#3b2b7a] to-[#5843a3]
                      w-full px-5 sm:px-8 lg:px-12
                      py-5 text-white"
@@ -468,30 +573,34 @@ export default function SeatSelection() {
                        justify-between gap-6"
           >
             <div className="flex items-center gap-4">
-              <div
-                className="bg-white/10 rounded-2xl
-                           p-3"
-              >
-                <Plane size={30} />
-              </div>
 
-              <div>
-                <h1 className="text-2xl font-bold">
-                  La Aurora
-                </h1>
-                <p className="text-white/70">
-                  Selecciona tus asientos
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-white p-2">
+                  <img
+                    src="/icono.jpg"
+                    alt="Air Travel"
+                    className="h-9 w-9 object-contain"
+                  />
+                </div>
+
+                <div>
+                  <h1 className="text-lg font-extrabold tracking-widest">
+                    AIR TRAVEL
+                  </h1>
+                  <p className="text-xs text-white/70">
+                    Vuelos que te llevan más lejos
+                  </p>
+                </div>
               </div>
-            </div>
+                </div>
 
             <div className="flex items-center gap-3 flex-wrap">
-              {[
+              {/*{[
                 "Asientos",
                 "Pasajeros",
                 "Pago",
                 "Confirmación",
-              ].map((step, index) => (
+               ].map((step, index) => (
                 <div
                   key={step}
                   className="flex items-center gap-2"
@@ -519,12 +628,12 @@ export default function SeatSelection() {
                     {step}
                   </span>
                 </div>
-              ))}
+              ))} */}
 
               <button
                 type="button"
-                onClick={() => navigate(-1)}
-                aria-label="Volver"
+                onClick={handleExit}
+                aria-label="Cerrar selección de asientos"
                 className="ml-2 p-2 hover:bg-white/10
                            rounded-full cursor-pointer"
               >
@@ -578,20 +687,35 @@ export default function SeatSelection() {
                 <div
                   className="bg-slate-50
                              overflow-x-auto p-4 sm:p-6"
+                  aria-busy={loading}
                 >
-                  <div className="min-w-max">
-                    <div className="flex items-start gap-15">
-                      {sections.map((section) => (
-                        <CabinSection
-                          key={section.id}
-                          section={section}
-                          seats={MOCK_SEATS}
-                          selectedSeats={selectedSeats}
-                          onSeatClick={handleSeatClick}
-                        />
-                      ))}
+                  {loading ? (
+                    <p className="py-12 text-center text-slate-500">
+                      Cargando asientos...
+                    </p>
+                  ) : error ? (
+                    <p role="alert" className="py-12 text-center text-rose-700">
+                      {error}
+                    </p>
+                  ) : asientos.length === 0 ? (
+                    <p className="py-12 text-center text-slate-500">
+                      Este avión no tiene asientos registrados.
+                    </p>
+                  ) : (
+                    <div className="min-w-max">
+                      <div className="flex items-start gap-15">
+                        {sections.map((section) => (
+                          <CabinSection
+                            key={section.id}
+                            section={section}
+                            seats={asientos}
+                            selectedSeats={selectedSeats}
+                            onSeatClick={handleSeatClick}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Navegación de cabina
@@ -646,7 +770,7 @@ export default function SeatSelection() {
                 </aside>*/}
               </div>
 
-              {/* Referencias de la cabina */}
+              {/* Referencias de la cabina 
               <div
                 className="flex flex-wrap items-center
                            justify-center gap-6
@@ -662,7 +786,7 @@ export default function SeatSelection() {
                   <DoorOpen size={16} />
                   Salida de emergencia
                 </span>
-              </div>
+              </div> */}
             </section>
           </main>
 
@@ -820,9 +944,7 @@ export default function SeatSelection() {
               <button
                 type="button"
                 onClick={handleContinue}
-                disabled={
-                  selectedSeats.length !== passengerCount
-                }
+                disabled={selectedSeats.length === 0 || loading || Boolean(error)}
                 className="w-full bg-[#3b2b7a]
                            hover:bg-[#2b205c]
                            disabled:opacity-50
@@ -833,13 +955,13 @@ export default function SeatSelection() {
                            gap-3 transition-colors
                            cursor-pointer"
               >
-                Continuar con pasajeros
+                Continuar al pago
                 <ArrowRight size={20} />
               </button>
 
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={handleExit}
                 className="w-full text-slate-500
                            hover:text-[#3b2b7a]
                            flex items-center justify-center
