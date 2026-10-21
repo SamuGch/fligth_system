@@ -1,0 +1,87 @@
+
+name: AirFly Frontend - Build and Push ECR
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: airfly-frontend-ecr-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ACCOUNT_ID: "968053437864"
+  ECR_REPOSITORY: airfly-frontend
+
+jobs:
+  build-and-push:
+    name: Build and Push Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build React frontend
+        env:
+          VITE_API_URL: ""
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: npm run build
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::968053437864:role/Airfly-GitHubActions-Role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          IMAGE="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+          docker build --platform linux/amd64 \
+            --build-arg API_ORIGIN="" \
+            --build-arg SUPABASE_URL="$SUPABASE_URL" \
+            --build-arg SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY" \
+            --tag "$IMAGE" \
+            .
+
+          docker push "$IMAGE"
+
+          echo "Published image: $IMAGE"
+
+      - name: Publish image summary
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "### AirFly Frontend" >> "$GITHUB_STEP_SUMMARY"
+          echo "Image published successfully." >> "$GITHUB_STEP_SUMMARY"
+          echo "\`$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\`" >> "$GITHUB_STEP_SUMMARY"
