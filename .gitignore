@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Local environment configuration. VITE_* values are public at runtime, but
+# environment-specific values should be supplied explicitly during the build.
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
