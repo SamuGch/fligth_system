@@ -51,8 +51,8 @@ async function request(path, options = {}) {
 }
 
 export const syncClient = (accessToken) =>
-  request("/api/clientes/sync", { method: "POST", accessToken });
+  request("/clientes/sync", { method: "POST", accessToken });
 export const getMyProfile = (accessToken) =>
-  request("/api/clientes/me", { accessToken });
+  request("/clientes/me", { accessToken });
 export const updateMyProfile = (profile) =>
-  request("/api/clientes/me", { method: "PUT", body: JSON.stringify(profile) });
+  request("/clientes/me", { method: "PUT", body: JSON.stringify(profile) });
