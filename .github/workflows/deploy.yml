@@ -62,6 +62,7 @@ jobs:
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
+          API_URL: ${{ vars.VITE_API_URL }}
           SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: |
@@ -80,7 +81,7 @@ jobs:
           IMAGE="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
           docker build --platform linux/amd64 \
-            --build-arg API_ORIGIN="" \
+            --build-arg API_ORIGIN=$API_URL \
             --build-arg SUPABASE_URL="$SUPABASE_URL" \
             --build-arg SUPABASE_PUBLIC_TOKEN="$SUPABASE_PUBLISHABLE_KEY" \
             --tag "$IMAGE" \
