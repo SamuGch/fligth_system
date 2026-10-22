@@ -57,6 +57,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+
       - name: Build and push Docker image
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -64,12 +65,24 @@ jobs:
           SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: |
+          set -euo pipefail
+
+          test -n "$SUPABASE_URL" || {
+            echo "::error::VITE_SUPABASE_URL is empty"
+            exit 1
+          }
+
+          test -n "$SUPABASE_PUBLISHABLE_KEY" || {
+            echo "::error::VITE_SUPABASE_PUBLISHABLE_KEY is empty"
+            exit 1
+          }
+
           IMAGE="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
           docker build --platform linux/amd64 \
             --build-arg API_ORIGIN="" \
             --build-arg SUPABASE_URL="$SUPABASE_URL" \
-            --build-arg SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY" \
+            --build-arg SUPABASE_PUBLIC_TOKEN="$SUPABASE_PUBLISHABLE_KEY" \
             --tag "$IMAGE" \
             .
 
