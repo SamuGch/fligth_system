@@ -25,10 +25,15 @@ export default function FlightSearch() {
     returnDate: ""
   });
 
-  const updateSearch = (event) => {
-    const {name, value} = event.target
 
-    setSearchData({...searchData, [name]: name === "OrigenID" || name === "DestinationID" ? parseInt(value): value})
+
+  const updateSearch = (event) => {
+    const { name, value } = event.target
+    console.log({ name }, { value })
+    console.log({ event })
+
+    setSearchData({ ...searchData, [name]: name === "OrigenID" || name === "DestinationID" ? parseInt(value) : value })
+
 
   };
 
@@ -66,11 +71,11 @@ export default function FlightSearch() {
   }, []);
 
   const handleSearch = async () => {
-    console.log({searchData})
+    console.log({ searchData })
 
     const response = await Api.post("/vuelo/buscar", searchData);
 
-    console.log({response})
+    console.log({ response })
     setData(response)
 
     setModalOpen(true);
@@ -194,7 +199,9 @@ export default function FlightSearch() {
                         : "Selecciona origen"}
                     </option>
                     {airports.map((airport) => (
-                    <option key={airport.id} value={airport.id}>
+
+                      <option key={airport.id} value={airport.id}>
+
                         {airport.city} ({airport.code})
                       </option>
                     ))}
@@ -261,8 +268,8 @@ export default function FlightSearch() {
                     name="departureDate"
                     value={searchData.departureDate}
                     onChange={updateSearch}
-                    className="w-full bg-transparent text-sm font-semibold
-                                text-slate-800 outline-none"
+
+                    className="w-full bg-transparent text-ssm font-semibold text-slate-800 outline-none"
                   />
                 </div>
               </div>
@@ -282,29 +289,30 @@ export default function FlightSearch() {
                     </label>
 
                     <input
-                        id="return-date"
-                        type="date"
-                        min={searchData.departureDate || undefined}
-                        name="returnDate"
-                        value={searchData.returnDate}
-                        onChange={updateSearch}
-                        className="w-full bg-transparent text-sm font-semibold
-                                text-slate-800 outline-none"
+
+                      id="return-date"
+                      type="date"
+                      min={searchData.departureDate || undefined}
+                      name="returnDate"
+                      value={searchData.returnDate}
+                      onChange={updateSearch}
+                      className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none"
                     />
                   </div>
                 </div>
               )}
 
-            {/* Botón Buscar */}
-            <button 
-              onClick={handleSearch}
-              className="w-full lg:w-auto bg-[#3b3b7a] hover:bg-[#2c2c5c] text-white rounded-full p-4 flex items-center justify-center gap-3 transition-colors shadow-lg shadow-indigo-900/20 whitespace-nowrap pl-5 pr-6">
-              <Search className="w-5 h-5" />
-              <span className="font-semibold">Buscar vuelos</span>
-            </button>
+
+              {/* Botón Buscar */}
+              <button
+                onClick={handleSearch}
+                className="w-full lg:w-auto bg-[#333399] hover:bg-[#2c2c5c] text-white rounded-full p-4 flex items-center justify-center gap-3 transition-colors shadow-lg shadow-indigo-900/20 whitespace-nowrap pl-5 pr-6" >
+                <Search className="w-5 h-5" />
+                <span className="font-semibold">Buscar vuelos</span>
+              </button>
+            </div>
           </div>
         </div>
-
       </div>
 
       <FlightSearchModal
