@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import FlightSearchModal from "./FlightSearchModal";
-import { 
-  Calendar, 
+import {
+  Calendar,
   Search,
-  ChevronDown, 
-  PlaneLanding 
+  ChevronDown,
+  PlaneTakeoff,
+  PlaneLanding
 } from 'lucide-react';
 import { obtenerAeropuertos } from "../services/aeropuertoService";
 import * as Api from "../tools/Api";
@@ -26,8 +27,6 @@ export default function FlightSearch() {
 
   const updateSearch = (event) => {
     const {name, value} = event.target
-    console.log({name}, {value})
-    console.log({event})
 
     setSearchData({...searchData, [name]: name === "OrigenID" || name === "DestinationID" ? parseInt(value): value})
 
@@ -80,49 +79,49 @@ export default function FlightSearch() {
   return (
     <>
       <div>
-      {/* Search Widget */}
-      <div className="mx-auto relative z-20 -mt-20 shadow-[0_15px_40px_rgba(59,43,122,0.18)] sm:mx-6 lg:mx-10 xl:mx-30">
-        <div className="bg-white rounded-4xl p-7 py-4 shadow-2xl">
-          {/* Top Row: Selectors */}
-          <div className="flex gap-3 mb-4 border-b border-gray-100 pb-4">
-            <div className="relative inline-block">
-              <button
-                onClick={() => setTripTypeOpen(!tripTypeOpen)}
-                className="bg-[#4a4a8a] text-white px-6 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 "
-              >
-                {searchData.tripType === "round" 
-                ? "Ida y vuelta" 
-                : "Solo ida"}
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform ${
-                    tripTypeOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {tripTypeOpen && (
-                <div className="absolute left-0 top-full mt-2 w-48 bg-purple-50 rounded-2xl shadow-xl border border-purple-300 py-2 z-50 flex flex-col"> 
-                <button type="button" onClick={() => {updateSearch("tripType", "round"); setTripTypeOpen(false);
-                }} 
-                > 
-                Ida y vuelta
-                </button>
-
+        {/* Search Widget */}
+        <div className="relative z-20 -mt-20 mx-4 sm:mx-6 lg:mx-12 xl:mx-25">
+          <div className="bg-white rounded-4xl p-6 py-6 shadow-2xl">
+            {/* Top Row: Selectors */}
+            <div className="flex items-center mb-4">
+              <div className="relative inline-block">
                 <button
-                type="button"
-                onClick={() => {
-                    updateSearch("tripType", "one");
-                    setTripTypeOpen(false);
-                }}
+                  onClick={() => setTripTypeOpen(!tripTypeOpen)}
+                  className="bg-[#333399] text-white px-6 py-3 rounded-full text-sm font-bold flex items-center justify-between gap-5 min-w-[180px] hover:bg-[#5555CC] transition-colors"
                 >
-                Solo ida
+                  {searchData.tripType === "round"
+                    ? "Ida y vuelta"
+                    : "Solo ida"}
+                  <ChevronDown
+                    className={`w-5 h-5 transition-transform ${tripTypeOpen ? "rotate-180" : ""
+                      }`}
+                  />
                 </button>
 
-                </div>
-              )}
-            </div>
-            
-            {/* Pasajeros 
+                {tripTypeOpen && (
+                  <div className="absolute left-0 top-full mt-2 w-43 bg-purple-50 rounded-[10px] shadow-xl border border-purple-300 py-2 z-50 flex flex-col">
+                    <button type="button" onClick={() => {
+                      updateSearch("tripType", "round"); setTripTypeOpen(false);
+                    }}
+                    >
+                      Ida y vuelta
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateSearch("tripType", "one");
+                        setTripTypeOpen(false);
+                      }}
+                    >
+                      Solo ida
+                    </button>
+
+                  </div>
+                )}
+              </div>
+
+              {/* Pasajeros 
             <div className="flex items-center gap-2">
             <label className="text-sm text-slate-600">
                 Pasajeros
@@ -144,7 +143,7 @@ export default function FlightSearch() {
             </select>
             </div>*/}
 
-            {/* Clase 
+              {/* Clase 
             <div className="flex items-center gap-2">
             <label className="text-sm text-slate-600">
                 Clase
@@ -164,20 +163,22 @@ export default function FlightSearch() {
             </div>
 
           </div>*/}
-          </div>
+            </div>
 
-          {/* Bottom Row: Inputs */}
-          <div className="flex flex-col lg:flex-row items-center gap-4 px-2 sm:px-4 lg:px-0">
-            {/* Origen */}
-            <div className="flex-1 w-full border border-gray-200 rounded-2xl p-3">
-                <label
+            {/* Bottom Row: Inputs */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1.5fr_1.5fr_1fr_1fr_auto] items-center gap-3">
+              {/* Origen */}
+              <div className="min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5">
+                <PlaneTakeoff className="w-8 h-8 text-slate-600 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <label
                     htmlFor="flight-origin"
-                    className="block text-xs text-slate-500 mb-1"
-                >
+                    className="block text-xs text-slate-400 mb-1"
+                  >
                     Origen
-                </label>
+                  </label>
 
-                <select
+                  <select
                     id="flight-origin"
                     name="OrigenID"
                     value={searchData.OrigenID}
@@ -186,7 +187,7 @@ export default function FlightSearch() {
                     className="w-full bg-transparent text-sm font-semibold
                             text-slate-800 outline-none cursor-pointer
                             disabled:opacity-50"
-                >
+                  >
                     <option value="">
                       {loadingAirports
                         ? "Cargando aeropuertos..."
@@ -195,26 +196,27 @@ export default function FlightSearch() {
                     {airports.map((airport) => (
                     <option key={airport.id} value={airport.id}>
                         {airport.city} ({airport.code})
-                    </option>
+                      </option>
                     ))}
-                </select>
+                  </select>
                 </div>
+              </div>
 
-            
-                {/* Destino */}
-                <div className="flex-1 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-3 hover:border-violet-400 transition-colors">
 
-                <PlaneLanding className="w-6 h-6 text-slate-400 shrink-0" />
+              {/* Destino */}
+              <div className="min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5" >
+
+                <PlaneLanding className="w-8 h-8 text-slate-600 shrink-0" />
 
                 <div className="flex-1 min-w-0">
-                    <label
+                  <label
                     htmlFor="flight-destination"
                     className="block text-xs text-slate-500 font-medium mb-1"
-                    >
+                  >
                     Destino
-                    </label>
+                  </label>
 
-                    <select
+                  <select
                     id="flight-destination"
                     value={searchData.DestinationID}
                     name="DestinationID"
@@ -223,7 +225,7 @@ export default function FlightSearch() {
                     className="w-full bg-transparent text-sm font-semibold
                                 text-slate-800 outline-none cursor-pointer
                                 disabled:opacity-50"
-                    >
+                  >
                     <option value="">
                       {loadingAirports
                         ? "Cargando aeropuertos..."
@@ -236,47 +238,47 @@ export default function FlightSearch() {
                         </option>
                       )
                     ))}
-                    </select>
+                  </select>
                 </div>
-                </div>
+              </div>
 
-                {/* Salida */}
-                <div className="flex-1 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-3">
+              {/* Salida */}
+              <div className="min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5">
 
-                <Calendar className="w-6 h-6 text-slate-400 shrink-0" />
+                <Calendar className="w-8 h-8 text-slate-600 shrink-0" />
 
                 <div className="flex-1 min-w-0">
-                    <label
+                  <label
                     htmlFor="departure-date"
                     className="block text-xs text-slate-500 mb-1"
-                    >
+                  >
                     Salida
-                    </label>
+                  </label>
 
-                    <input
+                  <input
                     id="departure-date"
                     type="date"
                     name="departureDate"
                     value={searchData.departureDate}
                     onChange={updateSearch}
-                    className="w-full bg-transparent text-ssm font-semibold
+                    className="w-full bg-transparent text-sm font-semibold
                                 text-slate-800 outline-none"
-                    />
+                  />
                 </div>
-                </div>
+              </div>
 
-                {/* Regreso: solamente para ida y vuelta */}
-                {searchData.tripType === "round" && (
-                <div className="flex-1 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-3">
+              {/* Regreso: solamente para ida y vuelta */}
+              {searchData.tripType === "round" && (
+                <div className="min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5">
 
-                    <Calendar className="w-6 h-6 text-slate-400 shrink-0" />
+                  <Calendar className="w-8 h-8 text-slate-600 shrink-0" />
 
-                    <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0">
                     <label
-                        htmlFor="return-date"
-                        className="block text-xs text-slate-500 mb-1"
+                      htmlFor="return-date"
+                      className="block text-xs text-slate-500 mb-1"
                     >
-                        Regreso
+                      Regreso
                     </label>
 
                     <input
@@ -289,25 +291,19 @@ export default function FlightSearch() {
                         className="w-full bg-transparent text-sm font-semibold
                                 text-slate-800 outline-none"
                     />
-                    </div>
+                  </div>
                 </div>
-                )}
+              )}
 
             {/* Botón Buscar */}
             <button 
               onClick={handleSearch}
-              className="w-full lg:w-auto bg-[#3b3b7a] hover:bg-[#2c2c5c] text-white rounded-full p-4 flex items-center justify-center gap-2 transition-colors shadow-lg shadow-indigo-900/20 whitespace-nowrap">
+              className="w-full lg:w-auto bg-[#3b3b7a] hover:bg-[#2c2c5c] text-white rounded-full p-4 flex items-center justify-center gap-3 transition-colors shadow-lg shadow-indigo-900/20 whitespace-nowrap pl-5 pr-6">
               <Search className="w-5 h-5" />
               <span className="font-semibold">Buscar vuelos</span>
             </button>
           </div>
-          {airportsError && (
-            <p role="alert" className="text-sm text-red-600 mt-3">
-              {airportsError}
-            </p>
-          )}
         </div>
-      </div>
 
       </div>
 
