@@ -7,6 +7,7 @@ import {
   PlaneLanding 
 } from 'lucide-react';
 import { obtenerAeropuertos } from "../services/aeropuertoService";
+import * as Api from "../tools/Api";
 
 export default function FlightSearch() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -14,24 +15,22 @@ export default function FlightSearch() {
   const [airports, setAirports] = useState([]);
   const [loadingAirports, setLoadingAirports] = useState(true);
   const [airportsError, setAirportsError] = useState("");
+  const [data, setData] = useState({})
 
   const [searchData, setSearchData] = useState({
-    tripType: "round",
-    origin: "",
-    destination: "",
+    OrigenID: 0,
+    DestinationID: 0,
     departureDate: "",
-    returnDate: "",
-    seatClass: "Economica",
+    returnDate: ""
   });
 
-  const updateSearch = (field, value) => { 
-    setSearchData((prev) => ({
-      ...prev,
-      [field]: value,
-      ...(field === "origin" && value === prev.destination
-        ? { destination: "" }
-        : {}),
-    }));
+  const updateSearch = (event) => {
+    const {name, value} = event.target
+    console.log({name}, {value})
+    console.log({event})
+
+    setSearchData({...searchData, [name]: name === "OrigenID" || name === "DestinationID" ? parseInt(value): value})
+
   };
 
   useEffect(() => {
@@ -47,17 +46,6 @@ export default function FlightSearch() {
         if (!active) return;
 
         setAirports(data);
-        setSearchData((prev) => ({
-          ...prev,
-          origin: data.some((airport) => airport.code === prev.origin)
-            ? prev.origin
-            : "",
-          destination: data.some(
-            (airport) => airport.code === prev.destination,
-          )
-            ? prev.destination
-            : "",
-        }));
       } catch (error) {
         if (active) {
           setAirportsError(
@@ -78,58 +66,13 @@ export default function FlightSearch() {
     };
   }, []);
 
-  const handleSearch = () => {
-    if (loadingAirports || airportsError) {
-      alert("Los aeropuertos todavía no están disponibles.");
-      return;
-    }
+  const handleSearch = async () => {
+    console.log({searchData})
 
-    const {
-      origin,
-      destination,
-      departureDate,
-      returnDate,
-      tripType,
-    } = searchData;
+    const response = await Api.post("/vuelo/buscar", searchData);
 
-    if (!origin || !destination) {
-      alert("Debes seleccionar un aeropuerto de origen y destino.");
-      return;
-    }
-
-    if (origin === destination) {
-      alert("El origen y el destino deben ser diferentes.");
-      return;
-    }
-
-    if (!departureDate) {
-      alert("Debes seleccionar una fecha de salida.");
-      return;
-    }
-
-    const today = new Date();
-    const todayLocal = [
-      today.getFullYear(),
-      String(today.getMonth() + 1).padStart(2, "0"),
-      String(today.getDate()).padStart(2, "0"),
-    ].join("-");
-
-    if (departureDate < todayLocal) {
-      alert("La fecha de salida no puede ser anterior a hoy.");
-      return;
-    }
-
-    if (tripType === "round") {
-      if (!returnDate) {
-        alert("Debes seleccionar una fecha de regreso.");
-        return;
-      }
-
-      if (returnDate < departureDate) {
-        alert("El regreso no puede ser anterior a la salida.");
-        return;
-      }
-    }
+    console.log({response})
+    setData(response)
 
     setModalOpen(true);
   };
@@ -236,8 +179,9 @@ export default function FlightSearch() {
 
                 <select
                     id="flight-origin"
-                    value={searchData.origin}
-                    onChange={(e) => updateSearch("origin", e.target.value)}
+                    name="OrigenID"
+                    value={searchData.OrigenID}
+                    onChange={updateSearch}
                     disabled={loadingAirports || Boolean(airportsError)}
                     className="w-full bg-transparent text-sm font-semibold
                             text-slate-800 outline-none cursor-pointer
@@ -249,7 +193,7 @@ export default function FlightSearch() {
                         : "Selecciona origen"}
                     </option>
                     {airports.map((airport) => (
-                    <option key={airport.id} value={airport.code}>
+                    <option key={airport.id} value={airport.id}>
                         {airport.city} ({airport.code})
                     </option>
                     ))}
@@ -272,10 +216,9 @@ export default function FlightSearch() {
 
                     <select
                     id="flight-destination"
-                    value={searchData.destination}
-                    onChange={(e) =>
-                        updateSearch("destination", e.target.value)
-                    }
+                    value={searchData.DestinationID}
+                    name="DestinationID"
+                    onChange={updateSearch}
                     disabled={loadingAirports || Boolean(airportsError)}
                     className="w-full bg-transparent text-sm font-semibold
                                 text-slate-800 outline-none cursor-pointer
@@ -288,7 +231,7 @@ export default function FlightSearch() {
                     </option>
                     {airports.map((airport) => (
                       airport.code !== searchData.origin && (
-                        <option key={airport.id} value={airport.code}>
+                        <option key={airport.id} value={airport.id}>
                           {airport.city} ({airport.code})
                         </option>
                       )
@@ -313,11 +256,10 @@ export default function FlightSearch() {
                     <input
                     id="departure-date"
                     type="date"
+                    name="departureDate"
                     value={searchData.departureDate}
-                    onChange={(e) =>
-                        updateSearch("departureDate", e.target.value)
-                    }
-                    className="w-full bg-transparent text-sm font-semibold
+                    onChange={updateSearch}
+                    className="w-full bg-transparent text-ssm font-semibold
                                 text-slate-800 outline-none"
                     />
                 </div>
@@ -341,10 +283,9 @@ export default function FlightSearch() {
                         id="return-date"
                         type="date"
                         min={searchData.departureDate || undefined}
+                        name="returnDate"
                         value={searchData.returnDate}
-                        onChange={(e) =>
-                        updateSearch("returnDate", e.target.value)
-                        }
+                        onChange={updateSearch}
                         className="w-full bg-transparent text-sm font-semibold
                                 text-slate-800 outline-none"
                     />
@@ -354,7 +295,7 @@ export default function FlightSearch() {
 
             {/* Botón Buscar */}
             <button 
-              onClick={() => handleSearch(true)}
+              onClick={handleSearch}
               className="w-full lg:w-auto bg-[#3b3b7a] hover:bg-[#2c2c5c] text-white rounded-full p-4 flex items-center justify-center gap-2 transition-colors shadow-lg shadow-indigo-900/20 whitespace-nowrap">
               <Search className="w-5 h-5" />
               <span className="font-semibold">Buscar vuelos</span>
@@ -374,6 +315,7 @@ export default function FlightSearch() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         searchData={searchData}
+        searchResults={data}
       />
     </>
   );

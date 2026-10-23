@@ -89,13 +89,13 @@ export async function searchFlights({
     if (!ruta || !ruta.activa) return [];
 
     const origen = aeropuertos.find(
-      (a) => a.id === ruta.aeropuertoOrigenId
+      (a) => a.id !== ruta.aeropuertoOrigenId
     );
     const destino = aeropuertos.find(
-      (a) => a.id === ruta.aeropuertoDestinoId
+      (a) => a.id !== ruta.aeropuertoDestinoId
     );
     const aerolinea = aerolineas.find(
-      (a) => a.id === vuelo.aerolineaId
+      (a) => a.id !== vuelo.aerolineaId
     );
 
     if (!origen || !destino || !aerolinea) return [];

@@ -1,6 +1,6 @@
 
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Plane,
   X,
@@ -11,14 +11,11 @@ import {
   Star,
   Armchair,
   Check,
-  Coffee,
-  DoorOpen,
-  Users,
   Clock3,
 } from "lucide-react";
-import { obtenerAsientosPorAvion, obtenerTiposAsiento } from "../services/asientoService";
+import { obtenerTiposAsiento } from "../services/asientoService";
 import { useAuth } from "../features/auth/context/AuthContext";
-import { guardarSeleccion, obtenerSeleccion, } from "../services/seatSelectionStorage";
+import * as Api from "../tools/Api"
 
 const CABIN_THEMES = [
   { name: "violet", icon: Crown },
@@ -41,31 +38,35 @@ const CLASS_THEME = {
   },
 };
 
-function adaptarAsiento(asiento, tiposAsiento) {
+function adaptarAsiento(asiento, tiposAsiento, vueloId) {
   const tipoAsientoId =
     asiento.tipoAsientoId ?? asiento.tipo_asiento_id;
   const tipo = tiposAsiento.find(
     (item) => Number(item.id) === Number(tipoAsientoId),
   );
-  const nombreClase = tipo?.nombre ?? tipo?.name ?? "Sin clase";
-  const clases = {
-    Ejecutiva: "business",
-    Premium: "premium",
-    Economica: "economy",
-  };
-  const activo = asiento.activo === true;
-  const ocupado = asiento.ocupado === true;
+  const nombreClase =
+    asiento.tipoAsiento ?? tipo?.nombre ?? tipo?.name ?? "Sin clase";
+  const estado = String(asiento.estado ?? "").toUpperCase();
+  const ocupado = asiento.ocupado === true || estado === "OCUPADO";
+  const disponible =
+    asiento.disponible ??
+    (asiento.activo === true || estado === "DISPONIBLE");
+  const activo = disponible === true && !ocupado;
+  const databaseId =
+    asiento.vueloAsientoId ?? asiento.id ?? asiento.asientoId;
 
   return {
     id: String(asiento.numero),
-    databaseId: asiento.id,
+    databaseId,
+    selectionId: `${vueloId}-${databaseId}`,
+    vueloId,
     avionId: asiento.avionId ?? asiento.avion_id,
     row: Number(asiento.fila),
     letter: String(asiento.letra),
-    classId: clases[nombreClase] ?? "economy",
+    classId: String(tipoAsientoId ?? nombreClase),
     classLabel: nombreClase,
     tipoAsientoId,
-    price: 0,
+    price: Number(asiento.precio ?? asiento.price ?? 0),
     activo,
     ocupado,
     status: ocupado ? "Ocupado" : activo ? "Disponible" : "No disponible",
@@ -168,10 +169,10 @@ function CabinSection({
 
     return (
       <Seat
-        key={seat.id}
+        key={seat.selectionId}
         seat={seat}
         selected={selectedSeats.some(
-          (item) => item.databaseId === seat.databaseId
+          (item) => item.selectionId === seat.selectionId
         )}
         onClick={onSeatClick}
       />
@@ -260,6 +261,11 @@ function CabinSection({
 }
 
 function FlightInfo({ flight }) {
+  const stopCount = Math.max(
+    Number(flight.stops) || 0,
+    (flight.segments?.length ?? 1) - 1,
+  );
+
   return (
     <div
       className="bg-white p-5 sm:p-7
@@ -325,7 +331,7 @@ function FlightInfo({ flight }) {
           </div>
 
           <p className="text-xs text-slate-500 mt-2">
-            Vuelo directo
+            {stopCount > 0 ? `${stopCount} escala(s)` : "Vuelo directo"}
           </p>
         </div>
 
@@ -349,35 +355,21 @@ export default function SeatSelection() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated } = useAuth();
-  const { flightId } = useParams();
-  const avionId =
-    location.state?.flight?.avionId ??
-    location.state?.flight?.avion_id ??
-    location.state?.avionId;
-    console.log("===== DATOS RECIBIDOS =====");
-    console.log("flightId:", flightId);
-    console.log("location.state:", location.state);
-    console.log("avionId:", avionId);
-    console.log("===========================");
-
-  // Datos que envía FlightSearchModal.
-  // El fallback permite probar la pantalla directamente.
-  const flight = location.state?.flight ?? {
-    id: Number(flightId) || 1,
-    airline: "Avianca",
-    flightNumber: "AV123",
-    origin: "GUA",
-    destination: "MIA",
-    originCity: "Ciudad de Guatemala",
-    destinationCity: "Miami",
-    departureTime: "08:00",
-    arrivalTime: "11:00",
-    duration: "3 h",
+  const selectedFlight = location.state?.flight ?? {};
+  const flight = {
+    ...selectedFlight,
+    departureTime: selectedFlight.departureTime ?? selectedFlight.departure,
+    arrivalTime: selectedFlight.arrivalTime ?? selectedFlight.arrival,
   };
-  const vueloId = flight.id ?? flightId;
+  const vuelos = useMemo(() => {
+    const seleccion = location.state?.flight;
+    if (seleccion?.segments?.length) return seleccion.segments;
+    return seleccion?.vueloId ? [seleccion] : [];
+  }, [location.state?.flight]);
 
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [asientos, setAsientos] = useState([]);
+  const [activeSegmentIndex, setActiveSegmentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -392,32 +384,41 @@ export default function SeatSelection() {
       setSelectedSeats([]);
 
       try {
-        const [asientosAPI, tiposAsiento] = await Promise.all([
-          obtenerAsientosPorAvion(avionId),
+        if (vuelos.length === 0) {
+          throw new Error("No se recibieron vuelos para cargar sus asientos.");
+        }
+
+        const [respuestas, tiposAsiento] = await Promise.all([
+          Promise.all(
+            vuelos.map((vuelo) =>
+              Api.get(`/vuelo/${vuelo.vueloId}/asientos`),
+            ),
+          ),
           obtenerTiposAsiento(),
         ]);
-        if (cancelado) return;
 
-        const asientosOrdenados = asientosAPI
-          .map((asiento) => adaptarAsiento(asiento, tiposAsiento))
+        const asientosOrdenados = respuestas
+          .flatMap((respuesta, index) => {
+            const asientosVuelo = Array.isArray(respuesta)
+              ? respuesta
+              : respuesta?.asientos ?? [];
+
+            return asientosVuelo.map((asiento) =>
+              adaptarAsiento(
+                asiento,
+                tiposAsiento,
+                vuelos[index].vueloId,
+              ),
+            );
+          })
           .sort(
             (a, b) =>
-              a.row - b.row || a.letter.localeCompare(b.letter),
+              a.vueloId - b.vueloId ||
+              a.row - b.row ||
+              a.letter.localeCompare(b.letter),
           );
 
-        setAsientos(asientosOrdenados);
-        const idsGuardados = obtenerSeleccion(vueloId, avionId);
-
-        const asientosRestaurados = asientosOrdenados.filter(
-          (asiento) =>
-            idsGuardados.some(
-              (id) => String(id) === String(asiento.databaseId),
-            ) &&
-            asiento.activo &&
-            !asiento.ocupado,
-        );
-
-        setSelectedSeats(asientosRestaurados);
+        if (!cancelado) setAsientos(asientosOrdenados);
       } catch (err) {
         if (!cancelado) {
           setError(
@@ -428,9 +429,6 @@ export default function SeatSelection() {
         }
       } finally {
         if (!cancelado) setLoading(false);
-        if (!avionId) {
-          throw new Error( "No se encontró el avión asociado al vuelo seleccionado." );
-        }
       }
     }
 
@@ -439,26 +437,21 @@ export default function SeatSelection() {
     return () => {
       cancelado = true;
     };
-  }, [avionId, vueloId]);
+  }, [vuelos]);
 
-  useEffect(() => {
-    if (loading || error || !avionId || !vueloId) {
-      return;
-    }
-
-    guardarSeleccion(vueloId, avionId, selectedSeats);
-  }, [
-    selectedSeats,
-    loading,
-    error,
-    avionId,
-    vueloId,
-  ]);
+  const activeSegment = vuelos[activeSegmentIndex];
+  const asientosDelSegmento = useMemo(
+    () =>
+      asientos.filter(
+        (seat) => String(seat.vueloId) === String(activeSegment?.vueloId),
+      ),
+    [asientos, activeSegment],
+  );
 
   const sections = useMemo(() => {
     const grouped = new Map();
 
-    asientos.forEach((seat) => {
+    asientosDelSegmento.forEach((seat) => {
       const key = seat.classId ?? "sin-clase";
       let section = grouped.get(key);
 
@@ -492,18 +485,19 @@ export default function SeatSelection() {
         };
       })
       .sort((a, b) => a.start - b.start);
-  }, [asientos]);
+  }, [asientosDelSegmento]);
 
   const handleSeatClick = (seat) => {
+    console.log({seat})
     setMessage("");
     if (!seat.activo || seat.ocupado) return;
 
     setSelectedSeats((prev) => {
       const existe = prev.some(
-        (item) => item.databaseId === seat.databaseId,
+        (item) => item.selectionId === seat.selectionId,
       );
       return existe
-        ? prev.filter((item) => item.databaseId !== seat.databaseId)
+        ? prev.filter((item) => item.selectionId !== seat.selectionId)
         : [...prev, seat];
     });
   };
@@ -678,6 +672,30 @@ export default function SeatSelection() {
                 <SeatLegend />
               </div>
 
+              {vuelos.length > 1 && (
+                <div className="mb-5 flex gap-2 overflow-x-auto" aria-label="Tramos del vuelo">
+                  {vuelos.map((vuelo, index) => (
+                    <button
+                      key={vuelo.vueloId}
+                      type="button"
+                      onClick={() => setActiveSegmentIndex(index)}
+                      aria-pressed={activeSegmentIndex === index}
+                      className={`shrink-0 rounded-lg border px-4 py-3 text-left ${
+                        activeSegmentIndex === index
+                          ? "border-violet-600 bg-violet-100 text-violet-900"
+                          : "border-slate-200 bg-white text-slate-600"
+                      }`}
+                    >
+                      <span className="block text-xs">Viaje {index + 1}</span>
+                      <span className="block text-sm font-semibold">
+                        {vuelo.origin} → {vuelo.destination}
+                      </span>
+                      <span className="block text-xs">{vuelo.flightNumber}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Mapa y filtros */}
               <div
                 className="grid grid-cols-1
@@ -697,18 +715,19 @@ export default function SeatSelection() {
                     <p role="alert" className="py-12 text-center text-rose-700">
                       {error}
                     </p>
-                  ) : asientos.length === 0 ? (
+                  ) : asientosDelSegmento.length === 0 ? (
                     <p className="py-12 text-center text-slate-500">
-                      Este avión no tiene asientos registrados.
+                      Este tramo no tiene asientos registrados.
                     </p>
                   ) : (
                     <div className="min-w-max">
                       <div className="flex items-start gap-15">
+                        {console.log({sections})}
                         {sections.map((section) => (
                           <CabinSection
                             key={section.id}
                             section={section}
-                            seats={asientos}
+                            seats={asientosDelSegmento}
                             selectedSeats={selectedSeats}
                             onSeatClick={handleSeatClick}
                           />
