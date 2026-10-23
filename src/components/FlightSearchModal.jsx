@@ -1,301 +1,256 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  X,
-  Plane,
-  Clock3,
-  CalendarDays,
-} from "lucide-react";
+import { CalendarDays, Clock3, Plane, X } from "lucide-react";
 import { airports } from "../data/airports";
-import { searchFlights } from "../services/flightService";
+
+function formatTime(value) {
+  if (!value) return "--:--";
+  return value.match(/(?:T|\s)(\d{2}:\d{2})/)?.[1] ?? value;
+}
+
+function formatDate(value) {
+  if (!value) return "Fecha por seleccionar";
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return value;
+
+  return new Date(year, month - 1, day).toLocaleDateString("es-GT", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+function formatPrice(value) {
+  const price = Number(value);
+  if (!Number.isFinite(price)) return "Precio no disponible";
+  return `$${price.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} USD`;
+}
+
+function getLayoverLabel(layover) {
+  const airport = airports.find((item) => item.code === layover.airport);
+  const city = layover.city ?? airport?.city;
+  const country = layover.country ?? airport?.country;
+  const place = [city, country].filter(Boolean).join(", ");
+
+  return `${place || layover.airport}${place ? ` (${layover.airport})` : ""}`;
+}
 
 export default function FlightSearchModal({
   isOpen,
   onClose,
   searchData,
+  searchResults,
 }) {
   const navigate = useNavigate();
-  const [flights, setFlights] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const origin = searchData?.origin || "GUA";
-  const destination = searchData?.destination || "MIA";
-  const departureDate = searchData?.departureDate;
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleEscape = (event) => {
-      if (event.key === "Escape") onClose();
-    }; document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [isOpen, onClose]);
+  const flights = searchResults?.outbound?.flights ?? [];
+  const alternativeDates =
+    searchResults?.outbound?.alternativeDates ??
+    searchResults?.alternativeDates ??
+    [];
+  const firstFlight = flights[0];
 
   useEffect(() => {
     if (!isOpen) return undefined;
 
-    let cancelled = false;
-
-    async function cargarVuelos() {
-      setLoading(true);
-      setError("");
-      setFlights([]);
-
-      try {
-        const resultados = await searchFlights({
-          origin,
-          destination,
-          departureDate,
-        });
-
-        if (!cancelled) {
-          setFlights(resultados);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "No fue posible buscar vuelos.",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void cargarVuelos();
-
-    return () => {
-      cancelled = true;
+    const handleEscape = (event) => {
+      if (event.key === "Escape") onClose();
     };
-  }, [isOpen, origin, destination, departureDate]);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   const handleSelectFlight = (flight) => {
-    const originAirport = airports.find(
-      (airport) => airport.code === flight.origin
-    );
-    const destinationAirport = airports.find(
-      (airport) => airport.code === flight.destination
-    );
-
     onClose();
     navigate("/seleccion-asientos", {
       state: {
-        flight: {
-          ...flight,
-          originCity:
-            flight.originCity ??
-            originAirport?.city ??
-            flight.origin,
-          destinationCity:
-            flight.destinationCity ??
-            destinationAirport?.city ??
-            flight.destination,
-          departureTime: flight.departure,
-          arrivalTime: flight.arrival,
-        },
-        passengers: searchData?.passengers,
+        flight
       },
     });
   };
 
+  const currentPrices = flights.flatMap((flight) => flight.prices ?? []);
+  const currentPrice = currentPrices.length
+    ? Math.min(...currentPrices.map((fare) => Number(fare.price)))
+    : null;
+
   return (
     <div
-      className="fixed inset-0 z-100 flex items-center
-                 justify-center bg-slate-950/50
-                 backdrop-blur-sm p-3 sm:p-6"
+      className="fixed inset-0 z-100 flex items-center justify-center bg-slate-950/50 p-3 backdrop-blur-sm sm:p-6"
       role="presentation"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
       }}
     >
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="flight-modal-title"
-        className="bg-white w-full max-w-5xl
-                   max-h-[90dvh] overflow-y-auto
-                   rounded-3xl shadow-2xl"
+        className="max-h-[90dvh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
       >
-        {/* Encabezado */}
-        <div
-          className="bg-[#3b2b7a] text-white
-                     px-5 sm:px-8 py-6
-                     flex items-start justify-between"
-        >
+        <header className="flex items-start justify-between bg-[#3b2b7a] px-5 py-6 text-white sm:px-8">
           <div>
-            <p className="text-sm text-white/70 mb-1">
-              Encuentra tu próximo destino
-            </p>
-            <h2
-              id="flight-modal-title"
-              className="text-2xl sm:text-3xl font-bold"
-            >
+            <p className="mb-1 text-sm text-white/70">Resultados de búsqueda</p>
+            <h2 id="flight-modal-title" className="text-2xl font-bold sm:text-3xl">
               Vuelos disponibles
             </h2>
-            <p className="text-white/80 text-sm mt-2">
-              {origin} → {destination}
-            </p>
+            {firstFlight && (
+              <p className="mt-2 text-sm text-white/80">
+                {firstFlight.originCity ?? firstFlight.origin} ({firstFlight.origin})
+                {" → "}
+                {firstFlight.destinationCity ?? firstFlight.destination} ({firstFlight.destination})
+              </p>
+            )}
           </div>
-
           <button
             type="button"
             onClick={onClose}
             aria-label="Cerrar resultados"
-            className="p-2 rounded-full hover:bg-white/15
-                       cursor-pointer"
+            className="rounded-full p-2 hover:bg-white/15"
           >
             <X size={22} />
           </button>
-        </div>
+        </header>
 
-        {/* Contenido */}
-        <div className="p-4 sm:p-8 bg-slate-50">
-          <div className="flex items-center gap-2 mb-6
-                          text-slate-600 text-sm">
-            <CalendarDays size={18} />
-            <span>
-              {searchData?.departureDate ||
-                "Fecha por seleccionar"}
-            </span>
+        <div className="bg-slate-50 p-4 sm:p-8">
+          {alternativeDates.length > 0 && (
+            <section aria-label="Fechas alternativas" className="mb-6">
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
+                <CalendarDays size={17} />
+                <h3>Otras fechas disponibles</h3>
+              </div>
+              <div className="flex overflow-x-auto border-b border-slate-200">
+                {[
+                  ...(searchData?.departureDate
+                    ? [{ departureDate: searchData.departureDate, price: currentPrice, current: true }]
+                    : []),
+                  ...alternativeDates,
+                ].map((dateOption, index) => (
+                  <div
+                    key={`${dateOption.departureDate}-${index}`}
+                    className={`min-w-36 flex-1 border-b-4 px-4 py-3 text-center ${
+                      dateOption.current
+                        ? "border-blue-600 text-slate-800"
+                        : "border-transparent text-slate-500"
+                    }`}
+                  >
+                    <p className="whitespace-nowrap text-sm font-medium">
+                      {dateOption.current ? "Tu fecha" : formatDate(dateOption.departureDate)}
+                    </p>
+                    <p className="mt-1 whitespace-nowrap text-base font-semibold">
+                      {dateOption.price == null
+                        ? "Sin precio"
+                        : `desde ${formatPrice(dateOption.price)}`}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <div className="mb-5 flex items-center gap-2 text-sm text-slate-600">
+            <CalendarDays size={17} />
+            <span>{formatDate(searchData?.departureDate ?? firstFlight?.departure)}</span>
           </div>
 
-          {loading ? (
-            <div className="text-center py-14 text-slate-600">
-              Buscando vuelos disponibles...
-            </div>
-          ) : error ? (
-            <div role="alert" className="text-center py-14 text-red-600">
-              {error}
-            </div>
-          ) : flights.length === 0 ? (
-            <div className="text-center py-14 text-slate-600">
+          {flights.length === 0 ? (
+            <div className="py-14 text-center text-slate-600">
               No encontramos vuelos para esta búsqueda.
             </div>
           ) : (
             <div className="space-y-4">
-              {flights.map((flight) => (
-                <div
-                  key={flight.id}
-                  className="bg-white border border-slate-200
-                             rounded-2xl p-5 sm:p-6
-                             hover:border-violet-300
-                             hover:shadow-lg transition-all"
-                >
-                  <div className="flex flex-col lg:flex-row
-                                  lg:items-center gap-6">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-5">
-                        <div
-                          className="bg-violet-100 p-2
-                                     rounded-full"
-                        >
-                          <Plane
-                            size={20}
-                            className="text-[#3b2b7a]"
-                          />
-                        </div>
+              {flights.map((flight, index) => {
+                const layovers = flight.layovers ?? [];
+                const segmentCount = flight.segments?.length ?? 0;
+                const hasStops = segmentCount > 1 || Number(flight.stops) > 0 || layovers.length > 0;
 
-                        <div>
-                          <p className="font-bold text-slate-900">
-                            {flight.airline}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            Vuelo {flight.flightNumber}
-                          </p>
-                        </div>
+                return (
+                  <article
+                    key={`${flight.flightNumber}-${index}`}
+                    className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6"
+                  >
+                    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="font-bold text-slate-900">{flight.flightNumber}</p>
+                        <p className="mt-1 text-sm text-slate-500">Operado por {flight.airline}</p>
                       </div>
+                      {hasStops ? (
+                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+                          {layovers.length || Math.max(segmentCount - 1, Number(flight.stops) || 0)} escala
+                          {(layovers.length || Math.max(segmentCount - 1, Number(flight.stops) || 0)) === 1 ? "" : "s"}
+                          {layovers[0] && ` en ${getLayoverLabel(layovers[0])}`}
+                          {layovers[0]?.duration && ` · ${layovers[0].duration}`}
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                          Directo
+                        </span>
+                      )}
+                    </div>
 
-                      <div
-                        className="flex items-center
-                                   justify-between gap-3"
-                      >
-                        <div>
-                          <p className="text-2xl font-bold text-slate-900">
-                            {flight.departure}
-                          </p>
-                          <p className="text-sm text-slate-500">
-                            {flight.origin}
-                          </p>
-                        </div>
-
-                        <div className="text-center flex-1 max-w-44">
-                          <div
-                            className="flex items-center
-                                       justify-center gap-2
-                                       text-slate-500 text-xs"
-                          >
-                            <Clock3 size={14} />
-                            {flight.duration}
-                          </div>
-                          <div
-                            className="border-t border-dashed
-                                       border-slate-300 my-2"
-                          />
-                          <p className="text-xs text-slate-400">
-                            Directo
-                          </p>
-                        </div>
-
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-slate-900">
-                            {flight.arrival}
-                          </p>
-                          <p className="text-sm text-slate-500">
-                            {flight.destination}
-                          </p>
-                        </div>
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-5">
+                      <div>
+                        <p className="text-2xl font-bold text-slate-900">{formatTime(flight.departure)}</p>
+                        <p className="mt-1 text-sm font-medium text-slate-700">{flight.originCity}</p>
+                        <p className="text-xs text-slate-500">{flight.origin}</p>
+                      </div>
+                      <div className="min-w-20 text-center text-slate-500 sm:min-w-32">
+                        <p className="flex items-center justify-center gap-1 text-xs">
+                          <Clock3 size={14} /> {flight.duration}
+                        </p>
+                        <div className="my-2 border-t border-dashed border-slate-300" />
+                        <p className="text-xs">{hasStops ? `${Math.max(segmentCount - 1, Number(flight.stops) || layovers.length)} escala(s)` : "Vuelo directo"}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-slate-900">{formatTime(flight.arrival)}</p>
+                        <p className="mt-1 text-sm font-medium text-slate-700">{flight.destinationCity}</p>
+                        <p className="text-xs text-slate-500">{flight.destination}</p>
                       </div>
                     </div>
 
-                    <div
-                      className="lg:border-l border-slate-200
-                                 lg:pl-6 lg:w-48
-                                 flex flex-row lg:flex-col
-                                 items-center lg:items-stretch
-                                 justify-between gap-3"
-                    >
-                      <div>
-                        <p className="text-xs text-slate-500">
-                          Precio desde
-                        </p>
-                        <p className="text-2xl font-extrabold
-                                      text-[#3b2b7a]">
-                          {flight.price == null
-                            ? "No disponible"
-                            : `Q${flight.price.toLocaleString("es-GT")}`}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {flight.availableSeats == null
-                            ? "Asientos no disponibles"
-                            : `${flight.availableSeats} asientos`}
-                        </p>
+                    {flight.prices?.length > 0 && (
+                      <div className="mt-5 border-t border-slate-200 pt-4">
+                        <h3 className="mb-3 text-sm font-semibold text-slate-700">Precios por clase</h3>
+                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          {flight.prices.map((fare) => (
+                            <div
+                              key={fare.seatTypeId}
+                              className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-3"
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-slate-800">{fare.seatType}</p>
+                                <p className="text-xs text-slate-500">
+                                  {fare.availableSeats == null
+                                    ? "Disponibilidad no informada"
+                                    : `${fare.availableSeats} asientos disponibles`}
+                                </p>
+                              </div>
+                              <p className="shrink-0 text-sm font-bold text-[#3b2b7a]">
+                                {formatPrice(fare.price)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
+                    )}
 
+                    <div className="mt-5 flex justify-end">
                       <button
                         type="button"
                         onClick={() => handleSelectFlight(flight)}
-                        className="bg-[#3b2b7a] hover:bg-[#2c205e]
-                                   text-white rounded-full
-                                   px-5 py-3 font-semibold
-                                   flex items-center
-                                   justify-center gap-2
-                                   cursor-pointer transition-colors"
+                        className="flex items-center gap-2 rounded-full bg-[#3b2b7a] px-5 py-3 font-semibold text-white transition-colors hover:bg-[#2c205e]"
                       >
-                        Seleccionar
+                        <Plane size={17} /> Seleccionar
                       </button>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>
