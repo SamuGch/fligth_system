@@ -12,7 +12,7 @@ export default function ModalShell({ children, onClose, titleId }) {
 
   return (
     <div
-      className="fixed inset-0 z-100 grid place-items-center overflow-y-auto bg-slate-950/55 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-100 grid place-items-center overflow-y-auto bg-slate-950/55 p-3 backdrop-blur-sm sm:p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -21,7 +21,7 @@ export default function ModalShell({ children, onClose, titleId }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative my-auto w-full max-w-md rounded-3xl bg-white p-7 shadow-2xl"
+        className="relative my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:p-7"
       >
         <button
           type="button"

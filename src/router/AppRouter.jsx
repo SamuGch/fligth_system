@@ -21,13 +21,13 @@ export default function AppRouter() {
     <>
       <Routes location={backgroundLocation || location}>
         <Route path="/" element={<Home />} />
-        <Route path="/seleccion-asientos" element={<SeatSelection />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/perfil" element={<ProfilePage />} />
           <Route path="/reservas" element={<ReservationsPage />} />
           <Route path="/historial-compras" element={<ReservationsPage history />} />
+          <Route path="/seleccion-asientos" element={<SeatSelection />} />
         </Route>
 
         {/* Permite abrir directamente una URL modal conservando Home detrás. */}

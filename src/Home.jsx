@@ -22,6 +22,19 @@ function Home() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [accountMenuError, setAccountMenuError] = useState('');
   const [signingOut, setSigningOut] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => window.matchMedia('(max-width: 767px)').matches,
+  );
+
+  useEffect(() => {
+    const mobileMediaQuery = window.matchMedia('(max-width: 767px)');
+    const updateMobileViewport = (event) =>
+      setIsMobileViewport(event.matches);
+
+    mobileMediaQuery.addEventListener('change', updateMobileViewport);
+    return () =>
+      mobileMediaQuery.removeEventListener('change', updateMobileViewport);
+  }, []);
 
   useEffect(() => {
     if (!accountMenuOpen) return undefined;
@@ -66,12 +79,12 @@ function Home() {
 
   return (
     <div
-    className="min-h-dvh bg-cover bg-center bg-no-repeat bg-fixed font-sans relative overflow-x-hidden"
+    className="relative min-h-dvh overflow-x-hidden bg-cover bg-center bg-no-repeat bg-scroll font-sans md:bg-fixed"
     style={{ backgroundImage:
       'linear-gradient(to bottom, rgba(200, 210, 255, 0.0), rgba(80, 70, 150, 0.0)), url("/font.jpeg")', }} >
       
       {/* Navbar */}
-      <nav className="mx-4 sm:mx-6 lg:mx-12 xl:mx-25 mt-3 sm:mt-5 bg-[#3b2b7a]/90 backdrop-blur-md rounded-full px-7 sm:px-5 lg:px-7 xl:px-5 py-3 flex items-center justify-between shadow-xl text-white relative z-50">
+      <nav className="relative z-50 mx-3 mt-3 flex items-center justify-between rounded-full bg-[#3b2b7a]/90 px-4 py-3 text-white shadow-xl backdrop-blur-md sm:mx-6 sm:mt-5 sm:px-5 lg:mx-12 lg:px-7 xl:mx-25 xl:px-5">
         {/* Left Links */}
         <div className="flex items-center gap-3 lg:gap-8 lg:w-1/3">
           <div className="bg-white text-blue-900 p-1.5 sm:p-2 rounded-full shrink-0">
@@ -156,33 +169,32 @@ function Home() {
       </nav>
 
       {/* Hero Section */}
-      <main className="mx-4 sm:mx-6 lg:mx-12 xl:mx-35 px-4 sm:px-8 lg:px-10 pt-10 md:pt-0 md:-mt-10 lg:-mt-16 flex flex-col md:flex-row items-center *:justify-between">
+      <main className="mx-4 flex flex-col items-center px-2 pt-8 *:justify-between sm:mx-6 sm:px-8 sm:pt-10 md:mx-6 md:-mt-10 md:flex-row md:pt-0 lg:mx-12 lg:-mt-16 lg:px-10 xl:mx-35">
         <div className="w-full md:w-1/2 md:pr-8 z-10 text-center md:text-left">
-          <p className="sm:text-sm lg:text-l xl:text-xl  tracking-[0.3em] text-slate-800 font-semibold mb-4 uppercase">Explora el mundo</p>
-          <h2 className="text-3xl sm:text-4xl md:text-3xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-3"> 
+          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-slate-800 sm:text-base sm:tracking-[0.3em]">Explora el mundo</p>
+          <h2 className="mb-3 text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl lg:text-5xl">
             Tu próxima aventura <br />
             <span className="text-violet-100 " style={{ color: '#6d28d9' }}>comienza aquí</span>
           </h2>
-          <p className="text-slate-700 text-base sm:text-sm lg:text-l xl:text-xl max-w-md mx-auto md:mx-0">
+          <p className="mx-auto max-w-md text-base text-slate-700 md:mx-0 lg:text-lg xl:text-xl">
             Encuentra los mejores vuelos a los destinos que desees, rápido, fácil y seguro.
           </p>
         </div>
         
         {/* 3D Globe Section (Reemplazo del Placeholder) */}
-        <div className="w-full md:w-1/2 flex justify-center relative mt-4 md:mt-0 z-0 h-80 sm:h-100 md:h-115 lg:h-128">
+        <div className="relative z-0 mt-2 flex h-64 w-full justify-center sm:mt-4 sm:h-80 md:mt-0 md:h-100 md:w-1/2 lg:h-115 xl:h-128">
           {/* Efecto de resplandor de fondo (opcional, para mantener estética del diseño original) */}
           <div className="absolute w-55 h-55 sm:w-70 sm:h-70 lg:w-80 lg:h-80 bg-blue-400/30 rounded-full blur-3xl top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 -z-10"></div>
           
           {/* Escena 3D */}
-          <Canvas camera={{ position: [0, 0, 9] }} className="w-full h-full">
+          <Canvas camera={{ position: [0, 0, 9] }} className="h-full w-full" dpr={[1, 1.5]}>
             {/*<SpaceBackground />*/}
             <ambientLight intensity={1.9} />
             <directionalLight position={[5, 3, 5]} intensity={2.5} />
             <Earth />
             <Airplane />
             
-            {/* Nota: En landing pages, a veces es mejor poner enableZoom={false} para evitar que el usuario se atasque al hacer scroll hacia abajo, pero lo he dejado en true como en tu código original */}
-            <OrbitControls enableZoom={false} />
+            <OrbitControls enabled={!isMobileViewport} enableZoom={false} />
           </Canvas>
         </div>
       </main>
@@ -191,10 +203,10 @@ function Home() {
       <FlightSearch /> 
 
       {/* Footer Features */}
-      <div className="mx-4 sm:mx-6 lg:mx-12 xl:mx-30 relative z-20 mt-5 px-4 sm:px-6 lg:px-0">
-        <div className="bg-white/5 backdrop-blur-[3px]  border border-white/20 rounded-4xl px-4 sm:px-6 lg:px-10 xl:px-20 py-3 sm:py-4 lg:py-8 grid grid-cols-2 sm:grid-cols-2 lg:flex justify-between items-center text-white shadow-lg">
+      <div className="relative z-20 mx-4 mt-5 px-2 sm:mx-6 sm:px-6 lg:mx-12 lg:px-0 xl:mx-30">
+        <div className="grid grid-cols-1 items-center justify-between rounded-4xl border border-white/20 bg-white/5 px-4 py-3 text-white shadow-lg backdrop-blur-[3px] sm:grid-cols-2 sm:px-6 sm:py-4 lg:flex lg:px-10 lg:py-8 xl:px-20">
           
-          <div className="flex items-center gap-4 flex-1 mb-4 lg:mb-0 border-r border-white/20 px-4">
+          <div className="mb-0 flex flex-1 items-center gap-4 border-b border-white/20 px-4 py-3 last:border-0 sm:border-0 sm:py-4 lg:mb-0 lg:border-r lg:px-4 lg:py-0 lg:last:border-0">
             <div className="bg-white/20 p-2 rounded-full">
               <ShieldCheck className="w-6 h-6" />
             </div>
@@ -204,7 +216,7 @@ function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 flex-1 mb-4 lg:mb-0 border-r border-white/20 px-4">
+          <div className="mb-0 flex flex-1 items-center gap-4 border-b border-white/20 px-4 py-3 last:border-0 sm:border-0 sm:py-4 lg:mb-0 lg:border-r lg:px-4 lg:py-0 lg:last:border-0">
             <div className="bg-white/20 p-2 rounded-full">
               <ShieldCheck className="w-6 h-6" />
             </div>
@@ -214,7 +226,7 @@ function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 flex-1 mb-4 lg:mb-0 border-r border-white/20 px-4">
+          <div className="mb-0 flex flex-1 items-center gap-4 border-b border-white/20 px-4 py-3 last:border-0 sm:border-0 sm:py-4 lg:mb-0 lg:border-r lg:px-4 lg:py-0 lg:last:border-0">
             <div className="bg-white/20 p-2 rounded-full">
               <Headphones className="w-6 h-6" />
             </div>
@@ -224,7 +236,7 @@ function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 flex-1 px-4">
+          <div className="flex flex-1 items-center gap-4 px-4 py-3 sm:py-4 lg:px-4 lg:py-0">
             <div className="bg-white/20 p-2 rounded-full">
               <Plane className="w-6 h-6" />
             </div>

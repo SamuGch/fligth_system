@@ -12,15 +12,15 @@ function AccountLayout({ title, children }) {
   };
 
   return (
-    <main className="min-h-dvh bg-slate-50 p-5">
+    <main className="min-h-dvh bg-slate-50 p-3 sm:p-5">
       <nav className="mx-auto flex max-w-3xl items-center justify-between">
         <Link to="/">Air Travel</Link>
         <button onClick={() => void leave()} className="text-sm text-violet-700">
           Cerrar sesión
         </button>
       </nav>
-      <section className="mx-auto mt-8 max-w-3xl rounded-3xl bg-white p-7 shadow-sm">
-        <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+      <section className="mx-auto mt-6 max-w-3xl rounded-3xl bg-white p-4 shadow-sm sm:mt-8 sm:p-7">
+        <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{title}</h1>
         {children}
       </section>
     </main>
@@ -65,7 +65,7 @@ export function ProfilePage() {
         </button>
         {message && <p className="text-sm text-slate-600">{message}</p>}
       </form>
-      <div className="mt-6 flex gap-4 text-sm text-violet-700">
+      <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm text-violet-700">
         <Link to="/reservas">Mis reservas</Link>
         <Link to="/historial-compras">Historial de compras</Link>
       </div>

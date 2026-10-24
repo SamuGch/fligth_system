@@ -18,6 +18,7 @@ export default function FlightSearch() {
   const [data, setData] = useState({})
 
   const [searchData, setSearchData] = useState({
+    tripType: "round",
     OrigenID: 0,
     DestinationID: 0,
     departureDate: "",
@@ -25,12 +26,14 @@ export default function FlightSearch() {
   });
 
   const updateSearch = (event) => {
-    const {name, value} = event.target
-    console.log({name}, {value})
-    console.log({event})
-
-    setSearchData({...searchData, [name]: name === "OrigenID" || name === "DestinationID" ? parseInt(value): value})
-
+    const { name, value } = event.target;
+    setSearchData((current) => ({
+      ...current,
+      [name]:
+        name === "OrigenID" || name === "DestinationID"
+          ? Number(value)
+          : value,
+    }));
   };
 
   useEffect(() => {
@@ -81,16 +84,17 @@ export default function FlightSearch() {
     <>
       <div>
       {/* Search Widget */}
-      <div className="mx-auto relative z-20 -mt-20 shadow-[0_15px_40px_rgba(59,43,122,0.18)] sm:mx-6 lg:mx-10 xl:mx-30">
-        <div className="bg-white rounded-4xl p-7 py-4 shadow-2xl">
+      <div className="relative z-20 mx-4 -mt-8 shadow-[0_15px_40px_rgba(59,43,122,0.18)] sm:mx-6 sm:-mt-12 lg:mx-10 lg:-mt-20 xl:mx-30">
+        <div className="rounded-4xl bg-white p-4 shadow-2xl sm:p-7 sm:py-4">
           {/* Top Row: Selectors */}
-          <div className="flex gap-3 mb-4 border-b border-gray-100 pb-4">
+          <div className="mb-4 flex gap-3 border-b border-gray-100 pb-4">
             <div className="relative inline-block">
               <button
-                onClick={() => setTripTypeOpen(!tripTypeOpen)}
-                className="bg-[#4a4a8a] text-white px-6 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 "
+                onClick={() => setTripTypeOpen((open) => !open)}
+                aria-expanded={tripTypeOpen}
+                className="flex min-h-11 items-center gap-2 rounded-full bg-[#4a4a8a] px-4 py-2.5 text-sm font-medium text-white sm:px-6"
               >
-                {searchData.tripType === "round" 
+                {searchData.tripType === "round"
                 ? "Ida y vuelta" 
                 : "Solo ida"}
                 <ChevronDown
@@ -101,19 +105,18 @@ export default function FlightSearch() {
               </button>
 
               {tripTypeOpen && (
-                <div className="absolute left-0 top-full mt-2 w-48 bg-purple-50 rounded-2xl shadow-xl border border-purple-300 py-2 z-50 flex flex-col"> 
-                <button type="button" onClick={() => {updateSearch("tripType", "round"); setTripTypeOpen(false);
-                }} 
-                > 
+                <div className="absolute left-0 top-full z-50 mt-2 flex w-48 flex-col rounded-2xl border border-purple-300 bg-purple-50 py-2 shadow-xl">
+                <button type="button" onClick={() => { setSearchData((current) => ({ ...current, tripType: "round" })); setTripTypeOpen(false); }} className="min-h-11 px-4 text-left hover:bg-violet-100">
                 Ida y vuelta
                 </button>
 
                 <button
                 type="button"
                 onClick={() => {
-                    updateSearch("tripType", "one");
+                    setSearchData((current) => ({ ...current, tripType: "one" }));
                     setTripTypeOpen(false);
                 }}
+                className="min-h-11 px-4 text-left hover:bg-violet-100"
                 >
                 Solo ida
                 </button>
@@ -167,9 +170,9 @@ export default function FlightSearch() {
           </div>
 
           {/* Bottom Row: Inputs */}
-          <div className="flex flex-col lg:flex-row items-center gap-4 px-2 sm:px-4 lg:px-0">
+          <div className="grid grid-cols-1 items-stretch gap-3 px-0 sm:grid-cols-2 sm:gap-4 lg:px-0 xl:grid-cols-5">
             {/* Origen */}
-            <div className="flex-1 w-full border border-gray-200 rounded-2xl p-3">
+            <div className="min-w-0 w-full rounded-2xl border border-gray-200 p-3">
                 <label
                     htmlFor="flight-origin"
                     className="block text-xs text-slate-500 mb-1"
@@ -183,7 +186,7 @@ export default function FlightSearch() {
                     value={searchData.OrigenID}
                     onChange={updateSearch}
                     disabled={loadingAirports || Boolean(airportsError)}
-                    className="w-full bg-transparent text-sm font-semibold
+                    className="w-full min-w-0 bg-transparent text-base font-semibold
                             text-slate-800 outline-none cursor-pointer
                             disabled:opacity-50"
                 >
@@ -202,7 +205,7 @@ export default function FlightSearch() {
 
             
                 {/* Destino */}
-                <div className="flex-1 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-3 hover:border-violet-400 transition-colors">
+                <div className="flex min-w-0 w-full items-center gap-3 rounded-2xl border border-gray-200 p-3 transition-colors hover:border-violet-400">
 
                 <PlaneLanding className="w-6 h-6 text-slate-400 shrink-0" />
 
@@ -220,7 +223,7 @@ export default function FlightSearch() {
                     name="DestinationID"
                     onChange={updateSearch}
                     disabled={loadingAirports || Boolean(airportsError)}
-                    className="w-full bg-transparent text-sm font-semibold
+                    className="w-full min-w-0 bg-transparent text-base font-semibold
                                 text-slate-800 outline-none cursor-pointer
                                 disabled:opacity-50"
                     >
@@ -230,7 +233,7 @@ export default function FlightSearch() {
                         : "Selecciona destino"}
                     </option>
                     {airports.map((airport) => (
-                      airport.code !== searchData.origin && (
+                      airport.id !== searchData.OrigenID && (
                         <option key={airport.id} value={airport.id}>
                           {airport.city} ({airport.code})
                         </option>
@@ -241,7 +244,7 @@ export default function FlightSearch() {
                 </div>
 
                 {/* Salida */}
-                <div className="flex-1 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-3">
+                <div className="flex min-w-0 w-full items-center gap-3 rounded-2xl border border-gray-200 p-3">
 
                 <Calendar className="w-6 h-6 text-slate-400 shrink-0" />
 
@@ -259,7 +262,7 @@ export default function FlightSearch() {
                     name="departureDate"
                     value={searchData.departureDate}
                     onChange={updateSearch}
-                    className="w-full bg-transparent text-ssm font-semibold
+                    className="w-full min-w-0 bg-transparent text-base font-semibold
                                 text-slate-800 outline-none"
                     />
                 </div>
@@ -267,7 +270,7 @@ export default function FlightSearch() {
 
                 {/* Regreso: solamente para ida y vuelta */}
                 {searchData.tripType === "round" && (
-                <div className="flex-1 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-3">
+                <div className="flex min-w-0 w-full items-center gap-3 rounded-2xl border border-gray-200 p-3">
 
                     <Calendar className="w-6 h-6 text-slate-400 shrink-0" />
 
@@ -286,7 +289,7 @@ export default function FlightSearch() {
                         name="returnDate"
                         value={searchData.returnDate}
                         onChange={updateSearch}
-                        className="w-full bg-transparent text-sm font-semibold
+                        className="w-full min-w-0 bg-transparent text-base font-semibold
                                 text-slate-800 outline-none"
                     />
                     </div>
@@ -296,7 +299,7 @@ export default function FlightSearch() {
             {/* Botón Buscar */}
             <button 
               onClick={handleSearch}
-              className="w-full lg:w-auto bg-[#3b3b7a] hover:bg-[#2c2c5c] text-white rounded-full p-4 flex items-center justify-center gap-2 transition-colors shadow-lg shadow-indigo-900/20 whitespace-nowrap">
+              className="flex min-h-12 w-full items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#3b3b7a] p-4 text-white shadow-lg shadow-indigo-900/20 transition-colors hover:bg-[#2c2c5c] xl:w-auto">
               <Search className="w-5 h-5" />
               <span className="font-semibold">Buscar vuelos</span>
             </button>

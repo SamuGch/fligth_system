@@ -1,7 +1,8 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { CalendarDays, Clock3, Plane, X } from "lucide-react";
 import { airports } from "../data/airports";
+import { useAuth } from "../features/auth/context/AuthContext";
 
 function formatTime(value) {
   if (!value) return "--:--";
@@ -45,6 +46,8 @@ export default function FlightSearchModal({
   searchResults,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
   const flights = searchResults?.outbound?.flights ?? [];
   const alternativeDates =
     searchResults?.outbound?.alternativeDates ??
@@ -66,10 +69,30 @@ export default function FlightSearchModal({
   if (!isOpen) return null;
 
   const handleSelectFlight = (flight) => {
+    const selectedFlight = {
+      ...flight,
+      vueloId: flight.vueloId ?? flight.id,
+      avionId: flight.avionId ?? flight.avion_id,
+    };
+    const seatSelectionData = {
+      flight: selectedFlight,
+      avionId: selectedFlight.avionId,
+    };
+
     onClose();
-    navigate("/seleccion-asientos", {
+
+    if (isAuthenticated) {
+      navigate("/seleccion-asientos", {
+        state: seatSelectionData,
+      });
+      return;
+    }
+
+    navigate("/login", {
       state: {
-        flight
+        backgroundLocation: location,
+        returnTo: "/seleccion-asientos",
+        seatSelectionData,
       },
     });
   };
@@ -81,7 +104,7 @@ export default function FlightSearchModal({
 
   return (
     <div
-      className="fixed inset-0 z-100 flex items-center justify-center bg-slate-950/50 p-3 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-950/50 p-2 backdrop-blur-sm sm:p-6"
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
@@ -91,12 +114,12 @@ export default function FlightSearchModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="flight-modal-title"
-        className="max-h-[90dvh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+        className="my-auto max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl sm:max-h-[90dvh]"
       >
-        <header className="flex items-start justify-between bg-[#3b2b7a] px-5 py-6 text-white sm:px-8">
-          <div>
+        <header className="flex items-start justify-between gap-3 bg-[#3b2b7a] px-4 py-5 text-white sm:px-8 sm:py-6">
+          <div className="min-w-0">
             <p className="mb-1 text-sm text-white/70">Resultados de búsqueda</p>
-            <h2 id="flight-modal-title" className="text-2xl font-bold sm:text-3xl">
+            <h2 id="flight-modal-title" className="text-xl font-bold sm:text-3xl">
               Vuelos disponibles
             </h2>
             {firstFlight && (
@@ -111,7 +134,7 @@ export default function FlightSearchModal({
             type="button"
             onClick={onClose}
             aria-label="Cerrar resultados"
-            className="rounded-full p-2 hover:bg-white/15"
+            className="min-h-11 min-w-11 shrink-0 rounded-full p-2 hover:bg-white/15"
           >
             <X size={22} />
           </button>
@@ -193,22 +216,22 @@ export default function FlightSearchModal({
                       )}
                     </div>
 
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-5">
-                      <div>
-                        <p className="text-2xl font-bold text-slate-900">{formatTime(flight.departure)}</p>
-                        <p className="mt-1 text-sm font-medium text-slate-700">{flight.originCity}</p>
+                    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(4rem,auto)_minmax(0,1fr)] items-center gap-2 sm:gap-5">
+                      <div className="min-w-0">
+                        <p className="text-xl font-bold text-slate-900 sm:text-2xl">{formatTime(flight.departure)}</p>
+                        <p className="mt-1 break-words text-sm font-medium text-slate-700">{flight.originCity}</p>
                         <p className="text-xs text-slate-500">{flight.origin}</p>
                       </div>
-                      <div className="min-w-20 text-center text-slate-500 sm:min-w-32">
+                      <div className="min-w-0 text-center text-slate-500 sm:min-w-32">
                         <p className="flex items-center justify-center gap-1 text-xs">
                           <Clock3 size={14} /> {flight.duration}
                         </p>
                         <div className="my-2 border-t border-dashed border-slate-300" />
                         <p className="text-xs">{hasStops ? `${Math.max(segmentCount - 1, Number(flight.stops) || layovers.length)} escala(s)` : "Vuelo directo"}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-slate-900">{formatTime(flight.arrival)}</p>
-                        <p className="mt-1 text-sm font-medium text-slate-700">{flight.destinationCity}</p>
+                      <div className="min-w-0 text-right">
+                        <p className="text-xl font-bold text-slate-900 sm:text-2xl">{formatTime(flight.arrival)}</p>
+                        <p className="mt-1 break-words text-sm font-medium text-slate-700">{flight.destinationCity}</p>
                         <p className="text-xs text-slate-500">{flight.destination}</p>
                       </div>
                     </div>
@@ -243,7 +266,7 @@ export default function FlightSearchModal({
                       <button
                         type="button"
                         onClick={() => handleSelectFlight(flight)}
-                        className="flex items-center gap-2 rounded-full bg-[#3b2b7a] px-5 py-3 font-semibold text-white transition-colors hover:bg-[#2c205e]"
+                        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#3b2b7a] px-5 py-3 font-semibold text-white transition-colors hover:bg-[#2c205e] sm:w-auto"
                       >
                         <Plane size={17} /> Seleccionar
                       </button>
