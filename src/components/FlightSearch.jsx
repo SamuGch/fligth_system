@@ -86,7 +86,7 @@ export default function FlightSearch() {
       <div>
         {/* Search Widget */}
         <div className="relative z-20 -mt-42 sm:-mt-8 md:-mt-16 lg:-mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25">
-          <div className="bg-white rounded-4xl p-5 py-5 shadow-2xl">
+          <div className="bg-white rounded-4xl p-5 py-5 shadow-[0_15px_45px_rgba(51,51,153,0.25),0_0_35px_rgba(140,155,255,0.25)] border border-white/70">
             {/* Top Row: Selectors */}
             <div className="flex items-center mb-4">
               <div className="relative inline-block">

@@ -73,7 +73,10 @@ function Home() {
       }} >
 
       {/* Navbar */}
-      <nav className="mx-4 sm:mx-6 lg:mx-12 xl:mx-25 mt-3 sm:mt-5 bg-[#3b2b7a] backdrop-blur-md rounded-full px-3 sm:px-5 lg:px-7 xl:px-5 py-2 flex items-center justify-between shadow-xl text-white relative z-50">
+      {/* <nav className="mx-4 sm:mx-6 lg:mx-12 xl:mx-25 mt-3 sm:mt-5 bg-[#3b2b7a] backdrop-blur-md rounded-full px-3 sm:px-5 lg:px-7 xl:px-5 py-2 flex items-center justify-between shadow-xl text-white relative z-50"> */}
+      <nav 
+className=" relative z-50 mx-4 sm:mx-6 lg:mx-12 xl:mx-25 mt-3 sm:mt-5 flex items-center justify-between rounded-full px-3 sm:px-5 lg:px-7 xl:px-5 py-2 bg-[linear-gradient(100deg,#292570_0%,#403A91_50%,#292570_100%)] border border-white/25 backdrop-blur-md shadow-[0_10px_30px_rgba(30,25,105,0.28),0_0_20px_rgba(140,155,255,0.20)] text-white before:pointer-events-none before:absolute before:inset-x-10 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/50 before:to-transparent">
+      
         {/* Left Links */}
         <div className="flex items-center gap-3 lg:gap-15 lg:w-1/3">
           <div className="bg-white text-blue-900 w-9 h-9 sm:w-9 sm:h-9 rounded-full shrink-0 flex items-center justify-center xl:-ml-2.5">
@@ -199,9 +202,9 @@ function Home() {
       {/* Footer Features */}
       {/* <div className="mx-4 sm:mx-6 lg:mx-12 xl:mx-25 relative z-20 mt-5"> */}
       <div className="mx-4 sm:mx-6 lg:mx-12 xl:mx-25 relative z-20 mt-auto mb-3 sm:mb-6 pt-5">
-        <div className="bg-white/5 backdrop-blur-[6px]  border border-white/20 rounded-4xl px-4 sm:px-6 lg:px-10 xl:px-20 py-3 sm:py-4 lg:py-5 grid grid-cols-2 sm:grid-cols-2 gap-y-2 sm:gap-4 lg:gap-0 lg:flex justify-between items-center text-white shadow-lg xl:min-h-[150px]">
+        <div className=" bg-white/5 backdrop-blur-[6px] border border-white/30 rounded-4xl px-3 sm:px-6 lg:px-10 xl:px-16 py-5 sm:py-6 lg:py-5 grid grid-cols-2 lg:grid-cols-4 gap-x-2 gap-y-5 sm:gap-4 lg:gap-0 items-center text-white shadow-[0_12px_30px_rgba(23,20,80,0.20)] xl:min-h-[150px] ">
 
-          <div className="flex items-center gap-4 flex-1 mb-4 lg:mb-0 border-r border-white/20 px-4">
+          <div className=" flex min-w-0 items-center gap-2 sm:gap-3 lg:gap-4 px-1 sm:px-2 lg:px-4 lg:border-r lg:border-white/20 ">
             <div className="bg-white/20 p-2 rounded-full shrink-0">
               <ShieldCheck className="w-6 h-6" />
             </div>
@@ -211,7 +214,7 @@ function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 flex-1 mb-4 lg:mb-0 border-r border-white/20 px-4">
+          <div className=" flex min-w-0 items-center gap-2 sm:gap-3 lg:gap-4 px-1 sm:px-2 lg:px-4 lg:border-r lg:border-white/20 ">
             <div className="bg-white/20 p-2 rounded-full shrink-0">
               <ShieldCheck className="w-6 h-6" />
             </div>
@@ -221,7 +224,7 @@ function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 flex-1 mb-4 lg:mb-0 border-r border-white/20 px-4">
+          <div className=" flex min-w-0 items-center gap-2 sm:gap-3 lg:gap-4 px-1 sm:px-2 lg:px-4 lg:border-r lg:border-white/20 ">
             <div className="bg-white/20 p-2 rounded-full shrink-0">
               <Headphones className="w-6 h-6" />
             </div>
@@ -231,7 +234,7 @@ function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 flex-1 px-4">
+          <div className=" flex min-w-0 items-center gap-2 sm:gap-3 lg:gap-4 px-1 sm:px-2 lg:px-4  ">
             <div className="bg-white/20 p-2 rounded-full shrink-0">
               <Plane className="w-6 h-6" />
             </div>
