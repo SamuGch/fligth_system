@@ -85,7 +85,7 @@ export default function FlightSearch() {
     <>
       <div>
         {/* Search Widget */}
-        <div className="relative z-20 -mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25">
+        <div className="relative z-20 -mt-42 sm:-mt-8 md:-mt-16 lg:-mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25">
           <div className="bg-white rounded-4xl p-5 py-5 shadow-2xl">
             {/* Top Row: Selectors */}
             <div className="flex items-center mb-4">
@@ -171,7 +171,12 @@ export default function FlightSearch() {
             </div>
 
             {/* Bottom Row: Inputs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1.5fr_1.5fr_1fr_1fr_auto] items-center gap-3">
+            <div
+              className={`grid grid-cols-1 md:grid-cols-2 items-center gap-3 ${searchData.tripType === "round"
+                  ? "xl:grid-cols-[1.5fr_1.5fr_1fr_1fr_auto]"
+                  : "xl:grid-cols-[1.5fr_1.5fr_1fr_auto]"
+                }`}
+            >
               {/* Origen */}
               <div className="min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5">
                 <PlaneTakeoff className="w-8 h-8 text-slate-600 shrink-0" />
@@ -306,7 +311,7 @@ export default function FlightSearch() {
               {/* Botón Buscar */}
               <button
                 onClick={handleSearch}
-                className="w-full lg:w-auto bg-[#333399] hover:bg-[#2c2c5c] text-white rounded-full p-4 flex items-center justify-center gap-3 transition-colors shadow-lg shadow-indigo-900/20 whitespace-nowrap pl-5 pr-6" >
+                className="w-full xl:w-auto bg-[#333399] hover:bg-[#2c2c5c] text-white rounded-full p-4 flex items-center justify-center gap-3 transition-colors shadow-lg shadow-indigo-900/20 whitespace-nowrap pl-5 pr-6 "  >
                 <Search className="w-5 h-5" />
                 <span className="font-semibold">Buscar vuelos</span>
               </button>
