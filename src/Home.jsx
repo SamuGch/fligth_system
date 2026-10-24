@@ -22,6 +22,19 @@ function Home() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [accountMenuError, setAccountMenuError] = useState('');
   const [signingOut, setSigningOut] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => window.matchMedia('(max-width: 767px)').matches,
+  );
+
+  useEffect(() => {
+    const mobileMediaQuery = window.matchMedia('(max-width: 767px)');
+    const updateMobileViewport = (event) =>
+      setIsMobileViewport(event.matches);
+
+    mobileMediaQuery.addEventListener('change', updateMobileViewport);
+    return () =>
+      mobileMediaQuery.removeEventListener('change', updateMobileViewport);
+  }, []);
 
   useEffect(() => {
     if (!accountMenuOpen) return undefined;

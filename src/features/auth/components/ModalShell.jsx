@@ -26,7 +26,7 @@ export default function ModalShell({ children, onClose, titleId }) {
 
   return (
     <div
-      className="fixed inset-0 z-100 grid place-items-center overflow-y-auto bg-slate-950/55 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-100 grid place-items-center overflow-y-auto bg-slate-950/55 p-3 backdrop-blur-sm sm:p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}

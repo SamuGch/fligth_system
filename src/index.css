@@ -1,19 +1,28 @@
 @import "tailwindcss";
 
-html {
-  min-height: 100%;
-  scrollbar-width: none;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-html::-webkit-scrollbar {
-  display: none;
-}
-
+html,
 body,
 #root {
   width: 100%;
-  min-height: 100vh;
+  min-height: 100%;
   margin: 0;
+}
+
+html {
+  overflow-x: clip;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  overflow-x: clip;
 }
 
 #root {

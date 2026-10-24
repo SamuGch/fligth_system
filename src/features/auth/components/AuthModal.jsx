@@ -69,6 +69,16 @@ export default function AuthModal({ mode }) {
   const continueAfterAuth = useCallback(() => {
     const returnTo = location.state?.returnTo;
     const checkoutData = location.state?.checkoutData;
+    const seatSelectionData = location.state?.seatSelectionData;
+
+     // Nuevo flujo: autenticación antes de seleccionar asientos
+    if (returnTo === "/seleccion-asientos" && seatSelectionData?.flight) {
+      navigate("/seleccion-asientos", {
+        replace: true,
+        state: seatSelectionData,
+      });
+      return;
+    }
 
     if (returnTo === "/checkout" && checkoutData) {
       navigate("/checkout", {
@@ -150,6 +160,7 @@ export default function AuthModal({ mode }) {
           backgroundLocation,
           returnTo: location.state?.returnTo,
           checkoutData: location.state?.checkoutData,
+          seatSelectionData: location.state?.seatSelectionData,
         }),
       );
       await signInWithGoogle();
@@ -170,7 +181,9 @@ export default function AuthModal({ mode }) {
             onClick={continueAfterAuth}
             className="mt-5 rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white"
           >
-            {location.state?.returnTo === "/checkout"
+            {location.state?.returnTo === "/seleccion-asientos" && location.state?.seatSelectionData?.flight
+              ? "Seleccionar mis asientos"
+              : location.state?.returnTo === "/checkout"
               ? "Continuar al pago"
               : "Continuar"}
           </button>

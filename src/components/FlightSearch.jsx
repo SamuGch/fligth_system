@@ -19,22 +19,28 @@ export default function FlightSearch() {
   const [data, setData] = useState({})
 
   const [searchData, setSearchData] = useState({
+    tripType: "round",
     OrigenID: 0,
     DestinationID: 0,
     departureDate: "",
     returnDate: ""
   });
 
+const updateSearch = (event) => {
+    const { name, value } = event.target;
+    
+    // Logs de la rama HEAD
+    console.log({ name }, { value });
+    console.log({ event });
 
-
-  const updateSearch = (event) => {
-    const { name, value } = event.target
-    console.log({ name }, { value })
-    console.log({ event })
-
-    setSearchData({ ...searchData, [name]: name === "OrigenID" || name === "DestinationID" ? parseInt(value) : value })
-
-
+    // Actualización de estado funcional de la rama responsive2
+    setSearchData((current) => ({
+      ...current,
+      [name]:
+        name === "OrigenID" || name === "DestinationID"
+          ? Number(value)
+          : value,
+    }));
   };
 
   useEffect(() => {
@@ -84,20 +90,93 @@ export default function FlightSearch() {
   return (
     <>
       <div>
-        {/* Search Widget */}
+{/* Search Widget */}
         <div className="relative z-20 -mt-42 sm:-mt-8 md:-mt-16 lg:-mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25">
           <div className="bg-white rounded-4xl p-5 py-5 shadow-[0_15px_45px_rgba(51,51,153,0.25),0_0_35px_rgba(140,155,255,0.25)] border border-white/70">
             {/* Top Row: Selectors */}
-            <div className="flex items-center mb-4">
+            <div className="flex items-center mb-4 gap-3 border-b border-gray-100 pb-4">
               <div className="relative inline-block">
                 <button
-                  onClick={() => setTripTypeOpen(!tripTypeOpen)}
+                  onClick={() => setTripTypeOpen((open) => !open)}
+                  aria-expanded={tripTypeOpen}
                   className="bg-[#333399] text-white px-6 py-2 rounded-full text-sm font-medium flex items-center justify-between gap-5 min-w-[180px] hover:bg-[#2c2c5c] transition-colors"
                 >
-                  {searchData.tripType === "round"
-                    ? "Ida y vuelta"
-                    : "Solo ida"}
+                  {searchData.tripType === "round" ? "Ida y vuelta" : "Solo ida"}
                   <ChevronDown
+                    className={`w-4 h-4 transition-transform ${
+                      tripTypeOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {tripTypeOpen && (
+                  <div className="absolute left-0 top-full z-50 mt-2 flex w-48 flex-col rounded-2xl border border-purple-300 bg-purple-50 py-2 shadow-xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchData((current) => ({ ...current, tripType: "round" }));
+                        setTripTypeOpen(false);
+                      }}
+                      className="min-h-11 px-4 text-left hover:bg-violet-100"
+                    >
+                      Ida y vuelta
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchData((current) => ({ ...current, tripType: "one" }));
+                        setTripTypeOpen(false);
+                      }}
+                      className="min-h-11 px-4 text-left hover:bg-violet-100"
+                    >
+                      Solo ida
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Pasajeros 
+            <div className="flex items-center gap-2">
+            <label className="text-sm text-slate-600">
+                Pasajeros
+            </label>
+
+            <select
+                value={searchData.passengers}
+                onChange={(e) =>
+                updateSearch("passengers", Number(e.target.value))
+                }
+                className="rounded-full px-4 py-2.5 bg-slate-50
+                        text-slate-700 text-sm cursor-pointer"
+            >
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((number) => (
+                <option key={number} value={number}>
+                    {number}
+                </option>
+                ))}
+            </select>
+            </div>*/}
+
+              {/* Clase 
+            <div className="flex items-center gap-2">
+            <label className="text-sm text-slate-600">
+                Clase
+            </label>
+
+            <select
+                value={searchData.seatClass}
+                onChange={(e) =>
+                updateSearch("seatClass", e.target.value)
+                }
+                className="rounded-full px-4 py-2.5 bg-slate-50
+                        text-slate-700 text-sm cursor-pointer"
+            >
+                <option value="Economica">Económica</option>
+                <option value="Business">Business</option>
+            </select>
+            </div>
+
                     className={`w-5 h-5 transition-transform ${tripTypeOpen ? "rotate-180" : ""
                       }`}
                   />
@@ -194,7 +273,7 @@ export default function FlightSearch() {
                     value={searchData.OrigenID}
                     onChange={updateSearch}
                     disabled={loadingAirports || Boolean(airportsError)}
-                    className="w-full bg-transparent text-sm font-semibold
+                    className="w-full min-w-0 bg-transparent text-base font-semibold
                             text-slate-800 outline-none cursor-pointer
                             disabled:opacity-50"
                   >
@@ -234,7 +313,7 @@ export default function FlightSearch() {
                     name="DestinationID"
                     onChange={updateSearch}
                     disabled={loadingAirports || Boolean(airportsError)}
-                    className="w-full bg-transparent text-sm font-semibold
+                    className="w-full min-w-0 bg-transparent text-base font-semibold
                                 text-slate-800 outline-none cursor-pointer
                                 disabled:opacity-50"
                   >
@@ -244,7 +323,7 @@ export default function FlightSearch() {
                         : "Selecciona destino"}
                     </option>
                     {airports.map((airport) => (
-                      airport.code !== searchData.origin && (
+                      airport.id !== searchData.OrigenID && (
                         <option key={airport.id} value={airport.id}>
                           {airport.city} ({airport.code})
                         </option>

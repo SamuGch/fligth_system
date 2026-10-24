@@ -14,7 +14,6 @@ import {
   Clock3,
 } from "lucide-react";
 import { obtenerTiposAsiento } from "../services/asientoService";
-import { useAuth } from "../features/auth/context/AuthContext";
 import * as Api from "../tools/Api"
 
 const CABIN_THEMES = [
@@ -100,7 +99,7 @@ function Seat({ seat, selected, onClick }) {
       aria-label={`Asiento ${seat.id}, ${status}`}
       aria-pressed={selected}
       className={`
-        w-7 h-7 sm:w-8 sm:h-8
+        h-9 w-9 sm:h-10 sm:w-10
         rounded-md border-2
         flex items-center justify-center
         text-[10px] font-bold
@@ -203,7 +202,7 @@ function CabinSection({
           {leftColumns.map((letter) => (
             <span
               key={letter}
-              className="w-7 sm:w-8 text-center
+              className="w-9 text-center sm:w-10
                          text-xs text-slate-500"
             >
               {letter}
@@ -217,7 +216,7 @@ function CabinSection({
           {rightColumns.map((letter) => (
             <span
               key={letter}
-              className="w-7 sm:w-8 text-center
+              className="w-9 text-center sm:w-10
                          text-xs text-slate-500"
             >
               {letter}
@@ -233,7 +232,7 @@ function CabinSection({
             className="flex items-center gap-2"
           >
             <span
-              className="w-5 text-xs text-slate-500
+              className="w-5 shrink-0 text-xs text-slate-500
                          text-right"
             >
               {row}
@@ -268,11 +267,11 @@ function FlightInfo({ flight }) {
 
   return (
     <div
-      className="bg-white p-5 sm:p-7
+      className="bg-white p-4 sm:p-7
                  flex flex-col lg:flex-row
                  lg:items-center gap-6"
     >
-      <div className="flex items-center gap-4 lg:min-w-48">
+      <div className="flex min-w-0 items-center gap-3 lg:min-w-48 lg:gap-4">
         <div
           className="w-16 h-16 rounded-2xl bg-violet-50
                      flex items-center justify-center"
@@ -295,23 +294,20 @@ function FlightInfo({ flight }) {
 
       <div className="hidden lg:block h-16 w-px bg-slate-200" />
 
-      <div
-        className="flex-1 flex items-center
-                   justify-between gap-3"
-      >
-        <div>
-          <p className="text-2xl font-bold text-slate-900">
+      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(4rem,0.8fr)_minmax(0,1fr)] items-center gap-2 sm:gap-3">
+        <div className="min-w-0">
+          <p className="text-xl font-bold text-slate-900 sm:text-2xl">
             {flight.departureTime}
           </p>
           <p className="font-semibold text-[#3b2b7a]">
             {flight.origin}
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="break-words text-xs text-slate-500">
             {flight.originCity}
           </p>
         </div>
 
-        <div className="flex-1 max-w-48 text-center">
+        <div className="min-w-0 text-center">
           <p className="text-xs text-slate-500 mb-2">
             <Clock3 size={12} className="inline mr-1" />
             {flight.duration}
@@ -335,14 +331,14 @@ function FlightInfo({ flight }) {
           </p>
         </div>
 
-        <div className="text-right">
-          <p className="text-2xl font-bold text-slate-900">
+        <div className="min-w-0 text-right">
+          <p className="text-xl font-bold text-slate-900 sm:text-2xl">
             {flight.arrivalTime}
           </p>
           <p className="font-semibold text-[#3b2b7a]">
             {flight.destination}
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="break-words text-xs text-slate-500">
             {flight.destinationCity}
           </p>
         </div>
@@ -354,7 +350,6 @@ function FlightInfo({ flight }) {
 export default function SeatSelection() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
   const selectedFlight = location.state?.flight ?? {};
   const flight = {
     ...selectedFlight,
@@ -532,19 +527,8 @@ export default function SeatSelection() {
       total,
     };
 
-    if (isAuthenticated) {
-      navigate("/checkout", {
-        state: checkoutData,
-      });
-      return;
-    }
-
-    navigate("/login", {
-      state: {
-        backgroundLocation: location,
-        returnTo: "/checkout",
-        checkoutData,
-      },
+    navigate("/checkout", {
+      state: checkoutData,
     });
   };
 
@@ -556,17 +540,14 @@ export default function SeatSelection() {
       <div className="min-h-screen w-full">
         {/* Encabezado principal */}
         <header
-          className="sticky top-0 z-50 bg-linear-to-r from-[#29205f]
+          className="sticky top-0 z-50 w-full bg-linear-to-r from-[#29205f]
                      via-[#3b2b7a] to-[#5843a3]
-                     w-full px-5 sm:px-8 lg:px-12
-                     py-5 text-white"
+                     px-4 py-3 text-white sm:px-8 sm:py-5 lg:px-12"
         >
           <div
-            className="flex flex-col lg:flex-row
-                       lg:items-center
-                       justify-between gap-6"
+            className="flex items-center justify-between gap-3"
           >
-            <div className="flex items-center gap-4">
+            <div className="min-w-0 flex items-center gap-4">
 
               <div className="flex items-center gap-3">
                 <div className="rounded-full bg-white p-2">
@@ -577,8 +558,8 @@ export default function SeatSelection() {
                   />
                 </div>
 
-                <div>
-                  <h1 className="text-lg font-extrabold tracking-widest">
+                <div className="min-w-0">
+                  <h1 className="text-base font-extrabold tracking-widest sm:text-lg">
                     AIR TRAVEL
                   </h1>
                   <p className="text-xs text-white/70">
@@ -588,7 +569,7 @@ export default function SeatSelection() {
               </div>
                 </div>
 
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex shrink-0 items-center gap-3">
               {/*{[
                 "Asientos",
                 "Pasajeros",
@@ -639,7 +620,7 @@ export default function SeatSelection() {
 
         {/* Distribución de dos columnas */}
         <div
-          className="min-h-[calc(100vh-104px)] bg-white
+          className="min-h-[calc(100dvh-80px)] min-w-0 bg-white
                      px-3 py-5 sm:px-6 lg:px-12
                      grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_390px]
                      gap-5 lg:gap-8"
@@ -649,7 +630,7 @@ export default function SeatSelection() {
             <FlightInfo flight={flight} />
 
             <section
-              className="bg-violet-50 p-4 sm:p-6 lg:p-8"
+              className="min-w-0 bg-violet-50 p-3 sm:p-6 lg:p-8"
             >
               <div
                 className="flex flex-col lg:flex-row
@@ -703,8 +684,7 @@ export default function SeatSelection() {
                            gap-4 items-start"
               >
                 <div
-                  className="bg-slate-50
-                             overflow-x-auto p-4 sm:p-6"
+                  className="min-w-0 overflow-x-auto bg-slate-50 p-3 sm:p-6"
                   aria-busy={loading}
                 >
                   {loading ? (
@@ -721,7 +701,7 @@ export default function SeatSelection() {
                     </p>
                   ) : (
                     <div className="min-w-max">
-                      <div className="flex items-start gap-15">
+                      <div className="flex items-start gap-8 sm:gap-15">
                         {console.log({sections})}
                         {sections.map((section) => (
                           <CabinSection
@@ -835,7 +815,7 @@ export default function SeatSelection() {
                 Asientos seleccionados
               </h3>
 
-              <div className="max-h-64 overflow-y-auto space-y-3 pr-2">
+              <div className="space-y-3 pr-2 lg:max-h-64 lg:overflow-y-auto">
                   {selectedSeats.length === 0 ? (
                     <div className="text-center py-8 text-slate-400">
                       <Armchair className="w-10 h-10 mx-auto mb-3" />
@@ -847,8 +827,7 @@ export default function SeatSelection() {
                     selectedSeats.map((seat, index) => (
                       <div
                         key={seat.id}
-                        className="border border-slate-400 rounded-2xl
-                                  p-4 flex items-center gap-3"
+                        className="flex items-center gap-3 rounded-2xl border border-slate-400 p-3 sm:p-4"
                       >
                         <div
                           className="w-11 h-11 bg-violet-100 rounded-xl
@@ -928,9 +907,7 @@ export default function SeatSelection() {
               </div>
 
               <div
-                className="bg-violet-50 rounded-2xl
-                           px-5 py-6 mt-6
-                           flex items-center justify-between"
+                className="mt-6 flex items-center justify-between gap-3 rounded-2xl bg-violet-50 px-4 py-5 sm:px-5 sm:py-6"
               >
                 <p className="font-bold text-[#3b2b7a]">
                   Total a pagar
@@ -938,7 +915,7 @@ export default function SeatSelection() {
 
                 <div className="text-right">
                   <p
-                    className="text-3xl font-extrabold
+                    className="text-2xl font-extrabold sm:text-3xl
                                text-[#3b2b7a]"
                   >
                     {currency(total)}

@@ -64,10 +64,22 @@ export function AuthCallbackModal() {
   const continueAfterGoogle = useCallback(() => {
     if (!completed) return;
 
-    const { backgroundLocation, returnTo, checkoutData } =
+    const { backgroundLocation, returnTo, checkoutData, seatSelectionData } =
       redirectData;
 
     sessionStorage.removeItem("authRedirect");
+
+    // Nuevo flujo
+    if (
+      returnTo === "/seleccion-asientos" &&
+      seatSelectionData?.flight
+    ) {
+      navigate("/seleccion-asientos", {
+        replace: true,
+        state: seatSelectionData,
+      });
+      return;
+    }
 
     if (returnTo === "/checkout" && checkoutData) {
       navigate("/checkout", {
@@ -94,6 +106,10 @@ export function AuthCallbackModal() {
   const returnToCheckout =
     redirectData.returnTo === "/checkout" &&
     Boolean(redirectData.checkoutData);
+
+  const returnToSeats =
+  redirectData.returnTo === "/seleccion-asientos" &&
+  Boolean(redirectData.seatSelectionData?.flight);
 
   return (
     <ModalShell
@@ -129,7 +145,9 @@ export function AuthCallbackModal() {
             onClick={continueAfterGoogle}
             className="mt-5 rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white"
           >
-            {returnToCheckout
+            {returnToSeats
+              ? "Seleccionar mis asientos"
+              :returnToCheckout
               ? "Continuar al pago"
               : "Continuar"}
           </button>
