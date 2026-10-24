@@ -73,13 +73,13 @@ function Home() {
       }} >
 
       {/* Navbar */}
-      <nav className="mx-4 sm:mx-6 lg:mx-12 xl:mx-25 mt-3 sm:mt-5 bg-[#3b2b7a]/90 backdrop-blur-md rounded-full px-7 sm:px-5 lg:px-7 xl:px-5 py-4 flex items-center justify-between shadow-xl text-white relative z-50">
+      <nav className="mx-4 sm:mx-6 lg:mx-12 xl:mx-25 mt-3 sm:mt-5 bg-[#3b2b7a] backdrop-blur-md rounded-full px-7 sm:px-5 lg:px-7 xl:px-5 py-2 flex items-center justify-between shadow-xl text-white relative z-50">
         {/* Left Links */}
         <div className="flex items-center gap-3 lg:gap-15 lg:w-1/3">
-          <div className="bg-white text-blue-900 w-12 h-12 rounded-full shrink-0 flex items-center justify-center xl:-ml-1">
-            <img src="/icono.jpg" alt="Logo" className="w-9 h-9 object-contain rounded-full" />
+          <div className="bg-white text-blue-900 w-9 h-9 rounded-full shrink-0 flex items-center justify-center xl:-ml-2.5">
+            <img src="/icono.jpg" alt="Logo" className="w-8 h-8 object-contain rounded-full" />
           </div>
-          <div className="hidden md:flex items-center gap-4 text-base font-medium">
+          <div className="hidden md:flex items-center gap-4 text-base font-medium leading-none relative -top-[2px]">
             <a href="#" className="text-base  text-white hover:text-white/80 transition-colors no-underline">Vuelos</a>
             <span className="text-white/40">|</span>
             <a href="#" className="text-white/80 hover:text-white transition-colors">Hoteles</a>
@@ -88,13 +88,13 @@ function Home() {
 
         {/* Center Logo */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center whitespace-nowrap">
-          <h1 className="text-lg sm:text-xl lg:text-[28px] font-extrabold tracking-[0.02em] uppercase leading-none text-white">Air Travel</h1>
-          <p className="hidden sm:block mt-1 text-[9px] lg:text-[10px] font-medium tracking-normal uppercase text-white">Vuelos que te llevan más lejos</p>
+          <h1 className="text-lg sm:text-xl lg:text-[20px] font-extrabold tracking-[0.02em] uppercase leading-none text-white">Air Travel</h1>
+          <p className="hidden sm:block mt-1 text-[9px] lg:text-[8px] font-medium tracking-normal uppercase text-white">Vuelos que te llevan más lejos</p>
         </div>
 
         {/* Right Links */}
         <div className="flex items-center justify-end gap-3 lg:gap-15 lg:w-1/3">
-          <div className="hidden md:flex items-center gap-4 text-base font-medium">
+          <div className="hidden md:flex items-center gap-4 text-base font-medium leading-none relative -top-[2px]">
             {/* <a href="#" className="text-white/80 hover:text-white transition-colors">Ofertas</a> */}
             <span className="text-white/40">|</span>
             <a href="#" className="text-white/80 hover:text-white transition-colors">Ayuda</a>
@@ -111,10 +111,10 @@ function Home() {
                   navigate('/login', { state: { backgroundLocation: location } });
                 }
               }}
-              className="border border-white/40 p-1.5 rounded-full
+              className="border border-white/40 p-1.5 rounded-full -mr-2.5
                         cursor-pointer hover:bg-white/10
                         transition-colors">
-              <User className="w-8 h-8" />
+              <User className="w-6 h-6" />
             </button>
 
             {isAuthenticated && accountMenuOpen && (
@@ -158,14 +158,14 @@ function Home() {
       </nav>
 
       {/* Hero Section */}
-      <main className="mx-4 sm:mx-6 lg:mx-12 xl:mx-25 px-4 sm:px-8 lg:px-10 pt-10 md:pt-0 md:-mt-10 lg:-mt-16 flex flex-col md:flex-row items-center *:justify-between">
+      <main className="mx-4 sm:mx-6 lg:mx-12 xl:mx-25 px-4 sm:px-8 lg:px-10 pt-10 md:pt-0 md:-mt-10 lg:-mt-25 flex flex-col md:flex-row items-center *:justify-between">
         <div className="w-full md:w-1/2 md:pr-8 z-10 text-center md:text-left">
-          <p className="sm:text-sm lg:text-l xl:text-xl  tracking-[0.3em] text-slate-800 font-semibold mb-4 uppercase">Explora el mundo</p>
-          <h2 className="text-3xl sm:text-4xl md:text-3xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-3">
+          <p className="text-[15px] text-slate-900 font-semibold mb-1 uppercase tracking-[0.35em] leading-normal">Explora el mundo</p>
+          <h2 className="text-3xl sm:text-4xl md:text-3xl lg:text-5xl font-bold text-slate-900 mb-2 leading-none  tracking-[-0.015em]">
             Tu próxima aventura <br />
-            <span className="text-violet-100 " style={{ color: '#3333CC' }}>comienza aquí</span>
+            <span className="text-violet-100" style={{ color: '#3333CC' }}>comienza aquí</span>
           </h2>
-          <p className="text-slate-700 text-base sm:text-sm lg:text-l xl:text-xl max-w-md mx-auto md:mx-0">
+          <p className="max-w-[490px] mx-auto md:mx-0 text-base lg:text-[17px] font-normal leading-[1.65] tracking-normal text-slate-800">
             Encuentra los mejores vuelos a los destinos que desees, rápido, fácil y seguro.
           </p>
         </div>
@@ -175,17 +175,20 @@ function Home() {
           {/* Efecto de resplandor de fondo (opcional, para mantener estética del diseño original) */}
           <div className="absolute w-60 h-60 sm:w-75 sm:h-75 lg:w-[26rem] lg:h-[26rem] bg-white/35 rounded-full blur-[70px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10"></div>
           {/* capa adicional resplandor */}
-          <div className="pointer-events-none absolute top-1/2 left-1/2 z-0 w-48 h-48 sm:w-64 sm:h-64 lg:w-[21rem] lg:h-[21rem] -translate-x-1/2 -translate-y-1/2 bg-white/55 rounded-full blur-[40px]">
-
+          <div className="pointer-events-none absolute top-1/2 left-1/2 z-0 w-48 h-48 sm:w-64 sm:h-64 lg:w-[16rem] lg:h-[16rem] -translate-x-1/2 -translate-y-1/2 bg-white/65 rounded-full blur-[8px]">
           </div>
           {/* Escena 3D */}
           <Canvas camera={{ position: [0, 0, 9] }} className="relative z-10 w-full h-full">
             {/*<SpaceBackground />*/}
             <ambientLight intensity={1.9} />
             <directionalLight position={[5, 3, 5]} intensity={2.5} />
-            <Earth />
-            <Airplane />
+            <group scale={.8}>
+              <Earth />
+            </group>
 
+            <group scale={.9}>
+              <Airplane />
+            </group>
             {/* Nota: En landing pages, a veces es mejor poner enableZoom={false} para evitar que el usuario se atasque al hacer scroll hacia abajo, pero lo he dejado en true como en tu código original */}
             <OrbitControls enableZoom={false} />
           </Canvas>
@@ -197,8 +200,8 @@ function Home() {
 
       {/* Footer Features */}
       {/* <div className="mx-4 sm:mx-6 lg:mx-12 xl:mx-25 relative z-20 mt-5"> */}
-      <div className="mx-4 sm:mx-6 lg:mx-12 xl:mx-25 relative z-20 mt-auto mb-3 sm:mb-25 pt-5">
-        <div className="bg-white/5 backdrop-blur-[3px]  border border-white/20 rounded-4xl px-4 sm:px-6 lg:px-10 xl:px-20 py-3 sm:py-4 lg:py-5 grid grid-cols-2 sm:grid-cols-2 lg:flex justify-between items-center text-white shadow-lg xl:min-h-[150px]">
+      <div className="mx-4 sm:mx-6 lg:mx-12 xl:mx-25 relative z-20 mt-auto mb-3 sm:mb-6 pt-5">
+        <div className="bg-white/5 backdrop-blur-[6px]  border border-white/20 rounded-4xl px-4 sm:px-6 lg:px-10 xl:px-20 py-3 sm:py-4 lg:py-5 grid grid-cols-2 sm:grid-cols-2 lg:flex justify-between items-center text-white shadow-lg xl:min-h-[150px]">
 
           <div className="flex items-center gap-4 flex-1 mb-4 lg:mb-0 border-r border-white/20 px-4">
             <div className="bg-white/20 p-2 rounded-full">

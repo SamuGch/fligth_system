@@ -85,14 +85,14 @@ export default function FlightSearch() {
     <>
       <div>
         {/* Search Widget */}
-        <div className="relative z-20 -mt-20 mx-4 sm:mx-6 lg:mx-12 xl:mx-25">
-          <div className="bg-white rounded-4xl p-6 py-6 shadow-2xl">
+        <div className="relative z-20 -mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25">
+          <div className="bg-white rounded-4xl p-5 py-5 shadow-2xl">
             {/* Top Row: Selectors */}
             <div className="flex items-center mb-4">
               <div className="relative inline-block">
                 <button
                   onClick={() => setTripTypeOpen(!tripTypeOpen)}
-                  className="bg-[#333399] text-white px-6 py-3 rounded-full text-sm font-bold flex items-center justify-between gap-5 min-w-[180px] hover:bg-[#5555CC] transition-colors"
+                  className="bg-[#333399] text-white px-6 py-2 rounded-full text-sm font-medium flex items-center justify-between gap-5 min-w-[180px] hover:bg-[#2c2c5c] transition-colors"
                 >
                   {searchData.tripType === "round"
                     ? "Ida y vuelta"

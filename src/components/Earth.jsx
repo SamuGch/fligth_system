@@ -4,7 +4,7 @@ import { useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 
 export default function Earth() {
-  const earthTexture = useTexture('/world_r_2.png')
+  const earthTexture = useTexture('/world_r_3.png')
   const heightTexture = useTexture('/world_height.png')
   const earthRef = useRef()
 
