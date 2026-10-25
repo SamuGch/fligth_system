@@ -41,7 +41,13 @@ async function request(path, options = {}) {
   if (!response.ok) {
     // A rejected/expired bearer token cannot authorize private screens. Let
     // Supabase clear its persisted session; AuthProvider reacts to the event.
-    if (response.status === 401) await supabase.auth.signOut();
+    if (response.status === 401) {
+      sessionStorage.setItem(
+        "airtravel_auth_notice",
+        "Tu sesión venció. Inicia sesión nuevamente para continuar.",
+      );
+      await supabase.auth.signOut();
+    }
     throw new ApiError(
       payload?.message || payload?.error || "La solicitud no pudo completarse.",
       response.status,
@@ -56,3 +62,31 @@ export const getMyProfile = (accessToken) =>
   request("/clientes/me", { accessToken });
 export const updateMyProfile = (profile) =>
   request("/clientes/me", { method: "PUT", body: JSON.stringify(profile) });
+
+export const createTemporaryReservation = ({ clienteId, seatIds }) =>
+  request("/clientes/reserva/temporal", {
+    method: "POST",
+    body: JSON.stringify({
+      cliente_id: clienteId,
+      vuelos_asientos_id: seatIds,
+    }),
+  });
+
+export const purchaseReservation = ({
+  reservationId,
+  clienteId,
+  paymentMethodId,
+  passengers,
+}) => {
+  const body = {
+    cliente_id: clienteId,
+    metodo_pago_id: paymentMethodId,
+  };
+
+  if (passengers.length > 0) body.pasajeros = passengers;
+
+  return request(`/clientes/reserva/${reservationId}/compra`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+};

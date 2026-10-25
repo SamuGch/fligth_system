@@ -14,6 +14,9 @@ import {
   Clock3,
 } from "lucide-react";
 import { obtenerTiposAsiento } from "../services/asientoService";
+import { createTemporaryReservation } from "../services/apiClient";
+import { reservationErrorMessage } from "../services/reservationErrors";
+import { useAuth } from "../features/auth/context/AuthContext";
 import * as Api from "../tools/Api"
 
 const CABIN_THEMES = [
@@ -46,7 +49,7 @@ function adaptarAsiento(asiento, tiposAsiento, vueloId) {
   const nombreClase =
     asiento.tipoAsiento ?? tipo?.nombre ?? tipo?.name ?? "Sin clase";
   const estado = String(asiento.estado ?? "").toUpperCase();
-  const ocupado = asiento.ocupado === true || estado === "OCUPADO";
+  const ocupado = asiento.ocupado === true || estado === "CONFIRMADO";
   const disponible =
     asiento.disponible ??
     (asiento.activo === true || estado === "DISPONIBLE");
@@ -85,6 +88,8 @@ const STATUS_COLORS = {
 
 const currency = (amount) =>
   `Q${amount.toLocaleString("es-GT")}`;
+
+const createPaymentDeadline = () => Date.now() + 5 * 60 * 1000;
 
 function Seat({ seat, selected, onClick }) {
   const status = selected ? "Seleccionado" : seat.status;
@@ -350,6 +355,7 @@ function FlightInfo({ flight }) {
 export default function SeatSelection() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { client } = useAuth();
   const selectedFlight = location.state?.flight ?? {};
   const flight = {
     ...selectedFlight,
@@ -368,6 +374,7 @@ export default function SeatSelection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [reserving, setReserving] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -483,7 +490,6 @@ export default function SeatSelection() {
   }, [asientosDelSegmento]);
 
   const handleSeatClick = (seat) => {
-    console.log({seat})
     setMessage("");
     if (!seat.activo || seat.ocupado) return;
 
@@ -512,24 +518,45 @@ export default function SeatSelection() {
     });
   };
 
-  const handleContinue = () => {
-    if (selectedSeats.length === 0) {
-      setMessage("Debes seleccionar al menos un asiento.");
+  const handleContinue = async () => {
+    if (selectedSeats.length === 0 || reserving) return;
+
+    const clienteId = client?.id ?? client?.cliente_id ?? client?.clienteId;
+    if (clienteId == null) {
+      setMessage("No fue posible identificar tu perfil de cliente. Intenta iniciar sesión nuevamente.");
       return;
     }
 
-    const checkoutData = {
-      flight,
-      passengers: selectedSeats.length,
-      selectedSeats,
-      subtotal,
-      serviceFee,
-      total,
-    };
+    setReserving(true);
+    setMessage("");
 
-    navigate("/checkout", {
-      state: checkoutData,
-    });
+    try {
+      const reservation = await createTemporaryReservation({
+        clienteId,
+        seatIds: selectedSeats.map((seat) => seat.databaseId),
+      });
+
+      if (reservation?.id == null) {
+        throw new Error("Invalid reservation response");
+      }
+
+      navigate("/checkout", {
+        state: {
+          flight,
+          passengers: selectedSeats.length,
+          selectedSeats,
+          subtotal,
+          serviceFee,
+          total,
+          reservation,
+          paymentDeadline: createPaymentDeadline(),
+        },
+      });
+    } catch (reservationError) {
+      setMessage(reservationErrorMessage(reservationError, "reserve"));
+    } finally {
+      setReserving(false);
+    }
   };
 
 
@@ -702,7 +729,6 @@ export default function SeatSelection() {
                   ) : (
                     <div className="min-w-max">
                       <div className="flex items-start gap-8 sm:gap-15">
-                        {console.log({sections})}
                         {sections.map((section) => (
                           <CabinSection
                             key={section.id}
@@ -940,7 +966,7 @@ export default function SeatSelection() {
               <button
                 type="button"
                 onClick={handleContinue}
-                disabled={selectedSeats.length === 0 || loading || Boolean(error)}
+                disabled={selectedSeats.length === 0 || loading || Boolean(error) || reserving}
                 className="w-full bg-[#3b2b7a]
                            hover:bg-[#2b205c]
                            disabled:opacity-50
@@ -951,8 +977,17 @@ export default function SeatSelection() {
                            gap-3 transition-colors
                            cursor-pointer"
               >
-                Continuar al pago
-                <ArrowRight size={20} />
+                {reserving ? (
+                  <>
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    Reservando asientos...
+                  </>
+                ) : (
+                  <>
+                    Continuar al pago
+                    <ArrowRight size={20} />
+                  </>
+                )}
               </button>
 
               <button

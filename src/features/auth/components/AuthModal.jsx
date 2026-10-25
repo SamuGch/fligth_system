@@ -34,6 +34,9 @@ export default function AuthModal({ mode }) {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const sessionNotice = isRegister
+    ? ""
+    : sessionStorage.getItem("airtravel_auth_notice") || "";
 
   const { signIn, signUp, signInWithGoogle, isSupabaseConfigured } = useAuth();
   const navigate = useNavigate();
@@ -56,6 +59,7 @@ export default function AuthModal({ mode }) {
   );
 
   const close = useCallback(() => {
+    sessionStorage.removeItem("airtravel_auth_notice");
     navigate(
       {
         pathname: backgroundLocation.pathname || "/",
@@ -110,6 +114,7 @@ export default function AuthModal({ mode }) {
 
   const submit = async (event) => {
     event.preventDefault();
+    sessionStorage.removeItem("airtravel_auth_notice");
     if (isRegister && form.password !== form.confirmation) {
       setStatus({ loading: false, error: "Las contraseñas no coinciden.", success: false });
       return;
@@ -206,6 +211,11 @@ export default function AuthModal({ mode }) {
       {!isSupabaseConfigured && (
         <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
           Falta configurar Supabase en este entorno.
+        </p>
+      )}
+      {sessionNotice && !status.error && (
+        <p role="alert" className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+          {sessionNotice}
         </p>
       )}
       {status.error && (
