@@ -62,6 +62,9 @@ export const getMyProfile = (accessToken) =>
   request("/clientes/me", { accessToken });
 export const updateMyProfile = (profile) =>
   request("/clientes/me", { method: "PUT", body: JSON.stringify(profile) });
+export const getMyTrips = () => request("/clientes/mis-viajes");
+export const cancelReservation = (reservationId) =>
+  request(`/clientes/reserva/${reservationId}/cancelar`, { method: "PUT" });
 
 export const createTemporaryReservation = ({ clienteId, seatIds }) =>
   request("/clientes/reserva/temporal", {

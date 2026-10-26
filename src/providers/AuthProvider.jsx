@@ -3,8 +3,8 @@ import {
   getMyProfile,
   syncClient,
   updateMyProfile,
-} from "../../../services/apiClient";
-import { isSupabaseConfigured, supabase } from "../../../lib/supabase";
+} from "../services/apiClient";
+import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { AuthContext } from "../context/AuthContext";
 
 const configurationError =

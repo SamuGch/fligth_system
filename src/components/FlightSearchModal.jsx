@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CalendarDays, Clock3, Plane, X } from "lucide-react";
 import { airports } from "../data/airports";
-import { useAuth } from "../features/auth/context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 
 function formatTime(value) {
   if (!value) return "--:--";

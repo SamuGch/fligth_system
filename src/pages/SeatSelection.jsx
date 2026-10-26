@@ -16,7 +16,8 @@ import {
 import { obtenerTiposAsiento } from "../services/asientoService";
 import { createTemporaryReservation } from "../services/apiClient";
 import { reservationErrorMessage } from "../services/reservationErrors";
-import { useAuth } from "../features/auth/context/AuthContext";
+import { invalidateTripsCache } from "../services/tripsCache";
+import { useAuth } from "../context/AuthContext";
 import * as Api from "../tools/Api"
 
 const CABIN_THEMES = [
@@ -539,6 +540,8 @@ export default function SeatSelection() {
       if (reservation?.id == null) {
         throw new Error("Invalid reservation response");
       }
+
+      invalidateTripsCache();
 
       navigate("/checkout", {
         state: {

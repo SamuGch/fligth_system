@@ -1,15 +1,14 @@
 import { Route, Routes, useLocation } from "react-router-dom";
 import Home from "../Home";
-import AuthModal from "../features/auth/components/AuthModal";
+import AuthModal from "../components/auth/AuthModal";
 import {
   AuthCallbackModal,
   ConfirmEmailModal,
-} from "../features/auth/components/AuthStatusModals";
-import ProtectedRoute from "../features/auth/components/ProtectedRoute";
-import {
-  ProfilePage,
-  ReservationsPage,
-} from "../features/account/pages/AccountPages";
+} from "../components/auth/AuthStatusModals";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
+import ProfilePage from "../pages/ProfilePage";
+import ReservationDetailPage from "../pages/ReservationDetailPage";
+import ReservationsPage from "../pages/ReservationsPage";
 import SeatSelection from "../pages/SeatSelection";
 import CheckoutPage from "../pages/CheckoutPage";
 
@@ -26,6 +25,7 @@ export default function AppRouter() {
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/perfil" element={<ProfilePage />} />
           <Route path="/reservas" element={<ReservationsPage />} />
+          <Route path="/reservas/:reservaId" element={<ReservationDetailPage />} />
           <Route path="/historial-compras" element={<ReservationsPage history />} />
           <Route path="/seleccion-asientos" element={<SeatSelection />} />
         </Route>
