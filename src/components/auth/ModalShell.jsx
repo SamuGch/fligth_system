@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { X, Plane } from "lucide-react";
+import { X } from "lucide-react";
 
 export default function ModalShell({ children, onClose, titleId }) {
   useEffect(() => {
@@ -83,3 +83,4 @@ export default function ModalShell({ children, onClose, titleId }) {
     </div>
   );
 }
+

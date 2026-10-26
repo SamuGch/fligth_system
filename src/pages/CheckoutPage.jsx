@@ -13,11 +13,12 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useAuth } from "../features/auth/context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import { PAYMENT_METHOD_IDS } from "../config/paymentMethods";
 import { purchaseReservation } from "../services/apiClient";
 import { reservationErrorMessage } from "../services/reservationErrors";
 import { limpiarSeleccion } from "../services/seatSelectionStorage";
+import { invalidateTripsCache } from "../services/tripsCache";
 
 const money = (value) => `Q ${Number(value || 0).toFixed(2)}`;
 
@@ -162,6 +163,7 @@ export default function CheckoutPage() {
         paymentMethodId,
         passengers: passengerPayload(),
       });
+      invalidateTripsCache();
       setPurchaseResult(result);
     } catch (purchaseError) {
       if (Number(purchaseError?.status) === 410) {
