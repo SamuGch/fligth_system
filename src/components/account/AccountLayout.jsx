@@ -2,7 +2,10 @@ import MainNavbar from "../MainNavbar";
 
 export default function AccountLayout({ children }) {
   return (
-    <div className="relative min-h-dvh overflow-x-hidden bg-[#f5f6fb] font-sans">
+    <div
+      className="relative min-h-dvh overflow-x-hidden bg-cover bg-center bg-fixed font-sans"
+      style={{ backgroundImage: 'url("/allFonts.png")' }}
+    >
       <div className="pointer-events-none absolute -left-32 top-10 h-80 w-80 rounded-full bg-violet-200/35 blur-3xl" />
       <div className="pointer-events-none absolute -right-32 top-52 h-96 w-96 rounded-full bg-blue-200/35 blur-3xl" />
       <MainNavbar />

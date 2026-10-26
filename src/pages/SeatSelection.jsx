@@ -18,6 +18,7 @@ import { createTemporaryReservation } from "../services/apiClient";
 import { reservationErrorMessage } from "../services/reservationErrors";
 import { invalidateTripsCache } from "../services/tripsCache";
 import { useAuth } from "../context/AuthContext";
+import MainNavbar from "../components/MainNavbar";
 import * as Api from "../tools/Api"
 
 const CABIN_THEMES = [
@@ -379,9 +380,14 @@ export default function SeatSelection() {
 
   useEffect(() => {
     const root = document.documentElement;
+    const body = document.body;
     root.classList.add("scrollbar-hidden");
+    body.classList.add("scrollbar-hidden");
 
-    return () => root.classList.remove("scrollbar-hidden");
+    return () => {
+      root.classList.remove("scrollbar-hidden");
+      body.classList.remove("scrollbar-hidden");
+    };
   }, []);
 
   useEffect(() => {
@@ -575,84 +581,8 @@ export default function SeatSelection() {
       className="min-h-screen w-full bg-cover bg-center bg-fixed"
       style={{ backgroundImage: 'url("/allFonts.png")' }}
     >
-      <div className="min-h-screen w-full pt-3 sm:pt-5">
-        {/* Encabezado principal */}
-        <header
-          className="relative z-50 mx-4 sm:mx-6 lg:mx-12 xl:mx-15 flex items-center justify-between rounded-full px-3 sm:px-5 lg:px-7 xl:px-5 py-2 bg-[linear-gradient(100deg,#292570_0%,#403A91_50%,#292570_100%)] border border-white/25 backdrop-blur-md shadow-[0_10px_30px_rgba(20,25,105,0.28),0_0_20px_rgba(140,155,255,0.20)] text-white before:pointer-events-none before:absolute before:inset-x-10 before:top-0 before:h-px before:bg-linear-to-r before:from-transparent before:via-white/50 before:to-transparent"
-        >
-          <div
-            className="flex items-center justify-between gap-3"
-          >
-            <div className="min-w-0 flex items-center gap-4">
-
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-white p-2">
-                  <img
-                    src="/icono.jpg"
-                    alt="Air Travel"
-                    className="h-9 w-9 object-contain"
-                  />
-                </div>
-
-                <div className="min-w-0">
-                  <h1 className="text-base font-extrabold tracking-widest sm:text-lg">
-                    AIR TRAVEL
-                  </h1>
-                  <p className="text-xs text-white/70">
-                    Vuelos que te llevan más lejos
-                  </p>
-                </div>
-              </div>
-                </div>
-
-            <div className="flex shrink-0 items-center gap-3">
-              {/*{[
-                "Asientos",
-                "Pasajeros",
-                "Pago",
-                "Confirmación",
-               ].map((step, index) => (
-                <div
-                  key={step}
-                  className="flex items-center gap-2"
-                >
-                  <span
-                    className={`w-8 h-8 rounded-full
-                      flex items-center justify-center
-                      text-sm font-bold border
-                      ${
-                        index === 0
-                          ? "bg-white text-[#3b2b7a] border-white"
-                          : "border-white/40 text-white/60"
-                      }`}
-                  >
-                    {index + 1}
-                  </span>
-
-                  <span
-                    className={`text-xs sm:text-sm ${
-                      index === 0
-                        ? "text-white"
-                        : "text-white/50"
-                    }`}
-                  >
-                    {step}
-                  </span>
-                </div>
-              ))} */}
-
-              <button
-                type="button"
-                onClick={handleExit}
-                aria-label="Cerrar selección de asientos"
-                className="ml-2 p-2 hover:bg-white/10
-                           rounded-full cursor-pointer"
-              >
-                <X size={22} />
-              </button>
-            </div>
-          </div>
-        </header>
+      <div className="flow-root min-h-screen w-full">
+        <MainNavbar />
 
         {/* Distribución de dos columnas */}
         <div

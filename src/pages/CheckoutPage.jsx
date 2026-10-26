@@ -9,7 +9,6 @@ import {
   Landmark,
   LockKeyhole,
   Plane,
-  ShieldCheck,
   UserRound,
   X,
 } from "lucide-react";
@@ -19,6 +18,7 @@ import { purchaseReservation } from "../services/apiClient";
 import { reservationErrorMessage } from "../services/reservationErrors";
 import { limpiarSeleccion } from "../services/seatSelectionStorage";
 import { invalidateTripsCache } from "../services/tripsCache";
+import MainNavbar from "../components/MainNavbar";
 
 const money = (value) => `Q ${Number(value || 0).toFixed(2)}`;
 
@@ -83,6 +83,18 @@ export default function CheckoutPage() {
   const selectedSeat = seats.find((seat) => seatKey(seat) === activeSeat) ?? seats[0];
   const selectedPassenger = passengers[activeSeat] ?? emptyPassenger;
   const paymentMethodId = PAYMENT_METHOD_IDS[paymentMethod];
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    root.classList.add("scrollbar-hidden");
+    body.classList.add("scrollbar-hidden");
+
+    return () => {
+      root.classList.remove("scrollbar-hidden");
+      body.classList.remove("scrollbar-hidden");
+    };
+  }, []);
 
   useEffect(() => {
     if (purchaseResult) return undefined;
@@ -230,35 +242,10 @@ export default function CheckoutPage() {
 
   return (
     <div
-      className="min-h-dvh bg-cover bg-center bg-fixed font-sans"
+      className="flow-root min-h-dvh bg-cover bg-center bg-fixed font-sans"
       style={{ backgroundImage: 'url("/allFonts.png")' }}
     >
-      <header className="relative z-50 mx-4 mt-3 flex items-center justify-between gap-3 rounded-full border border-white/25 bg-[linear-gradient(100deg,#292570_0%,#403A91_50%,#292570_100%)] px-4 py-2 text-white shadow-[0_10px_30px_rgba(30,25,105,0.28),0_0_20px_rgba(140,155,255,0.20)] backdrop-blur-md sm:mx-6 sm:mt-5 sm:px-6 lg:mx-12 lg:px-8">
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="rounded-full bg-white p-2">
-              <img src="/icono.jpg" alt="Air Travel" className="h-9 w-9 object-contain" />
-            </div>
-            <div>
-              <h1 className="text-base font-extrabold tracking-widest sm:text-lg">AIR TRAVEL</h1>
-              <p className="text-xs text-white/70">Vuelos que te llevan más lejos</p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <button
-              type="button"
-              onClick={goBack}
-              className="flex min-h-11 items-center gap-1.5 rounded-xl px-2 text-sm font-semibold transition hover:bg-white/10 sm:px-3"
-            >
-              <ArrowLeft size={20} />
-              <span>Volver</span>
-            </button>
-            <div className="hidden items-center gap-2 text-sm font-medium md:flex">
-              <ShieldCheck size={19} /> Compra segura
-            </div>
-          </div>
-        </div>
-      </header>
+      <MainNavbar />
 
       <main className="mx-auto max-w-[1600px] px-4 py-5 sm:px-8 sm:py-8 lg:px-12">
         <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(22rem,1fr)] lg:gap-7">
