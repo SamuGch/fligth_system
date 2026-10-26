@@ -114,16 +114,16 @@ export default function FlightSearchModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="flight-modal-title"
-        className="my-auto max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl sm:max-h-[90dvh]"
+        className="scrollbar-hidden my-auto max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl sm:max-h-[90dvh]"
       >
-        <header className="flex items-start justify-between gap-3 bg-[#3b2b7a] px-4 py-5 text-white sm:px-8 sm:py-6">
+        <header className="flex items-center justify-between gap-3 rounded-t-2xl bg-[linear-gradient(100deg,#292570_0%,#403A91_50%,#292570_100%)] px-4 py-3 text-white sm:px-6 sm:py-4">
           <div className="min-w-0">
-            <p className="mb-1 text-sm text-white/70">Resultados de búsqueda</p>
-            <h2 id="flight-modal-title" className="text-xl font-bold sm:text-3xl">
+            <p className="mb-0.5 text-xs text-white/70 sm:text-sm">Resultados de búsqueda</p>
+            <h2 id="flight-modal-title" className="text-lg font-bold leading-tight sm:text-2xl">
               Vuelos disponibles
             </h2>
             {firstFlight && (
-              <p className="mt-2 text-sm text-white/80">
+              <p className="mt-1 break-words text-xs leading-snug text-white/80 sm:text-sm">
                 {firstFlight.originCity ?? firstFlight.origin} ({firstFlight.origin})
                 {" → "}
                 {firstFlight.destinationCity ?? firstFlight.destination} ({firstFlight.destination})
@@ -134,7 +134,7 @@ export default function FlightSearchModal({
             type="button"
             onClick={onClose}
             aria-label="Cerrar resultados"
-            className="min-h-11 min-w-11 shrink-0 rounded-full p-2 hover:bg-white/15"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full hover:bg-white/15"
           >
             <X size={22} />
           </button>

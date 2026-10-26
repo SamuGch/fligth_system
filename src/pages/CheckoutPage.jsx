@@ -202,7 +202,10 @@ export default function CheckoutPage() {
 
   if (!flight || seats.length === 0 || reservation?.id == null) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-slate-50 p-4 sm:p-6">
+      <div
+        className="flex min-h-dvh items-center justify-center bg-cover bg-center bg-fixed p-4 sm:p-6"
+        style={{ backgroundImage: 'url("/allFonts.png")' }}
+      >
         <div className="w-full max-w-md rounded-3xl bg-white p-5 text-center shadow-xl sm:p-8">
           <h1 className="text-xl font-bold text-slate-900">No hay una compra pendiente</h1>
           <p className="mt-2 text-slate-500">
@@ -224,9 +227,12 @@ export default function CheckoutPage() {
   const confirmed = resultStatus === "CONFIRMADA";
 
   return (
-    <div className="min-h-dvh bg-[#f5f6fb] font-sans">
-      <header className="sticky top-0 z-50 bg-[#3b2b7a] text-white shadow-lg">
-        <div className="mx-auto flex items-center justify-between gap-3 px-4 py-3 sm:px-8 sm:py-4 lg:px-12">
+    <div
+      className="min-h-dvh bg-cover bg-center bg-fixed font-sans"
+      style={{ backgroundImage: 'url("/allFonts.png")' }}
+    >
+      <header className="relative z-50 mx-4 mt-3 flex items-center justify-between gap-3 rounded-full border border-white/25 bg-[linear-gradient(100deg,#292570_0%,#403A91_50%,#292570_100%)] px-4 py-2 text-white shadow-[0_10px_30px_rgba(30,25,105,0.28),0_0_20px_rgba(140,155,255,0.20)] backdrop-blur-md sm:mx-6 sm:mt-5 sm:px-6 lg:mx-12 lg:px-8">
+        <div className="flex min-w-0 items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="rounded-full bg-white p-2">
               <img src="/icono.jpg" alt="Air Travel" className="h-9 w-9 object-contain" />
@@ -252,9 +258,9 @@ export default function CheckoutPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-8">
+      <main className="mx-auto max-w-[1600px] px-4 py-5 sm:px-8 sm:py-8 lg:px-12">
         <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(22rem,1fr)] lg:gap-7">
-          <section className="order-2 min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-lg sm:p-8 lg:order-1">
+          <section className="order-2 min-w-0 rounded-3xl border border-white/60 bg-white/95 p-4 shadow-xl backdrop-blur-md sm:p-8 lg:order-1">
             <div className="mb-7 flex items-center gap-3">
               <div className="rounded-2xl bg-violet-100 p-3 text-violet-700">
                 <CreditCard size={25} />
@@ -377,7 +383,7 @@ export default function CheckoutPage() {
             </div>
           </section>
 
-          <aside className="order-1 space-y-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-lg sm:p-7 lg:order-2 lg:sticky lg:top-24">
+          <aside className="order-1 min-w-0 space-y-6 rounded-3xl border border-white/60 bg-white/95 p-5 shadow-xl backdrop-blur-md sm:p-7 lg:sticky lg:top-6 lg:order-2">
             <div className="flex items-center gap-3">
               <div className="rounded-xl bg-violet-100 p-3 text-violet-700"><Plane size={23} /></div>
               <h2 className="text-xl font-bold text-slate-900">Resumen de compra</h2>

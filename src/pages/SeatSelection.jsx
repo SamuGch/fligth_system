@@ -272,7 +272,7 @@ function FlightInfo({ flight }) {
 
   return (
     <div
-      className="bg-white p-4 sm:p-7
+      className="rounded-2xl border border-white/60 bg-white/90 p-4 shadow-lg backdrop-blur-md sm:p-7
                  flex flex-col lg:flex-row
                  lg:items-center gap-6"
     >
@@ -307,7 +307,7 @@ function FlightInfo({ flight }) {
           <p className="font-semibold text-[#3b2b7a]">
             {flight.origin}
           </p>
-          <p className="break-words text-xs text-slate-500">
+          <p className="wrap-break-word text-xs text-slate-500">
             {flight.originCity}
           </p>
         </div>
@@ -375,6 +375,13 @@ export default function SeatSelection() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [reserving, setReserving] = useState(false);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("scrollbar-hidden");
+
+    return () => root.classList.remove("scrollbar-hidden");
+  }, []);
 
   useEffect(() => {
     let cancelado = false;
@@ -562,14 +569,13 @@ export default function SeatSelection() {
 
   return (
     <div
-      className="min-h-screen w-full bg-slate-50"
+      className="min-h-screen w-full bg-cover bg-center bg-fixed"
+      style={{ backgroundImage: 'url("/allFonts.png")' }}
     >
-      <div className="min-h-screen w-full">
+      <div className="min-h-screen w-full pt-3 sm:pt-5">
         {/* Encabezado principal */}
         <header
-          className="sticky top-0 z-50 w-full bg-linear-to-r from-[#29205f]
-                     via-[#3b2b7a] to-[#5843a3]
-                     px-4 py-3 text-white sm:px-8 sm:py-5 lg:px-12"
+          className="relative z-50 mx-4 sm:mx-6 lg:mx-12 xl:mx-15 flex items-center justify-between rounded-full px-3 sm:px-5 lg:px-7 xl:px-5 py-2 bg-[linear-gradient(100deg,#292570_0%,#403A91_50%,#292570_100%)] border border-white/25 backdrop-blur-md shadow-[0_10px_30px_rgba(20,25,105,0.28),0_0_20px_rgba(140,155,255,0.20)] text-white before:pointer-events-none before:absolute before:inset-x-10 before:top-0 before:h-px before:bg-linear-to-r before:from-transparent before:via-white/50 before:to-transparent"
         >
           <div
             className="flex items-center justify-between gap-3"
@@ -647,22 +653,18 @@ export default function SeatSelection() {
 
         {/* Distribución de dos columnas */}
         <div
-          className="min-h-[calc(100dvh-80px)] min-w-0 bg-white
-                     px-3 py-5 sm:px-6 lg:px-12
-                     grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_390px]
-                     gap-5 lg:gap-8"
+          className="mx-auto grid min-h-[calc(100dvh-80px)] w-full max-w-[1600px] min-w-0 grid-cols-1 items-start gap-5 px-4 py-5 sm:px-6 lg:px-12 lg:py-8
+                     xl:grid-cols-[minmax(0,1fr)_390px] lg:gap-8"
         >
           {/* Columna izquierda */}
-          <main className="min-w-0 space-y-2">
+          <main className="min-w-0 space-y-5">
             <FlightInfo flight={flight} />
 
             <section
-              className="min-w-0 bg-violet-50 p-3 sm:p-6 lg:p-8"
+              className="min-w-0 rounded-3xl border border-white/60 bg-white/90 p-3 shadow-lg backdrop-blur-md sm:p-6 lg:p-8"
             >
               <div
-                className="flex flex-col lg:flex-row
-                           lg:items-center justify-between
-                           gap-5 mb-7"
+                className="mb-6 flex flex-col justify-between gap-5 rounded-2xl border border-violet-100 bg-violet-50/90 p-4 sm:p-5 lg:flex-row lg:items-center"
               >
                 <div>
                   <h2
@@ -711,7 +713,7 @@ export default function SeatSelection() {
                            gap-4 items-start"
               >
                 <div
-                  className="min-w-0 overflow-x-auto bg-slate-50 p-3 sm:p-6"
+                  className="min-w-0 overflow-x-auto rounded-2xl border border-slate-200 bg-white/90 p-3 sm:p-6"
                   aria-busy={loading}
                 >
                   {loading ? (
@@ -816,8 +818,8 @@ export default function SeatSelection() {
           </main>
 
           {/* Columna derecha */}
-          <aside className="bg-violet-50 p-5 sm:p-6 lg:p-8 flex flex-col min-w-0">
-            <div className="flex items-center justify-between gap-2 pb-5 border-b border-slate-400">
+          <aside className="flex min-w-0 flex-col rounded-3xl border border-white/60 bg-white/95 p-5 shadow-lg backdrop-blur-md sm:p-6 lg:p-8">
+            <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-5">
               <h2 className="text-xl font-bold
                            text-[#21194d]"
               >
@@ -853,7 +855,7 @@ export default function SeatSelection() {
                     selectedSeats.map((seat, index) => (
                       <div
                         key={seat.id}
-                        className="flex items-center gap-3 rounded-2xl border border-slate-400 p-3 sm:p-4"
+                        className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 p-3 sm:p-4"
                       >
                         <div
                           className="w-11 h-11 bg-violet-100 rounded-xl
@@ -895,8 +897,7 @@ export default function SeatSelection() {
             </div>
 
             <div
-              className="border-t border-slate-200
-                         mt-7 pt-7"
+              className="mt-7 rounded-2xl border border-slate-200 bg-white/70 p-4 pt-5 sm:p-5"
             >
               <h3
                 className="text-lg font-bold

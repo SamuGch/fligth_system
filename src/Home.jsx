@@ -87,18 +87,17 @@ function Home() {
 
       {/* Navbar */}
       {/* <nav className="mx-4 sm:mx-6 lg:mx-12 xl:mx-25 mt-3 sm:mt-5 bg-[#3b2b7a] backdrop-blur-md rounded-full px-3 sm:px-5 lg:px-7 xl:px-5 py-2 flex items-center justify-between shadow-xl text-white relative z-50"> */}
-      <nav 
-className=" relative z-50 mx-4 sm:mx-6 lg:mx-12 xl:mx-25 mt-3 sm:mt-5 flex items-center justify-between rounded-full px-3 sm:px-5 lg:px-7 xl:px-5 py-2 bg-[linear-gradient(100deg,#292570_0%,#403A91_50%,#292570_100%)] border border-white/25 backdrop-blur-md shadow-[0_10px_30px_rgba(30,25,105,0.28),0_0_20px_rgba(140,155,255,0.20)] text-white before:pointer-events-none before:absolute before:inset-x-10 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/50 before:to-transparent">
+      <nav className=" relative z-50 mx-4 sm:mx-6 lg:mx-12 xl:mx-25 mt-3 sm:mt-5 flex items-center justify-between rounded-full px-3 sm:px-5 lg:px-7 xl:px-5 py-2 bg-[linear-gradient(100deg,#292570_0%,#403A91_50%,#292570_100%)] border border-white/25 backdrop-blur-md shadow-[0_10px_30px_rgba(30,25,105,0.28),0_0_20px_rgba(140,155,255,0.20)] text-white before:pointer-events-none before:absolute before:inset-x-10 before:top-0 before:h-px before:bg-linear-to-r before:from-transparent before:via-white/50 before:to-transparent">
       
         {/* Left Links */}
         <div className="flex items-center gap-3 lg:gap-15 lg:w-1/3">
           <div className="bg-white text-blue-900 w-9 h-9 sm:w-9 sm:h-9 rounded-full shrink-0 flex items-center justify-center xl:-ml-2.5">
             <img src="/icono.jpg" alt="Logo" className="w-8 h-8 sm:w-8 sm:h-8 object-contain rounded-full" />
           </div>
-          <div className="hidden md:flex items-center gap-4 text-base font-medium leading-none relative -top-[2px]">
+          <div className="hidden md:flex items-center gap-4 text-base font-medium leading-none relative -top-0.5">
             <a href="#" className="text-base  text-white hover:text-white/80 transition-colors no-underline">Vuelos</a>
             <span className="text-white/40">|</span>
-            <a href="#" className="text-white/80 hover:text-white transition-colors">Hoteles</a>
+            {/* <a href="#" className="text-white/80 hover:text-white transition-colors">Hoteles</a> */}
           </div>
         </div>
 
