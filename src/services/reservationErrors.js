@@ -31,6 +31,9 @@ export function reservationErrorMessage(error, operation = "purchase") {
   if (error?.status == null && error?.message === "No fue posible conectar con el servidor.") {
     return "No pudimos conectarnos con el servidor. Revisa tu conexión e inténtalo nuevamente.";
   }
+  if (error?.status == null && error?.message) {
+    return error.message;
+  }
 
   return DEFAULT_MESSAGE;
 }

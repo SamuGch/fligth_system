@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import AccountLayout from "../components/account/AccountLayout";
 import TripCard from "../components/account/TripCard";
 import useTrips from "../hooks/useTrips";
-import { tripPhase } from "../tools/tripFormatting";
+import { tripCategory } from "../tools/tripFormatting";
 
 function EmptyTrips() {
   return (
@@ -16,12 +16,12 @@ function EmptyTrips() {
   );
 }
 
-export default function ReservationsPage({ history = false }) {
+export default function ReservationsPage() {
   const { trips, loading, error, reload } = useTrips();
-  const [filter, setFilter] = useState(history ? "past" : "all");
+  const [filter, setFilter] = useState("all");
   const visibleTrips = useMemo(() => {
     if (filter === "all") return trips;
-    return trips.filter((trip) => tripPhase(trip) === filter);
+    return trips.filter((trip) => tripCategory(trip) === filter);
   }, [filter, trips]);
 
   return (
@@ -31,7 +31,7 @@ export default function ReservationsPage({ history = false }) {
         <Link to="/" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-700 px-5 text-sm font-bold text-white transition hover:bg-violet-800"><Plane size={18} /> Buscar vuelos</Link>
       </div>
 
-      {!loading && !error && trips.length > 0 && <div className="mb-5 flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Filtrar viajes">{[["all", "Todos"], ["upcoming", "Próximos"], ["past", "Anteriores"]].map(([value, label]) => <button key={value} type="button" onClick={() => setFilter(value)} className={`min-h-10 shrink-0 rounded-full px-5 text-sm font-bold transition ${filter === value ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:border-violet-300"}`}>{label}</button>)}</div>}
+      {!loading && !error && trips.length > 0 && <div className="mb-5 flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Filtrar viajes">{[["all", "Todos"], ["confirmed", "Confirmados"], ["pending_confirmation", "Pendientes de confirmación"], ["cancelled", "Cancelados o expirados"]].map(([value, label]) => <button key={value} type="button" onClick={() => setFilter(value)} className={`min-h-10 shrink-0 rounded-full px-5 text-sm font-bold transition ${filter === value ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:border-violet-300"}`}>{label}</button>)}</div>}
       {loading && <div className="grid min-h-72 place-items-center rounded-3xl border border-slate-200 bg-white text-center shadow-sm"><div><LoaderCircle className="mx-auto animate-spin text-violet-700" size={34} /><p className="mt-3 text-sm font-semibold text-slate-500">Cargando tus viajes…</p></div></div>}
       {!loading && error && <div className="rounded-3xl border border-red-100 bg-white px-5 py-12 text-center shadow-sm"><CircleAlert className="mx-auto text-red-500" size={36} /><h2 className="mt-4 text-lg font-extrabold text-slate-900">No pudimos cargar tus viajes</h2><p role="alert" className="mt-2 text-sm text-slate-500">{error}</p><button type="button" onClick={() => void reload()} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-violet-700 px-5 text-sm font-bold text-white"><RefreshCw size={17} /> Intentar de nuevo</button></div>}
       {!loading && !error && trips.length === 0 && <EmptyTrips />}

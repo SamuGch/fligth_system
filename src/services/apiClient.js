@@ -11,7 +11,7 @@ export class ApiError extends Error {
 }
 
 async function request(path, options = {}) {
-  const { accessToken, ...fetchOptions } = options;
+  const { accessToken, preserveMessage = false, ...fetchOptions } = options;
   let token = accessToken;
 
   if (!token) {
@@ -53,6 +53,12 @@ async function request(path, options = {}) {
       response.status,
     );
   }
+  if (preserveMessage && payload?.data && !Array.isArray(payload.data)) {
+    return {
+      ...payload.data,
+      message: payload.message ?? payload.data.message,
+    };
+  }
   return payload?.data ?? payload;
 }
 
@@ -65,6 +71,33 @@ export const updateMyProfile = (profile) =>
 export const getMyTrips = () => request("/clientes/mis-viajes");
 export const cancelReservation = (reservationId) =>
   request(`/clientes/reserva/${reservationId}/cancelar`, { method: "PUT" });
+export const registerDepositPayment = ({ reservationId, clienteId, paymentMethodId, amount, reference }) =>
+  request(`/clientes/reserva/${reservationId}/pago-deposito`, {
+    method: "POST",
+    preserveMessage: true,
+    body: JSON.stringify({
+      cliente_id: clienteId,
+      metodo_pago_id: paymentMethodId,
+      monto: amount,
+      referencia: reference,
+    }),
+  });
+
+export const getReservationPayments = (reservationId, accessToken) =>
+  request(`/clientes/reserva/${reservationId}/pagos`, { accessToken });
+
+export const getPendingReservationSeats = (reservationId, accessToken) =>
+  request(`/clientes/reserva/${reservationId}/asientos-pendientes`, { accessToken });
+
+export const confirmReservationPassengers = ({ reservationId, clienteId, passengers }) =>
+  request(`/clientes/reserva/${reservationId}/confirmar`, {
+    method: "POST",
+    preserveMessage: true,
+    body: JSON.stringify({
+      cliente_id: clienteId,
+      pasajeros: passengers,
+    }),
+  });
 
 export const createTemporaryReservation = ({ clienteId, seatIds }) =>
   request("/clientes/reserva/temporal", {

@@ -231,9 +231,9 @@ export default function ReservationDetailPage() {
 
         <div className="p-4 sm:p-8">
           {(action === "payment" || trip.debe_registrar_pago) && (
-            <div className="mb-6 flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
+            <div className="mb-6 flex flex-col justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800 sm:flex-row sm:items-center">
               <CreditCard className="shrink-0" size={22} />
-              <div>
+              <div className="flex-1">
                 <p className="font-extrabold">
                   Esta reserva necesita registrar el pago
                 </p>
@@ -242,12 +242,13 @@ export default function ReservationDetailPage() {
                   depósito. El registro se realiza sobre esta reserva.
                 </p>
               </div>
+              <button type="button" onClick={() => navigate(`/reservas/${trip.reserva_id}/registrar-pago`, { state: { trip } })} className="min-h-11 shrink-0 rounded-xl bg-amber-500 px-5 text-sm font-bold text-white hover:bg-amber-600">Registrar pago</button>
             </div>
           )}
-          {action === "passengers" && requiresPassengerConfirmation(trip) && (
-            <div className="mb-6 flex gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
+          {requiresPassengerConfirmation(trip) && (
+            <div className="mb-6 flex flex-col justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 sm:flex-row sm:items-center">
               <FileCheck2 className="shrink-0" size={22} />
-              <div>
+              <div className="flex-1">
                 <p className="font-extrabold">
                   Confirma los datos de los pasajeros
                 </p>
@@ -256,6 +257,7 @@ export default function ReservationDetailPage() {
                   información de la reserva.
                 </p>
               </div>
+              <button type="button" onClick={() => navigate(`/reservas/${trip.reserva_id}/confirmar-datos`, { state: { trip } })} className="min-h-11 shrink-0 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white hover:bg-emerald-700">Confirmar datos</button>
             </div>
           )}
 

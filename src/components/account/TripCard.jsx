@@ -24,8 +24,8 @@ export default function TripCard({ trip }) {
     .map((segment) => segment.numero_vuelo)
     .filter(Boolean)
     .join(" · ");
-  const goToDetails = (action) => {
-    navigate(`/reservas/${trip.reserva_id}`, { state: { trip, action } });
+  const goToReservationPage = (path = "") => {
+    navigate(`/reservas/${trip.reserva_id}${path}`, { state: { trip } });
   };
 
   return (
@@ -123,7 +123,7 @@ export default function TripCard({ trip }) {
           {trip.debe_registrar_pago && (
             <button
               type="button"
-              onClick={() => goToDetails("payment")}
+              onClick={() => goToReservationPage("/registrar-pago")}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 text-sm font-bold text-white transition hover:bg-amber-600"
             >
               <CreditCard size={18} /> Registrar pago
@@ -132,7 +132,7 @@ export default function TripCard({ trip }) {
           {requiresPassengerConfirmation(trip) && (
             <button
               type="button"
-              onClick={() => goToDetails("passengers")}
+              onClick={() => goToReservationPage("/confirmar-datos")}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white transition hover:bg-emerald-700"
             >
               <FileCheck2 size={18} /> Confirmar datos
@@ -140,7 +140,7 @@ export default function TripCard({ trip }) {
           )}
           <button
             type="button"
-            onClick={() => goToDetails()}
+            onClick={() => goToReservationPage()}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-violet-200 px-5 text-sm font-bold text-violet-700 transition hover:bg-violet-50"
           >
             Ver detalles <ChevronRight size={18} />

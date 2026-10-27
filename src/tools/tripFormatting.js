@@ -19,10 +19,13 @@ const statusOptions = {
   PENDIENTE_PAGO: { label: "Pendiente de pago", classes: "bg-amber-50 text-amber-700 ring-amber-200" },
   PAGO_EN_REVISION: { label: "Pago en revisión", classes: "bg-blue-50 text-blue-700 ring-blue-200" },
   PENDIENTE_DATOS: { label: "Datos pendientes", classes: "bg-orange-50 text-orange-700 ring-orange-200" },
+  PENDIENTE_CONFIRMACION: { label: "Pendiente de confirmación", classes: "bg-orange-50 text-orange-700 ring-orange-200" },
   PENDIENTE_CANCELACION: { label: "Cancelación en revisión", classes: "bg-orange-50 text-orange-700 ring-orange-200" },
   CONFIRMADO: { label: "Viaje confirmado", classes: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
+  CONFIRMADA: { label: "Viaje confirmado", classes: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
   COMPLETADO: { label: "Viaje completado", classes: "bg-slate-100 text-slate-700 ring-slate-200" },
   CANCELADO: { label: "Reserva cancelada", classes: "bg-red-50 text-red-700 ring-red-200" },
+  CANCELADA: { label: "Reserva cancelada", classes: "bg-red-50 text-red-700 ring-red-200" },
   EXPIRADA: { label: "Reserva expirada", classes: "bg-red-50 text-red-700 ring-red-200" },
 };
 
@@ -69,9 +72,10 @@ export function requiresPassengerConfirmation(trip) {
   );
 }
 
-export function tripPhase(trip) {
+export function tripCategory(trip) {
   const status = String(trip?.estado_resumen || trip?.estado_reserva || "").toUpperCase();
-  if (["CANCELADA", "CANCELADO", "EXPIRADA"].includes(status)) return "past";
-  const arrival = parseDate(trip?.fecha_llegada);
-  return arrival && arrival.getTime() < Date.now() ? "past" : "upcoming";
+  if (["CONFIRMADA", "CONFIRMADO"].includes(status)) return "confirmed";
+  if (requiresPassengerConfirmation(trip) || ["PENDIENTE_CONFIRMACION", "PENDIENTE_DATOS"].includes(status)) return "pending_confirmation";
+  if (["CANCELADA", "CANCELADO", "EXPIRADA", "EXPIRADO"].includes(status)) return "cancelled";
+  return "other";
 }

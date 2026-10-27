@@ -11,6 +11,8 @@ import ReservationDetailPage from "../pages/ReservationDetailPage";
 import ReservationsPage from "../pages/ReservationsPage";
 import SeatSelection from "../pages/SeatSelection";
 import CheckoutPage from "../pages/CheckoutPage";
+import DepositPaymentPage from "../pages/DepositPaymentPage";
+import PassengerConfirmationPage from "../pages/PassengerConfirmationPage";
 
 export default function AppRouter() {
   const location = useLocation();
@@ -26,6 +28,8 @@ export default function AppRouter() {
           <Route path="/perfil" element={<ProfilePage />} />
           <Route path="/reservas" element={<ReservationsPage />} />
           <Route path="/reservas/:reservaId" element={<ReservationDetailPage />} />
+          <Route path="/reservas/:reservaId/registrar-pago" element={<DepositPaymentPage />} />
+          <Route path="/reservas/:reservaId/confirmar-datos" element={<PassengerConfirmationPage />} />
           <Route path="/historial-compras" element={<ReservationsPage history />} />
           <Route path="/seleccion-asientos" element={<SeatSelection />} />
         </Route>

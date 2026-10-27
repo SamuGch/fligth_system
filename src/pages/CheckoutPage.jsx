@@ -30,6 +30,12 @@ const emptyPassenger = {
 };
 
 const passengerFields = Object.keys(emptyPassenger);
+const passengerFieldLabels = {
+  nombre_pasajero: "nombre",
+  apellido_pasajero: "apellido",
+  tipo_documento: "tipo de documento",
+  numero_documento: "número de documento",
+};
 
 function seatKey(seat) {
   return String(seat.databaseId ?? seat.selectionId ?? seat.id);
@@ -140,8 +146,11 @@ export default function CheckoutPage() {
       if (filled.length === 0) continue;
       if (filled.length !== passengerFields.length) {
         setActiveSeat(key);
+        const missingFields = passengerFields
+          .filter((field) => !normalized[field])
+          .map((field) => passengerFieldLabels[field]);
         throw new Error(
-          `Completa todos los datos del pasajero del asiento ${seat.id}, o deja todos sus campos vacíos.`,
+          `En el asiento ${seat.id} falta completar: ${missingFields.join(", ")}.`,
         );
       }
 
@@ -212,6 +221,13 @@ export default function CheckoutPage() {
   const goHome = () => {
     limpiarSeleccion();
     navigate("/", { replace: true });
+  };
+
+  const viewPurchaseDetail = () => {
+    const reservationId = purchaseResult?.id ?? reservation?.id;
+    if (reservationId == null) return;
+    limpiarSeleccion();
+    navigate(`/reservas/${reservationId}`, { replace: true });
   };
 
   if (!flight || seats.length === 0 || reservation?.id == null) {
@@ -538,13 +554,22 @@ export default function CheckoutPage() {
                 )}
               </>
             )}
-            <button
-              type="button"
-              onClick={goHome}
-              className="mt-6 w-full rounded-xl bg-[#3b2b7a] px-6 py-3 font-bold text-white hover:bg-violet-800"
-            >
-              Buscar un nuevo vuelo
-            </button>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={viewPurchaseDetail}
+                className="min-h-12 rounded-xl border border-violet-300 bg-white px-4 font-bold text-violet-700 transition hover:bg-violet-50"
+              >
+                Ver detalle de compra
+              </button>
+              <button
+                type="button"
+                onClick={goHome}
+                className="min-h-12 rounded-xl bg-[#3b2b7a] px-4 font-bold text-white transition hover:bg-violet-800"
+              >
+                Buscar un nuevo vuelo
+              </button>
+            </div>
           </div>
         </div>
       )}
