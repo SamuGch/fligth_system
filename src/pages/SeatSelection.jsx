@@ -27,21 +27,6 @@ const CABIN_THEMES = [
   { name: "emerald", icon: Armchair },
 ];
 
-const CLASS_THEME = {
-  violet: {
-    header: "bg-violet-100 text-violet-800",
-    border: "border-violet-200",
-  },
-  amber: {
-    header: "bg-amber-100 text-amber-800",
-    border: "border-amber-200",
-  },
-  emerald: {
-    header: "bg-emerald-100 text-emerald-800",
-    border: "border-emerald-200",
-  },
-};
-
 function adaptarAsiento(asiento, tiposAsiento, vueloId) {
   const tipoAsientoId =
     asiento.tipoAsientoId ?? asiento.tipo_asiento_id;
@@ -51,11 +36,21 @@ function adaptarAsiento(asiento, tiposAsiento, vueloId) {
   const nombreClase =
     asiento.tipoAsiento ?? tipo?.nombre ?? tipo?.name ?? "Sin clase";
   const estado = String(asiento.estado ?? "").toUpperCase();
-  const ocupado = asiento.ocupado === true || estado === "CONFIRMADO";
+  const ocupado =
+    asiento.ocupado === true ||
+    ["OCUPADO", "CONFIRMADO"].includes(estado);
+  const reservado = ["RESERVADO", "BLOQUEADO"].includes(estado);
   const disponible =
     asiento.disponible ??
     (asiento.activo === true || estado === "DISPONIBLE");
-  const activo = disponible === true && !ocupado;
+  const activo = disponible === true && !ocupado && !reservado;
+  const status = ocupado
+    ? "Ocupado"
+    : reservado
+      ? "Reservado"
+      : activo
+        ? "Disponible"
+        : "No disponible";
   const databaseId =
     asiento.vueloAsientoId ?? asiento.id ?? asiento.asientoId;
 
@@ -73,19 +68,37 @@ function adaptarAsiento(asiento, tiposAsiento, vueloId) {
     price: Number(asiento.precio ?? asiento.price ?? 0),
     activo,
     ocupado,
-    status: ocupado ? "Ocupado" : activo ? "Disponible" : "No disponible",
+    reservado,
+    status,
   };
 }
 
-const STATUS_COLORS = {
-  Disponible:
-    "bg-emerald-300 border-emerald-500 hover:bg-emerald-400",
-  "No disponible":
-    "bg-amber-300 border-amber-500 cursor-not-allowed",
-  Ocupado:
-    "bg-rose-300 border-rose-500 cursor-not-allowed",
-  Seleccionado:
-    "bg-violet-500 border-violet-700 text-white",
+const SEAT_STYLES = {
+  Disponible: {
+    base: "bg-emerald-100 border-emerald-500 text-emerald-800",
+    back: "bg-emerald-300 border-emerald-500",
+    arms: "bg-emerald-400",
+  },
+  Seleccionado: {
+    base: "bg-violet-200 border-violet-700 text-violet-950",
+    back: "bg-violet-500 border-violet-700",
+    arms: "bg-violet-600",
+  },
+  Reservado: {
+    base: "bg-amber-100 border-amber-500 text-amber-800",
+    back: "bg-amber-300 border-amber-500",
+    arms: "bg-amber-400",
+  },
+  Ocupado: {
+    base: "bg-rose-100 border-rose-500 text-rose-800",
+    back: "bg-rose-300 border-rose-500",
+    arms: "bg-rose-400",
+  },
+  "No disponible": {
+    base: "bg-slate-100 border-slate-400 text-slate-500",
+    back: "bg-slate-300 border-slate-400",
+    arms: "bg-slate-400",
+  },
 };
 
 const currency = (amount) =>
@@ -95,6 +108,7 @@ const createPaymentDeadline = () => Date.now() + 5 * 60 * 1000;
 
 function Seat({ seat, selected, onClick }) {
   const status = selected ? "Seleccionado" : seat.status;
+  const colors = SEAT_STYLES[status] ?? SEAT_STYLES["No disponible"];
   const disabled = !selected && seat.status !== "Disponible";
 
   return (
@@ -102,40 +116,84 @@ function Seat({ seat, selected, onClick }) {
       type="button"
       disabled={disabled}
       onClick={() => onClick(seat)}
-      title={`${seat.id} · ${seat.classLabel} · ${status}`}
-      aria-label={`Asiento ${seat.id}, ${status}`}
+      title={`${seat.id} · ${seat.classLabel} · ${status} · Q${seat.price}`}
+      aria-label={`Asiento ${seat.id}, ${seat.classLabel}, ${status}`}
       aria-pressed={selected}
       className={`
-        h-9 w-9 sm:h-10 sm:w-10
-        rounded-md border-2
-        flex items-center justify-center
-        text-[10px] font-bold
-        transition-all duration-150
-        ${STATUS_COLORS[status]}
-        ${selected ? "ring-2 ring-violet-300 scale-105" : ""}
-        ${!disabled ? "cursor-pointer hover:scale-110" : ""}
+        group relative flex h-8 min-w-0 flex-1 sm:h-12 sm:w-11 sm:flex-none
+        items-end justify-center rounded-lg
+        transition-transform duration-150
+        focus-visible:outline-2 focus-visible:outline-violet-700
+        focus-visible:outline-offset-2
+        ${disabled ? "cursor-not-allowed" : "cursor-pointer hover:-translate-y-1"}
+        ${selected ? "scale-105" : ""}
       `}
     >
-      {selected ? (
-        <Check size={13} strokeWidth={3} />
-      ) : status === "Ocupado" ? (
-        <X size={12} className="text-rose-800" />
-      ) : null}
+      <span
+        className={`
+          absolute left-0.5 right-0.5 top-0 h-3 sm:left-1 sm:right-1 sm:h-4
+          rounded-t-lg border shadow-sm sm:border-2
+          ${colors.back}
+        `}
+      />
+      <span
+        className={`
+          absolute bottom-1 left-0 h-4 w-1 sm:h-6 sm:w-1.5
+          rounded-md ${colors.arms}
+        `}
+      />
+      <span
+        className={`
+          absolute bottom-1 right-0 h-4 w-1 sm:h-6 sm:w-1.5
+          rounded-md ${colors.arms}
+        `}
+      />
+      <span
+        className={`
+          relative z-10 mb-1 flex h-5 w-[18px] sm:h-7 sm:w-8
+          items-center justify-center rounded-md
+          border shadow-sm sm:border-2
+          ${colors.base}
+        `}
+      >
+        {selected ? (
+          <Check size={12} strokeWidth={3} className="sm:hidden" />
+        ) : status === "Ocupado" ? (
+          <X size={11} strokeWidth={2.5} className="sm:hidden" />
+        ) : (
+          <span className="text-[8px] font-bold sm:hidden">{seat.letter}</span>
+        )}
+        {selected ? (
+          <Check size={15} strokeWidth={3} className="hidden sm:block" />
+        ) : status === "Ocupado" ? (
+          <X size={14} strokeWidth={2.5} className="hidden sm:block" />
+        ) : (
+          <span className="hidden text-[10px] font-bold sm:block">
+            {seat.letter}
+          </span>
+        )}
+      </span>
     </button>
   );
 }
 
 function SeatLegend() {
+  const statuses = [
+    ["Disponible", "bg-emerald-400"],
+    ["Seleccionado", "bg-violet-500"],
+    ["Reservado", "bg-amber-400"],
+    ["Ocupado", "bg-rose-400"],
+    ["No disponible", "bg-slate-400"],
+  ];
+
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-      {Object.entries(STATUS_COLORS).map(([status, color]) => (
-        <div key={status} className="flex items-center gap-2">
+    <div className="flex flex-wrap gap-x-4 gap-y-3">
+      {statuses.map(([label, color]) => (
+        <div key={label} className="flex items-center gap-2">
           <span
-            className={`w-4 h-4 rounded border ${color}`}
+            className={`h-5 w-5 rounded-t-lg rounded-b-md border-2 border-white shadow-sm ${color}`}
           />
-          <span className="text-xs text-slate-600">
-            {status}
-          </span>
+          <span className="text-xs text-slate-600">{label}</span>
         </div>
       ))}
     </div>
@@ -149,36 +207,39 @@ function CabinSection({
   onSeatClick,
 }) {
   const Icon = section.icon;
-  const theme = CLASS_THEME[section.theme];
+  const sectionSeats = seats.filter((seat) => seat.classId === section.id);
+  const seatMap = new Map(
+    sectionSeats.map((seat) => [`${seat.row}-${seat.letter}`, seat]),
+  );
 
   const rows = Array.from(
     { length: section.end - section.start + 1 },
-    (_, index) => section.start + index
+    (_, index) => section.start + index,
   );
 
-  const getSeat = (row, letter) =>
-    seats.find(
-      (seat) =>
-        seat.row === row &&
-        seat.letter === letter &&
-        seat.classId === section.id
-    );
+  const letters = [...section.columns].sort();
+  const middle = Math.ceil(letters.length / 2);
+  const leftLetters = letters.slice(0, middle);
+  const rightLetters = letters.slice(middle);
 
-  const midpoint = section.columns.length / 2;
-  const leftColumns = section.columns.slice(0, midpoint);
-  const rightColumns = section.columns.slice(midpoint);
+  const renderPosition = (row, letter) => {
+    const seat = seatMap.get(`${row}-${letter}`);
 
-  const renderSeat = (row, letter) => {
-    const seat = getSeat(row, letter);
-
-    if (!seat) return null;
+    if (!seat) {
+      return (
+        <div
+          key={`${row}-${letter}`}
+          className="h-8 min-w-0 flex-1 sm:h-12 sm:w-11 sm:flex-none"
+        />
+      );
+    }
 
     return (
       <Seat
         key={seat.selectionId}
         seat={seat}
         selected={selectedSeats.some(
-          (item) => item.selectionId === seat.selectionId
+          (item) => item.selectionId === seat.selectionId,
         )}
         onClick={onSeatClick}
       />
@@ -186,83 +247,63 @@ function CabinSection({
   };
 
   return (
-    <div className="min-w-max">
+    <section className="mx-auto w-full py-4 sm:py-7">
       <div
-        className={`rounded-xl px-4 py-3 mb-5
-                    text-center ${theme.header}`}
+        className="mb-5 rounded-xl border border-violet-200
+                   bg-violet-50 px-2 py-3 text-center sm:mb-6 sm:px-6 sm:py-4"
       >
-        <div className="flex items-center justify-center gap-2">
-          <Icon size={17} />
-          <span className="font-bold text-sm">
-            {section.label}
-          </span>
+        <div className="flex items-center justify-center gap-2 text-[#3b2b7a]">
+          <Icon size={17} className="shrink-0 sm:h-[19px] sm:w-[19px]" />
+          <h3 className="text-sm font-bold sm:text-base">{section.label}</h3>
         </div>
-        <p className="text-xs opacity-75 mt-1">
-          Filas {section.start} - {section.end}
+        <p className="mt-1 text-xs text-slate-500">
+          Filas {section.start}–{section.end}
+        </p>
+        <p className="mt-2 text-sm font-bold text-violet-800">
+          {currency(section.price)} por asiento
         </p>
       </div>
 
-      <div className="flex items-center gap-2 mb-3">
-        <span className="w-5" />
-
-        <div className="flex gap-1.5">
-          {leftColumns.map((letter) => (
-            <span
-              key={letter}
-              className="w-9 text-center sm:w-10
-                         text-xs text-slate-500"
-            >
+      <div className="mb-2 flex items-center gap-1 sm:mb-3 sm:justify-center sm:gap-2">
+        <span className="w-3.5 sm:w-7" />
+        <div className="flex min-w-0 flex-1 gap-0.5 sm:flex-none sm:gap-2">
+          {leftLetters.map((letter) => (
+            <span key={letter} className="min-w-0 flex-1 text-center text-[9px] font-semibold text-slate-500 sm:flex-none sm:w-11 sm:text-xs">
               {letter}
             </span>
           ))}
         </div>
-
-        <div className="w-5" />
-
-        <div className="flex gap-1.5">
-          {rightColumns.map((letter) => (
-            <span
-              key={letter}
-              className="w-9 text-center sm:w-10
-                         text-xs text-slate-500"
-            >
+        <span className="w-5 sm:w-14" />
+        <div className="flex min-w-0 flex-1 gap-0.5 sm:flex-none sm:gap-2">
+          {rightLetters.map((letter) => (
+            <span key={letter} className="min-w-0 flex-1 text-center text-[9px] font-semibold text-slate-500 sm:flex-none sm:w-11 sm:text-xs">
               {letter}
             </span>
           ))}
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 sm:space-y-3">
         {rows.map((row) => (
-          <div
-            key={row}
-            className="flex items-center gap-2"
-          >
-            <span
-              className="w-5 shrink-0 text-xs text-slate-500
-                         text-right"
-            >
+          <div key={row} className="flex w-full items-center gap-1 sm:justify-center sm:gap-2">
+            <span className="w-3.5 text-right text-[9px] font-bold text-slate-400 sm:w-7 sm:text-xs">
               {row}
             </span>
-
-            <div className="flex gap-1.5">
-              {leftColumns.map((letter) =>
-                renderSeat(row, letter)
-              )}
+            <div className="flex min-w-0 flex-1 gap-0.5 sm:flex-none sm:gap-2">
+              {leftLetters.map((letter) => renderPosition(row, letter))}
             </div>
-
-            {/* Pasillo central */}
-            <div className="w-5" />
-
-            <div className="flex gap-1.5">
-              {rightColumns.map((letter) =>
-                renderSeat(row, letter)
-              )}
+            <div className="flex w-5 shrink-0 items-center justify-center sm:w-14">
+              <span className="rounded-md bg-white/80 px-1 py-0.5 text-[9px] font-semibold text-slate-400 sm:px-2 sm:py-1 sm:text-xs">
+                {row}
+              </span>
+            </div>
+            <div className="flex min-w-0 flex-1 gap-0.5 sm:flex-none sm:gap-2">
+              {rightLetters.map((letter) => renderPosition(row, letter))}
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -616,14 +657,14 @@ export default function SeatSelection() {
               </div>
 
               {vuelos.length > 1 && (
-                <div className="mb-5 flex gap-2 overflow-x-auto" aria-label="Tramos del vuelo">
+                <div className="mb-5 flex flex-wrap gap-2" aria-label="Tramos del vuelo">
                   {vuelos.map((vuelo, index) => (
                     <button
                       key={vuelo.vueloId}
                       type="button"
                       onClick={() => setActiveSegmentIndex(index)}
                       aria-pressed={activeSegmentIndex === index}
-                      className={`shrink-0 rounded-lg border px-4 py-3 text-left ${
+                      className={`min-w-0 flex-1 basis-36 rounded-lg border px-3 py-3 text-left sm:px-4 ${
                         activeSegmentIndex === index
                           ? "border-violet-600 bg-violet-100 text-violet-900"
                           : "border-slate-200 bg-white text-slate-600"
@@ -646,7 +687,7 @@ export default function SeatSelection() {
                            gap-4 items-start"
               >
                 <div
-                  className="min-w-0 overflow-x-auto rounded-2xl border border-slate-200 bg-white/90 p-3 sm:p-6"
+                  className="w-full min-w-0 overflow-x-hidden rounded-2xl border border-slate-200 bg-white/90 p-2 sm:p-6"
                   aria-busy={loading}
                 >
                   {loading ? (
@@ -662,8 +703,26 @@ export default function SeatSelection() {
                       Este tramo no tiene asientos registrados.
                     </p>
                   ) : (
-                    <div className="min-w-max">
-                      <div className="flex items-start gap-8 sm:gap-15">
+                    <div className="mx-auto w-full min-w-0">
+                      <div
+                        className="mx-auto mb-4 flex h-24 w-full max-w-72
+                                   items-end justify-center rounded-t-[100%]
+                                   border-x-2 border-t-2 border-slate-300
+                                   bg-gradient-to-b from-violet-100 to-white"
+                      >
+                        <div className="mb-4 flex flex-col items-center">
+                          <Plane size={28} className="text-[#3b2b7a]" />
+                          <span className="mt-2 text-xs font-semibold text-slate-500">
+                            Parte delantera
+                          </span>
+                        </div>
+                      </div>
+                      <div
+                        className="rounded-b-[3rem] border-x-2 border-b-2
+                                   border-slate-300 bg-gradient-to-r
+                                   from-slate-100 via-white to-slate-100
+                                   px-1 pb-8 shadow-inner sm:px-6 sm:pb-10"
+                      >
                         {sections.map((section) => (
                           <CabinSection
                             key={section.id}
