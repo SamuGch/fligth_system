@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import FlightSearchModal from "./FlightSearchModal";
 import {
   Calendar,
@@ -18,6 +18,45 @@ export default function FlightSearch() {
   const [airportsError, setAirportsError] = useState("");
   const [data, setData] = useState({})
 
+  const originRef = useRef(null);
+  const destinationRef = useRef(null);
+  const departureRef = useRef(null);
+  const returnRef = useRef(null);
+
+
+  const openSelect = (ref) => {
+    const element = ref.current;
+
+    if (!element || element.disabled) return;
+
+    element.focus();
+
+    if (typeof element.showPicker === "function") {
+      try {
+        element.showPicker();
+      } catch {
+        // navegador podría no permitir
+      }
+    }
+  };
+
+  const openDatePicker = (ref) => {
+    const element = ref.current;
+
+    if (!element || element.disabled) return;
+
+    element.focus();
+
+    if (typeof element.showPicker === "function") {
+      try {
+        element.showPicker();
+      } catch {
+        // si el selector no puede abrirse
+      }
+    }
+  };
+
+
   const [searchData, setSearchData] = useState({
     tripType: "round",
     OrigenID: 0,
@@ -26,9 +65,9 @@ export default function FlightSearch() {
     returnDate: ""
   });
 
-const updateSearch = (event) => {
+  const updateSearch = (event) => {
     const { name, value } = event.target;
-    
+
     // Logs de la rama HEAD
     console.log({ name }, { value });
     console.log({ event });
@@ -90,7 +129,7 @@ const updateSearch = (event) => {
   return (
     <>
       <div>
-{/* Search Widget */}
+        {/* Search Widget */}
         <div className="relative z-20 -mt-42 sm:-mt-8 md:-mt-16 lg:-mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25">
           <div className="bg-white rounded-4xl p-5 py-5 shadow-[0_15px_45px_rgba(51,51,153,0.25),0_0_35px_rgba(140,155,255,0.25)] border border-white/70">
             {/* Top Row: Selectors */}
@@ -103,9 +142,8 @@ const updateSearch = (event) => {
                 >
                   {searchData.tripType === "round" ? "Ida y vuelta" : "Solo ida"}
                   <ChevronDown
-                    className={`w-4 h-4 transition-transform ${
-                      tripTypeOpen ? "rotate-180" : ""
-                    }`}
+                    className={`w-4 h-4 transition-transform ${tripTypeOpen ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
 
@@ -252,12 +290,12 @@ const updateSearch = (event) => {
             {/* Bottom Row: Inputs */}
             <div
               className={`grid grid-cols-1 md:grid-cols-2 items-center gap-3 ${searchData.tripType === "round"
-                  ? "xl:grid-cols-[1.5fr_1.5fr_1fr_1fr_auto]"
-                  : "xl:grid-cols-[1.5fr_1.5fr_1fr_auto]"
+                ? "xl:grid-cols-[1.5fr_1.5fr_1fr_1fr_auto]"
+                : "xl:grid-cols-[1.5fr_1.5fr_1fr_auto]"
                 }`}
             >
               {/* Origen */}
-              <div className="min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5">
+              <div onClick={(event) => { if (event.target.tagName === "INPUT") return; openDatePicker(originRef); }}  className="cursor-pointer min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5 hover:border-[#3333CC] hover:bg-indigo-50/30 focus-within:border-[#3333CC] focus-within:ring-2 focus-within:ring-[#3333CC]/10 transition-all duration-200">
                 <PlaneTakeoff className="w-8 h-8 text-slate-600 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <label
@@ -272,6 +310,7 @@ const updateSearch = (event) => {
                     name="OrigenID"
                     value={searchData.OrigenID}
                     onChange={updateSearch}
+                    ref={originRef}
                     disabled={loadingAirports || Boolean(airportsError)}
                     className="w-full min-w-0 bg-transparent text-base font-semibold
                             text-slate-800 outline-none cursor-pointer
@@ -295,7 +334,7 @@ const updateSearch = (event) => {
 
 
               {/* Destino */}
-              <div className="min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5" >
+              <div onClick={(event) => { if (event.target.tagName === "INPUT") return; openDatePicker(destinationRef); }} className="cursor-pointer min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5 hover:border-[#3333CC] hover:bg-indigo-50/30 focus-within:border-[#3333CC] focus-within:ring-2 focus-within:ring-[#3333CC]/10 transition-all duration-200" >
 
                 <PlaneLanding className="w-8 h-8 text-slate-600 shrink-0" />
 
@@ -312,6 +351,7 @@ const updateSearch = (event) => {
                     value={searchData.DestinationID}
                     name="DestinationID"
                     onChange={updateSearch}
+                    ref={destinationRef}
                     disabled={loadingAirports || Boolean(airportsError)}
                     className="w-full min-w-0 bg-transparent text-base font-semibold
                                 text-slate-800 outline-none cursor-pointer
@@ -334,7 +374,7 @@ const updateSearch = (event) => {
               </div>
 
               {/* Salida */}
-              <div className="min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5">
+              <div onClick={(event) => { if (event.target.tagName === "INPUT") return; openDatePicker(departureRef); }} className="cursor-pointer min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5 hover:border-[#3333CC] hover:bg-indigo-50/30 focus-within:border-[#3333CC] focus-within:ring-2 focus-within:ring-[#3333CC]/10 transition-all duration-200">
 
                 <Calendar className="w-8 h-8 text-slate-600 shrink-0" />
 
@@ -350,17 +390,18 @@ const updateSearch = (event) => {
                     id="departure-date"
                     type="date"
                     name="departureDate"
+                    ref={departureRef}
                     value={searchData.departureDate}
                     onChange={updateSearch}
 
-                    className="w-full bg-transparent text-ssm font-semibold text-slate-800 outline-none"
+                    className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none"
                   />
                 </div>
               </div>
 
               {/* Regreso: solamente para ida y vuelta */}
               {searchData.tripType === "round" && (
-                <div className="min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5">
+                <div onClick={(event) => { if (event.target.tagName === "INPUT") return; openDatePicker(returnRef); }} className="cursor-pointer min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5 hover:border-[#3333CC] hover:bg-indigo-50/30 focus-within:border-[#3333CC] focus-within:ring-2 focus-within:ring-[#3333CC]/10 transition-all duration-200">
 
                   <Calendar className="w-8 h-8 text-slate-600 shrink-0" />
 
@@ -378,6 +419,7 @@ const updateSearch = (event) => {
                       type="date"
                       min={searchData.departureDate || undefined}
                       name="returnDate"
+                      ref={returnRef}
                       value={searchData.returnDate}
                       onChange={updateSearch}
                       className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none"

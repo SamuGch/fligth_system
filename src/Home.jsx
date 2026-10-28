@@ -25,7 +25,7 @@ function Home() {
       {/* Hero Section */}
       <main className="mx-4 sm:mx-6 lg:mx-12 xl:mx-25 px-4 sm:px-8 lg:px-10 pt-6 sm:pt-6 md:pt-0 md:-mt-10 lg:-mt-25 flex flex-col md:flex-row items-center *:justify-between">
         <div className="w-full md:w-1/2 md:pr-8 z-10 text-center md:text-left">
-          <p className="text-[11px] sm:text-[13px] lg:text-[15px] text-slate-900 font-semibold mb-1 sm:mb-3 uppercase tracking-[0.22em] sm:tracking-[0.35em] leading-normal">Explora el mundo</p>
+          <p className="text-[11px] sm:text-[13px] lg:text-[15px] text-slate-900 font-semibold mb-1 sm:mb-3 uppercase tracking-[0.22em] sm:tracking-[0.35em] leading-normal hidden md: block">Explora el mundo</p>
           <h2 className="text-[clamp(1.75rem,7vw,2.25rem)] md:text-3xl lg:text-5xl font-bold text-slate-900 mb-2 sm:mb-4 leading-none  tracking-[-0.015em]">
             Tu próxima aventura <br />
             <span className="text-violet-100" style={{ color: '#3333CC' }}>comienza aquí</span>
