@@ -11,6 +11,31 @@ import { obtenerAeropuertos } from "../services/aeropuertoService";
 import * as Api from "../tools/Api";
 import AirportCombobox from "./AirportCombobox";
 
+function getLocalFlightDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleDateString("en-CA", {
+    timeZone: "America/Guatemala",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+}
+
+function getOutboundFlights(results) {
+  return results?.outbound?.flights ?? [];
+}
+
+function getLowestPrice(flights) {
+  const prices = flights
+    .flatMap((flight) => flight.prices ?? [])
+    .map((fare) => Number(fare.price))
+    .filter(Number.isFinite);
+
+  return prices.length ? Math.min(...prices) : null;
+}
+
 export default function FlightSearch() {
   const [modalOpen, setModalOpen] = useState(false);
   const [tripTypeOpen, setTripTypeOpen] = useState(false);
@@ -18,6 +43,10 @@ export default function FlightSearch() {
   const [loadingAirports, setLoadingAirports] = useState(true);
   const [airportsError, setAirportsError] = useState("");
   const [data, setData] = useState({})
+  const [alternativeDatesError, setAlternativeDatesError] = useState("");
+  const [searchError, setSearchError] = useState("");
+  const [loadingAlternativeDate, setLoadingAlternativeDate] = useState("");
+  const [alternativeDates, setAlternativeDates] = useState([]);
 
   const departureRef = useRef(null);
   const returnRef = useRef(null);
@@ -115,14 +144,100 @@ export default function FlightSearch() {
   }, []);
 
   const handleSearch = async () => {
-    console.log({ searchData })
+    setSearchError("");
+    setAlternativeDatesError("");
+    setAlternativeDates([]);
 
-    const response = await Api.post("/vuelo/buscar", searchData);
+    try {
+      const response = await Api.post("/vuelo/buscar", searchData);
+      setData(response);
+      setModalOpen(true);
 
-    console.log({ response })
-    setData(response)
+      try {
+        const [flights, routes] = await Promise.all([
+          Api.get("/vuelo"),
+          Api.get("/ruta"),
+        ]);
 
-    setModalOpen(true);
+        if (!Array.isArray(flights) || !Array.isArray(routes)) {
+          throw new Error("La API devolvió un formato de vuelos o rutas inválido.");
+        }
+
+        const matchingRouteIds = new Set(
+          routes
+            .filter(
+              (route) =>
+                route.activa &&
+                Number(route.aeropuertoOrigenId) === Number(searchData.OrigenID) &&
+                Number(route.aeropuertoDestinoId) === Number(searchData.DestinationID),
+            )
+            .map((route) => Number(route.id)),
+        );
+        const candidateDates = [
+          ...new Set(
+            flights
+              .filter(
+                (flight) =>
+                  matchingRouteIds.has(Number(flight.rutaId)) &&
+                  flight.estado === "PROGRAMADO",
+              )
+              .map((flight) => getLocalFlightDate(flight.fechaSalida))
+              .filter((date) => date && date !== searchData.departureDate),
+          ),
+        ].sort();
+
+        const datesWithFlights = await Promise.all(
+          candidateDates.map(async (departureDate) => {
+            const dateResults = await Api.post("/vuelo/buscar", {
+              ...searchData,
+              departureDate,
+            });
+            const dateFlights = getOutboundFlights(dateResults);
+
+            if (!dateFlights.length) return null;
+
+            return {
+              departureDate,
+              price: getLowestPrice(dateFlights),
+            };
+          }),
+        );
+
+        setAlternativeDates(datesWithFlights.filter(Boolean));
+      } catch (error) {
+        setAlternativeDatesError(
+          error instanceof Error
+            ? error.message
+            : "No se pudieron consultar otras fechas disponibles.",
+        );
+      }
+    } catch (error) {
+      setSearchError(
+        error instanceof Error
+          ? error.message
+          : "No se pudieron buscar vuelos.",
+      );
+    }
+  };
+
+  const handleSelectAlternativeDate = async (departureDate) => {
+    setLoadingAlternativeDate(departureDate);
+    setAlternativeDatesError("");
+
+    try {
+      const updatedSearchData = { ...searchData, departureDate };
+      const response = await Api.post("/vuelo/buscar", updatedSearchData);
+      setSearchData(updatedSearchData);
+      setData(response);
+    } catch (error) {
+      setAlternativeDatesError(
+        error instanceof Error
+          ? error.message
+          : "No se pudieron consultar los vuelos para esta fecha.",
+      );
+    } finally {
+      setLoadingAlternativeDate("");
+    }
   };
 
   return (
@@ -399,12 +514,18 @@ export default function FlightSearch() {
 
               {/* Botón Buscar */}
               <button
+                type="button"
                 onClick={handleSearch}
                 className="w-full xl:w-auto bg-[#333399] hover:bg-[#2c2c5c] text-white rounded-full p-4 flex items-center justify-center gap-3 transition-colors shadow-lg shadow-indigo-900/20 whitespace-nowrap pl-5 pr-6 "  >
                 <Search className="w-5 h-5" />
                 <span className="font-semibold">Buscar vuelos</span>
               </button>
             </div>
+            {searchError && (
+              <p role="alert" className="mt-3 text-sm text-red-700">
+                {searchError}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -414,6 +535,10 @@ export default function FlightSearch() {
         onClose={() => setModalOpen(false)}
         searchData={searchData}
         searchResults={data}
+        alternativeDates={alternativeDates}
+        alternativeDatesError={alternativeDatesError}
+        loadingAlternativeDate={loadingAlternativeDate}
+        onSelectAlternativeDate={handleSelectAlternativeDate}
       />
     </>
   );

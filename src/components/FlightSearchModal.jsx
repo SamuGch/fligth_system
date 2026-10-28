@@ -11,7 +11,7 @@ function formatTime(value) {
 
 function formatDate(value) {
   if (!value) return "Fecha por seleccionar";
-  const [year, month, day] = value.split("-").map(Number);
+  const [year, month, day] = String(value).slice(0, 10).split("-").map(Number);
   if (!year || !month || !day) return value;
 
   return new Date(year, month - 1, day).toLocaleDateString("es-GT", {
@@ -44,15 +44,21 @@ export default function FlightSearchModal({
   onClose,
   searchData,
   searchResults,
+  alternativeDates: availableAlternativeDates = [],
+  alternativeDatesError = "",
+  loadingAlternativeDate = "",
+  onSelectAlternativeDate,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated } = useAuth();
   const flights = searchResults?.outbound?.flights ?? [];
   const alternativeDates =
-    searchResults?.outbound?.alternativeDates ??
-    searchResults?.alternativeDates ??
-    [];
+    availableAlternativeDates.length > 0
+      ? availableAlternativeDates
+      : searchResults?.outbound?.alternativeDates ??
+        searchResults?.alternativeDates ??
+        [];
   const firstFlight = flights[0];
 
   useEffect(() => {
@@ -97,9 +103,12 @@ export default function FlightSearchModal({
     });
   };
 
-  const currentPrices = flights.flatMap((flight) => flight.prices ?? []);
+  const currentPrices = flights
+    .flatMap((flight) => flight.prices ?? [])
+    .map((fare) => Number(fare.price))
+    .filter(Number.isFinite);
   const currentPrice = currentPrices.length
-    ? Math.min(...currentPrices.map((fare) => Number(fare.price)))
+    ? Math.min(...currentPrices)
     : null;
 
   return (
@@ -141,7 +150,7 @@ export default function FlightSearchModal({
         </header>
 
         <div className="bg-slate-50 p-4 sm:p-8">
-          {alternativeDates.length > 0 && (
+          {(alternativeDates.length > 0 || alternativeDatesError) && (
             <section aria-label="Fechas alternativas" className="mb-6">
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
                 <CalendarDays size={17} />
@@ -154,25 +163,57 @@ export default function FlightSearchModal({
                     : []),
                   ...alternativeDates,
                 ].map((dateOption, index) => (
-                  <div
+                  <button
                     key={`${dateOption.departureDate}-${index}`}
+                    type="button"
+                    onClick={() => {
+                      if (
+                        !dateOption.current &&
+                        dateOption.departureDate !== searchData?.departureDate
+                      ) {
+                        onSelectAlternativeDate?.(dateOption.departureDate);
+                      }
+                    }}
+                    disabled={
+                      dateOption.current ||
+                      dateOption.departureDate === searchData?.departureDate ||
+                      Boolean(loadingAlternativeDate) ||
+                      !onSelectAlternativeDate
+                    }
+                    aria-current={
+                      dateOption.current ||
+                      dateOption.departureDate === searchData?.departureDate
+                        ? "date"
+                        : undefined
+                    }
+                    aria-busy={loadingAlternativeDate === dateOption.departureDate}
                     className={`min-w-36 flex-1 border-b-4 px-4 py-3 text-center ${
-                      dateOption.current
+                      dateOption.current ||
+                      dateOption.departureDate === searchData?.departureDate
                         ? "border-blue-600 text-slate-800"
-                        : "border-transparent text-slate-500"
+                        : "border-transparent text-slate-500 hover:border-blue-300 hover:bg-blue-50"
                     }`}
                   >
                     <p className="whitespace-nowrap text-sm font-medium">
-                      {dateOption.current ? "Tu fecha" : formatDate(dateOption.departureDate)}
+                      {dateOption.current || dateOption.departureDate === searchData?.departureDate
+                        ? "Tu fecha"
+                        : loadingAlternativeDate === dateOption.departureDate
+                          ? "Buscando..."
+                          : formatDate(dateOption.departureDate)}
                     </p>
                     <p className="mt-1 whitespace-nowrap text-base font-semibold">
                       {dateOption.price == null
                         ? "Sin precio"
                         : `desde ${formatPrice(dateOption.price)}`}
                     </p>
-                  </div>
+                  </button>
                 ))}
               </div>
+              {alternativeDatesError && (
+                <p role="alert" className="mt-2 text-sm text-red-700">
+                  {alternativeDatesError}
+                </p>
+              )}
             </section>
           )}
 
