@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { obtenerAeropuertos } from "../services/aeropuertoService";
 import * as Api from "../tools/Api";
+import AirportCombobox from "./AirportCombobox";
 
 export default function FlightSearch() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -18,8 +19,6 @@ export default function FlightSearch() {
   const [airportsError, setAirportsError] = useState("");
   const [data, setData] = useState({})
 
-  const originRef = useRef(null);
-  const destinationRef = useRef(null);
   const departureRef = useRef(null);
   const returnRef = useRef(null);
 
@@ -295,83 +294,52 @@ export default function FlightSearch() {
                 }`}
             >
               {/* Origen */}
-              <div onClick={(event) => { if (event.target.tagName === "INPUT") return; openDatePicker(originRef); }}  className="cursor-pointer min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5 hover:border-[#3333CC] hover:bg-indigo-50/30 focus-within:border-[#3333CC] focus-within:ring-2 focus-within:ring-[#3333CC]/10 transition-all duration-200">
-                <PlaneTakeoff className="w-8 h-8 text-slate-600 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <label
-                    htmlFor="flight-origin"
-                    className="block text-xs text-slate-400 mb-1"
-                  >
-                    Origen
-                  </label>
-
-                  <select
-                    id="flight-origin"
-                    name="OrigenID"
-                    value={searchData.OrigenID}
-                    onChange={updateSearch}
-                    ref={originRef}
-                    disabled={loadingAirports || Boolean(airportsError)}
-                    className="w-full min-w-0 bg-transparent text-base font-semibold
-                            text-slate-800 outline-none cursor-pointer
-                            disabled:opacity-50"
-                  >
-                    <option value="">
-                      {loadingAirports
-                        ? "Cargando aeropuertos..."
-                        : "Selecciona origen"}
-                    </option>
-                    {airports.map((airport) => (
-
-                      <option key={airport.id} value={airport.id}>
-
-                        {airport.city} ({airport.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              <AirportCombobox
+                label="Origen"
+                icon={PlaneTakeoff}
+                airports={airports}
+                value={searchData.OrigenID}
+                placeholder={
+                  loadingAirports
+                    ? "Cargando aeropuertos..."
+                    : "Selecciona origen"
+                }
+                disabled={loadingAirports || Boolean(airportsError)}
+                onChange={(airportId) => {
+                  setSearchData((current) => ({
+                    ...current,
+                    OrigenID: airportId,
+                    DestinationID:
+                      Number(current.DestinationID) === Number(airportId)
+                        ? 0
+                        : current.DestinationID,
+                  }));
+                }}
+              />
 
 
               {/* Destino */}
-              <div onClick={(event) => { if (event.target.tagName === "INPUT") return; openDatePicker(destinationRef); }} className="cursor-pointer min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5 hover:border-[#3333CC] hover:bg-indigo-50/30 focus-within:border-[#3333CC] focus-within:ring-2 focus-within:ring-[#3333CC]/10 transition-all duration-200" >
-
-                <PlaneLanding className="w-8 h-8 text-slate-600 shrink-0" />
-
-                <div className="flex-1 min-w-0">
-                  <label
-                    htmlFor="flight-destination"
-                    className="block text-xs text-slate-500 font-medium mb-1"
-                  >
-                    Destino
-                  </label>
-
-                  <select
-                    id="flight-destination"
-                    value={searchData.DestinationID}
-                    name="DestinationID"
-                    onChange={updateSearch}
-                    ref={destinationRef}
-                    disabled={loadingAirports || Boolean(airportsError)}
-                    className="w-full min-w-0 bg-transparent text-base font-semibold
-                                text-slate-800 outline-none cursor-pointer
-                                disabled:opacity-50"
-                  >
-                    <option value="">
-                      {loadingAirports
-                        ? "Cargando aeropuertos..."
-                        : "Selecciona destino"}
-                    </option>
-                    {airports.map((airport) => (
-                      airport.id !== searchData.OrigenID && (
-                        <option key={airport.id} value={airport.id}>
-                          {airport.city} ({airport.code})
-                        </option>
-                      )
-                    ))}
-                  </select>
-                </div>
-              </div>
+              <AirportCombobox
+                label="Destino"
+                icon={PlaneLanding}
+                airports={airports.filter(
+                  (airport) =>
+                    Number(airport.id) !== Number(searchData.OrigenID)
+                )}
+                value={searchData.DestinationID}
+                placeholder={
+                  loadingAirports
+                    ? "Cargando aeropuertos..."
+                    : "Selecciona destino"
+                }
+                disabled={loadingAirports || Boolean(airportsError)}
+                onChange={(airportId) => {
+                  setSearchData((current) => ({
+                    ...current,
+                    DestinationID: airportId,
+                  }));
+                }}
+              />
 
               {/* Salida */}
               <div onClick={(event) => { if (event.target.tagName === "INPUT") return; openDatePicker(departureRef); }} className="cursor-pointer min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5 hover:border-[#3333CC] hover:bg-indigo-50/30 focus-within:border-[#3333CC] focus-within:ring-2 focus-within:ring-[#3333CC]/10 transition-all duration-200">
