@@ -48,6 +48,7 @@ export default function AirportCombobox({
     const handleOutside = (event) => {
       if (!containerRef.current?.contains(event.target)) {
         setOpen(false);
+        setQuery("");
       }
     };
 
@@ -66,10 +67,7 @@ export default function AirportCombobox({
     };
   }, [open]);
 
-  // Enfocar el buscador al abrir
-  useEffect(() => {
-    if (open) searchRef.current?.focus();
-  }, [open]);
+
 
   const selectAirport = (airport) => {
     onChange(Number(airport.id));
@@ -80,55 +78,99 @@ export default function AirportCombobox({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full min-w-0 ${
-        open ? "z-40" : "z-0"
-      }`}
+      className={`relative w-full min-w-0 ${open ? "z-40" : "z-0"
+        }`}
     >
-      {/* Campo principal */}
-      <button
-        type="button"
-        disabled={disabled}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        onClick={() => setOpen((current) => !current)}
-        className="
-          w-full min-w-0
-          flex items-center gap-4
-          rounded-2xl
-          border border-[#DCE3EF]
-          bg-white
-          px-5 py-3
-          text-left
-          cursor-pointer
-          hover:border-[#3333CC]
-          focus-visible:outline-none
-          focus-visible:ring-2
-          focus-visible:ring-[#3333CC]/20
-          transition-all duration-200
-          disabled:opacity-50
-          disabled:cursor-not-allowed
-        "
+      {/* Campo principal con búsqueda integrada */}
+      <div
+        onClick={() => {
+          if (!disabled) searchRef.current?.focus();
+        }}
+        className={`
+    w-full min-w-0
+    flex items-center gap-4
+    rounded-2xl
+    border
+    px-5 py-3
+    bg-white
+    cursor-text
+    transition-all duration-200
+    ${open
+            ? "border-[#3333CC] ring-2 ring-[#3333CC]/10"
+            : "border-[#DCE3EF] hover:border-[#3333CC]"
+          }
+    ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+  `}
       >
         <Icon className="w-8 h-8 shrink-0 text-slate-600" />
 
         <div className="flex-1 min-w-0">
-          <span className="block text-xs text-slate-400 mb-1">
+          <label
+            htmlFor={`airport-${label}`}
+            className="block text-xs text-slate-400 mb-1"
+          >
             {label}
-          </span>
+          </label>
 
-          <span className="block truncate text-sm sm:text-base font-semibold text-[#101936]">
-            {selectedAirport
-              ? `${selectedAirport.city} (${selectedAirport.code})`
-              : placeholder}
-          </span>
+          <input
+            ref={searchRef}
+            id={`airport-${label}`}
+            type="text"
+            value={query}
+            disabled={disabled}
+            autoComplete="off"
+            placeholder={
+  open
+    ? ""
+    : selectedAirport
+      ? `${selectedAirport.city} (${selectedAirport.code})`
+      : placeholder
+}
+            onFocus={() => {
+              setQuery("");
+              setOpen(true);
+            }}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setOpen(true);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.stopPropagation();
+                setOpen(false);
+                setQuery("");
+                event.currentTarget.blur();
+              }
+            }}
+            role="combobox"
+            aria-expanded={open}
+            aria-autocomplete="list"
+            aria-label={`Buscar aeropuerto de ${label.toLowerCase()}`}
+            className={`
+        w-full min-w-0
+        bg-transparent
+        outline-none
+        text-sm sm:text-base
+        font-semibold
+        text-[#101936]
+        ${selectedAirport
+                ? "placeholder:text-[#101936]"
+                : "placeholder:text-[#64748B]"
+              }
+      `}
+          />
         </div>
 
         <ChevronDown
-          className={`w-4 h-4 shrink-0 text-[#455675] transition-transform ${
-            open ? "rotate-180" : ""
-          }`}
+          className={`
+      w-4 h-4 shrink-0
+      text-[#455675]
+      pointer-events-none
+      transition-transform duration-200
+      ${open ? "rotate-180" : ""}
+    `}
         />
-      </button>
+      </div>
 
       {/* Lista personalizada */}
       {open && (
@@ -146,19 +188,6 @@ export default function AirportCombobox({
           "
         >
           {/* Buscador */}
-          <div className="flex items-center gap-3 rounded-xl border border-[#DCE3EF] px-3 py-2">
-            <Search className="w-5 h-5 shrink-0 text-slate-500" />
-
-            <input
-              ref={searchRef}
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar ciudad o código..."
-              aria-label="Buscar aeropuerto"
-              className="w-full min-w-0 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
-            />
-          </div>
 
           <p className="px-2 py-3 text-[11px] font-semibold tracking-wider text-slate-400">
             AEROPUERTOS
@@ -183,10 +212,9 @@ export default function AirportCombobox({
                     transition-colors
                     focus-visible:outline-2
                     focus-visible:outline-[#3333CC]
-                    ${
-                      selected
-                        ? "bg-[#EEEDFF] text-[#3333CC]"
-                        : "text-[#101936] hover:bg-[#F5F4FF]"
+                    ${selected
+                      ? "bg-[#EEEDFF] text-[#3333CC]"
+                      : "text-[#101936] hover:bg-[#F5F4FF]"
                     }
                   `}
                 >
