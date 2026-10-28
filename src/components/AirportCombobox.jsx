@@ -120,12 +120,12 @@ export default function AirportCombobox({
             disabled={disabled}
             autoComplete="off"
             placeholder={
-  open
-    ? ""
-    : selectedAirport
-      ? `${selectedAirport.city} (${selectedAirport.code})`
-      : placeholder
-}
+              open
+                ? ""
+                : selectedAirport
+                  ? `${selectedAirport.city} (${selectedAirport.code})`
+                  : placeholder
+            }
             onFocus={() => {
               setQuery("");
               setOpen(true);

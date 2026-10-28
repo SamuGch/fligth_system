@@ -10,6 +10,7 @@ import {
 import { obtenerAeropuertos } from "../services/aeropuertoService";
 import * as Api from "../tools/Api";
 import AirportCombobox from "./AirportCombobox";
+import FlightDateRangeCalendar from "./FlightDateRangeCalendar";
 
 function getLocalFlightDate(value) {
   const date = new Date(value);
@@ -48,41 +49,119 @@ export default function FlightSearch() {
   const [loadingAlternativeDate, setLoadingAlternativeDate] = useState("");
   const [alternativeDates, setAlternativeDates] = useState([]);
 
-  const departureRef = useRef(null);
-  const returnRef = useRef(null);
+
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarPhase, setCalendarPhase] = useState("departure");
+  const calendarPopupRef = useRef(null);
 
 
-  const openSelect = (ref) => {
-    const element = ref.current;
+  const formatDate = (value) => {
+    if (!value) return "dd/mm/yyyy";
 
-    if (!element || element.disabled) return;
+    const [year, month, day] = value.split("-");
 
-    element.focus();
-
-    if (typeof element.showPicker === "function") {
-      try {
-        element.showPicker();
-      } catch {
-        // navegador podría no permitir
-      }
-    }
+    return `${day} / ${month} / ${year}`;
   };
 
-  const openDatePicker = (ref) => {
-    const element = ref.current;
-
-    if (!element || element.disabled) return;
-
-    element.focus();
-
-    if (typeof element.showPicker === "function") {
-      try {
-        element.showPicker();
-      } catch {
-        // si el selector no puede abrirse
-      }
+  // Función para abrir el calendario
+  const openCalendar = (phase) => {
+    if (phase === "return" && !searchData.departureDate) {
+      setCalendarPhase("departure");
+    } else {
+      setCalendarPhase(phase);
     }
+
+    setCalendarOpen(true);
   };
+
+  // Función para seleccionar fechas
+  const handleCalendarDateSelect = (date) => {
+    if (
+      calendarPhase === "departure" ||
+      !searchData.departureDate
+    ) {
+      setSearchData((current) => ({
+        ...current,
+        departureDate: date,
+        returnDate: "",
+      }));
+
+      if (searchData.tripType === "round") {
+        // Mantener abierto para seleccionar regreso
+        setCalendarPhase("return");
+      } else {
+        // Solo ida (cerrar después de elegir salida)
+        setCalendarOpen(false);
+      }
+
+      return;
+    }
+
+    if (date < searchData.departureDate) return;
+
+    setSearchData((current) => ({
+      ...current,
+      returnDate: date,
+    }));
+
+    // Ambas fechas seleccionadas
+    setCalendarOpen(false);
+  };
+
+  // Limpia las fechas del calendario
+  const clearCalendarDates = () => {
+    setSearchData((current) => ({
+      ...current,
+      departureDate: "",
+      returnDate: "",
+    }));
+
+    setCalendarPhase("departure");
+  };
+
+
+
+  // Cerrar el calendario al hacer clic fuera
+
+
+  useEffect(() => {
+    if (!calendarOpen) return;
+
+    const handleOutsideClick = (event) => {
+      const target = event.target;
+
+      // Verificar si el clic ocurrió dentro del calendario
+      const clickedInsideCalendar =
+        calendarPopupRef.current?.contains(target);
+
+      // Verificar si se presionó Salida o Regreso
+      const clickedCalendarTrigger =
+        target instanceof Element &&
+        target.closest("[data-calendar-trigger]");
+
+      // Cerrar únicamente si se hizo clic fuera
+      if (!clickedInsideCalendar && !clickedCalendarTrigger) {
+        setCalendarOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setCalendarOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handleOutsideClick, true);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", handleOutsideClick, true);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [calendarOpen]);
+
+
+
 
 
   const [searchData, setSearchData] = useState({
@@ -244,7 +323,7 @@ export default function FlightSearch() {
     <>
       <div>
         {/* Search Widget */}
-        <div className="relative z-20 -mt-42 sm:-mt-8 md:-mt-16 lg:-mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25">
+        <div className={`relative ${calendarOpen ? "z-50" : "z-30"} -mt-42 sm:-mt-8 md:-mt-16 lg:-mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25`}>
           <div className="bg-white rounded-4xl p-5 py-5 shadow-[0_15px_45px_rgba(51,51,153,0.25),0_0_35px_rgba(140,155,255,0.25)] border border-white/70">
             {/* Top Row: Selectors */}
             <div className="flex items-center mb-4 gap-3 border-b border-gray-100 pb-4">
@@ -277,7 +356,8 @@ export default function FlightSearch() {
                     <button
                       type="button"
                       onClick={() => {
-                        setSearchData((current) => ({ ...current, tripType: "one" }));
+                        setSearchData((current) => ({ ...current, tripType: "one", returnDate: "", }));
+                        setCalendarOpen(false);
                         setTripTypeOpen(false);
                       }}
                       className="min-h-11 px-4 text-left hover:bg-violet-100"
@@ -456,59 +536,84 @@ export default function FlightSearch() {
                 }}
               />
 
-              {/* Salida */}
-              <div onClick={(event) => { if (event.target.tagName === "INPUT") return; openDatePicker(departureRef); }} className="cursor-pointer min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5 hover:border-[#3333CC] hover:bg-indigo-50/30 focus-within:border-[#3333CC] focus-within:ring-2 focus-within:ring-[#3333CC]/10 transition-all duration-200">
 
+              {/* Salida */}
+              <button
+                type="button"
+                data-calendar-trigger
+                aria-expanded={calendarOpen && calendarPhase === "departure"}
+                onClick={() => openCalendar("departure")}
+                className="
+                            w-full min-w-0
+                            border border-gray-200 rounded-2xl
+                            p-3 pl-5 pr-5
+                            flex items-center gap-5
+                            text-left cursor-pointer
+                            hover:border-[#3333CC]
+                            hover:bg-indigo-50/30
+                            focus-visible:outline-none
+                            focus-visible:ring-2
+                            focus-visible:ring-[#3333CC]/20
+                            transition-all duration-200
+                          "
+              >
                 <Calendar className="w-8 h-8 text-slate-600 shrink-0" />
 
                 <div className="flex-1 min-w-0">
-                  <label
-                    htmlFor="departure-date"
-                    className="block text-xs text-slate-500 mb-1"
-                  >
+                  <span className="block text-xs text-slate-500 mb-1">
                     Salida
-                  </label>
+                  </span>
 
-                  <input
-                    id="departure-date"
-                    type="date"
-                    name="departureDate"
-                    ref={departureRef}
-                    value={searchData.departureDate}
-                    onChange={updateSearch}
-
-                    className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none"
-                  />
+                  <span className="block text-sm font-semibold text-slate-800">
+                    {formatDate(searchData.departureDate)}
+                  </span>
                 </div>
-              </div>
+
+                <ChevronDown
+                  className={`w-4 h-4 shrink-0 text-[#455675] transition-transform duration-200 ${calendarOpen && calendarPhase === "departure" ? "rotate-180" : ""} `}
+                />
+              </button>
+
 
               {/* Regreso: solamente para ida y vuelta */}
               {searchData.tripType === "round" && (
-                <div onClick={(event) => { if (event.target.tagName === "INPUT") return; openDatePicker(returnRef); }} className="cursor-pointer min-w-0 w-full border border-gray-200 rounded-2xl p-3 flex items-center gap-5 hover:border-violet-400 transition-colors pl-5 pr-5 hover:border-[#3333CC] hover:bg-indigo-50/30 focus-within:border-[#3333CC] focus-within:ring-2 focus-within:ring-[#3333CC]/10 transition-all duration-200">
 
+                <button
+                  type="button"
+                  data-calendar-trigger
+                  aria-expanded={calendarOpen && calendarPhase === "return"}
+                  onClick={() => openCalendar("return")}
+                  className="
+                              w-full min-w-0
+                              border border-gray-200 rounded-2xl
+                              p-3 pl-5 pr-5
+                              flex items-center gap-5
+                              text-left cursor-pointer
+                              hover:border-[#3333CC]
+                              hover:bg-indigo-50/30
+                              focus-visible:outline-none
+                              focus-visible:ring-2
+                              focus-visible:ring-[#3333CC]/20
+                              transition-all duration-200
+                            "
+                >
                   <Calendar className="w-8 h-8 text-slate-600 shrink-0" />
 
                   <div className="flex-1 min-w-0">
-                    <label
-                      htmlFor="return-date"
-                      className="block text-xs text-slate-500 mb-1"
-                    >
+                    <span className="block text-xs text-slate-500 mb-1">
                       Regreso
-                    </label>
+                    </span>
 
-                    <input
-
-                      id="return-date"
-                      type="date"
-                      min={searchData.departureDate || undefined}
-                      name="returnDate"
-                      ref={returnRef}
-                      value={searchData.returnDate}
-                      onChange={updateSearch}
-                      className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none"
-                    />
+                    <span className="block text-sm font-semibold text-slate-800">
+                      {formatDate(searchData.returnDate)}
+                    </span>
                   </div>
-                </div>
+
+                  <ChevronDown
+                    className={` w-4 h-4 shrink-0 text-[#455675] transition-transform duration-200 ${calendarOpen && calendarPhase === "return" ? "rotate-180" : ""} `}
+                  />
+                </button>
+
               )}
 
 
@@ -527,8 +632,60 @@ export default function FlightSearch() {
               </p>
             )}
           </div>
+
+
+          {/* Calendario compartido */}
+          {calendarOpen && (
+            <>
+              {/* Fondo oscuro exclusivo para móviles */}
+              <div
+                aria-hidden="true"
+                onClick={() => setCalendarOpen(false)}
+                className="
+        fixed inset-0 z-40
+        bg-[#101936]/40
+        backdrop-blur-[2px]
+        md:hidden
+      "
+              />
+
+              {/* Contenedor del calendario */}
+              <div
+                ref={calendarPopupRef}
+                className="
+                            fixed inset-x-3 bottom-3 z-50
+
+                            md:absolute
+                            md:inset-x-auto
+                            md:bottom-auto
+                            md:top-full
+                            md:right-0
+                            md:mt-3
+
+                            md:w-[700px]
+                            md:max-w-[calc(100vw-2rem)]
+                          "
+              >
+                <FlightDateRangeCalendar
+                  departureDate={searchData.departureDate}
+                  returnDate={searchData.returnDate}
+                  phase={calendarPhase}
+                  tripType={searchData.tripType}
+                  onSelect={handleCalendarDateSelect}
+                  onClose={() => setCalendarOpen(false)}
+                  onClear={clearCalendarDates}
+                />
+              </div>
+            </>
+          )}
+
+
         </div>
       </div>
+
+
+
+
 
       <FlightSearchModal
         isOpen={modalOpen}
