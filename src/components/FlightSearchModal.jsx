@@ -110,6 +110,22 @@ export default function FlightSearchModal({
   const currentPrice = currentPrices.length
     ? Math.min(...currentPrices)
     : null;
+  const selectedDateIsListed = alternativeDates.some(
+    (dateOption) =>
+      dateOption.departureDate === searchData?.departureDate
+  );
+  const dateOptions = [
+    ...(!selectedDateIsListed && searchData?.departureDate
+      ? [{
+          departureDate: searchData.departureDate,
+          price: currentPrice,
+          current: true,
+        }]
+      : []),
+    ...alternativeDates,
+  ].sort((a, b) =>
+    a.departureDate.localeCompare(b.departureDate)
+  );
 
   return (
     <div
@@ -156,58 +172,85 @@ export default function FlightSearchModal({
                 <CalendarDays size={17} />
                 <h3>Otras fechas disponibles</h3>
               </div>
-              <div className="flex overflow-x-auto border-b border-slate-200">
-                {[
-                  ...(searchData?.departureDate
-                    ? [{ departureDate: searchData.departureDate, price: currentPrice, current: true }]
-                    : []),
-                  ...alternativeDates,
-                ].map((dateOption, index) => (
-                  <button
-                    key={`${dateOption.departureDate}-${index}`}
-                    type="button"
-                    onClick={() => {
-                      if (
-                        !dateOption.current &&
-                        dateOption.departureDate !== searchData?.departureDate
-                      ) {
-                        onSelectAlternativeDate?.(dateOption.departureDate);
+              <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-hidden">
+                {dateOptions.map((dateOption, index) => {
+                  const isSelected =
+                    dateOption.departureDate === searchData?.departureDate;
+
+                  const isLoading =
+                    loadingAlternativeDate === dateOption.departureDate;
+
+                  return (
+                    <button
+                      key={`${dateOption.departureDate}-${index}`}
+                      type="button"
+                      onClick={() => {
+                        if (!isSelected && !loadingAlternativeDate) {
+                          onSelectAlternativeDate?.(
+                            dateOption.departureDate
+                          );
+                        }
+                      }}
+                      disabled={
+                        isSelected ||
+                        Boolean(loadingAlternativeDate) ||
+                        !onSelectAlternativeDate
                       }
-                    }}
-                    disabled={
-                      dateOption.current ||
-                      dateOption.departureDate === searchData?.departureDate ||
-                      Boolean(loadingAlternativeDate) ||
-                      !onSelectAlternativeDate
-                    }
-                    aria-current={
-                      dateOption.current ||
-                      dateOption.departureDate === searchData?.departureDate
-                        ? "date"
-                        : undefined
-                    }
-                    aria-busy={loadingAlternativeDate === dateOption.departureDate}
-                    className={`min-w-36 flex-1 border-b-4 px-4 py-3 text-center ${
-                      dateOption.current ||
-                      dateOption.departureDate === searchData?.departureDate
-                        ? "border-blue-600 text-slate-800"
-                        : "border-transparent text-slate-500 hover:border-blue-300 hover:bg-blue-50"
-                    }`}
-                  >
-                    <p className="whitespace-nowrap text-sm font-medium">
-                      {dateOption.current || dateOption.departureDate === searchData?.departureDate
-                        ? "Tu fecha"
-                        : loadingAlternativeDate === dateOption.departureDate
+                      aria-current={isSelected ? "date" : undefined}
+                      aria-busy={isLoading}
+                      className={`
+                        group flex min-w-[155px] flex-1
+                        flex-col items-center justify-center
+                        rounded-xl border px-5 py-4
+                        text-center transition-all duration-200
+                        ${
+                          isSelected
+                            ? "border-[#3b2b7a] bg-[#f0ecfa] text-[#3b2b7a]"
+                            : "border-transparent bg-white text-slate-500 hover:border-[#3b2b7a]/40 hover:bg-[#f7f5fc]"
+                        }
+                        ${
+                          isLoading
+                            ? "cursor-wait opacity-70"
+                            : ""
+                        }
+                        disabled:cursor-default
+                      `}
+                    >
+                      <p
+                        className={`
+                          whitespace-nowrap text-base sm:text-lg
+                          font-medium
+                          ${
+                            isSelected
+                              ? "text-[#3b2b7a]"
+                              : "text-slate-600"
+                          }
+                        `}
+                      >
+                        {formatDate(dateOption.departureDate)}
+                      </p>
+
+                      <p
+                        className={`
+                          mt-1 whitespace-nowrap text-sm
+                          ${
+                            isSelected
+                              ? "font-medium text-[#3b2b7a]"
+                              : "text-slate-500"
+                          }
+                        `}
+                      >
+                        {isLoading
                           ? "Buscando..."
-                          : formatDate(dateOption.departureDate)}
-                    </p>
-                    <p className="mt-1 whitespace-nowrap text-base font-semibold">
-                      {dateOption.price == null
-                        ? "Sin precio"
-                        : `desde ${formatPrice(dateOption.price)}`}
-                    </p>
-                  </button>
-                ))}
+                          : (isSelected ? currentPrice : dateOption.price) == null
+                            ? "Precio no disponible"
+                            : formatPrice(
+                                isSelected ? currentPrice : dateOption.price
+                              )}
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
               {alternativeDatesError && (
                 <p role="alert" className="mt-2 text-sm text-red-700">
