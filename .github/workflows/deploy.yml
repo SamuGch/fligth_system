@@ -42,6 +42,7 @@ jobs:
           VITE_API_URL: ""
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_BUILD_ID: ${{ github.sha }}
         run: npm run build
 
       - name: Configure AWS credentials using OIDC
@@ -65,6 +66,7 @@ jobs:
           API_URL: ${{ vars.VITE_API_URL }}
           SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          BUILD_ID: ${{ github.sha }}
         run: |
           set -euo pipefail
 
@@ -84,6 +86,7 @@ jobs:
             --build-arg API_ORIGIN=$API_URL \
             --build-arg SUPABASE_URL="$SUPABASE_URL" \
             --build-arg SUPABASE_PUBLIC_TOKEN="$SUPABASE_PUBLISHABLE_KEY" \
+            --build-arg BUILD_ID="$BUILD_ID" \
             --tag "$IMAGE" \
             .
 
@@ -138,4 +141,3 @@ jobs:
             --instance-id "i-0aa292bf288f66c67" \
             --query '{Status:Status,Output:StandardOutputContent,Errors:StandardErrorContent}' \
             --output json
-
