@@ -1,4 +1,32 @@
-# React + Vite
+# AirFly frontend
+
+## Variables de entorno
+
+El frontend necesita tres variables en `.env` antes de iniciar Vite:
+
+```env
+VITE_API_URL=http://localhost:8080/api
+VITE_SUPABASE_URL=https://<proyecto>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=<publishable-or-anon-key>
+```
+
+Puedes copiar `.env.example` como punto de partida. `VITE_API_URL` debe
+incluir el prefijo `/api`; por ejemplo, el backend desplegado usa
+`https://fly.astracode.org/api`.
+
+Las variables del contenedor del backend (`DBUSER`, `DBNAME`, `PASSWORD`,
+`JWT_SECRET`, `HOST`, `PORT` y similares) no se usan en el navegador y no
+deben copiarse al `.env` del frontend. La clave de Supabase debe ser la
+publishable/anon; nunca uses una service-role key.
+
+Para ejecutar:
+
+```bash
+npm install
+npm run dev
+```
+
+## React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

@@ -12,8 +12,7 @@ dist
 dist-ssr
 *.local
 
-# Local environment configuration. VITE_* values are public at runtime, but
-# environment-specific values should be supplied explicitly during the build.
+# Local environment configuration. Never commit real environment files.
 .env
 .env.*
 !.env.example
