@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { CalendarDays, Clock3, Plane, X } from "lucide-react";
 import { airports } from "../data/airports";
 import { useAuth } from "../context/AuthContext";
+import NoFlightsFound from "./NoFlightsFound";
 
 function formatTime(value) {
   if (!value) return "--:--";
@@ -42,6 +43,7 @@ function getLayoverLabel(layover) {
 export default function FlightSearchModal({
   isOpen,
   onClose,
+  onModifySearch,
   searchData,
   searchResults,
   alternativeDates: availableAlternativeDates = [],
@@ -266,9 +268,9 @@ export default function FlightSearchModal({
           </div>
 
           {flights.length === 0 ? (
-            <div className="py-14 text-center text-slate-600">
-              No encontramos vuelos para esta búsqueda.
-            </div>
+            <NoFlightsFound
+              onModifySearch={onModifySearch ?? onClose}
+            />
           ) : (
             <div className="space-y-4">
               {flights.map((flight, index) => {

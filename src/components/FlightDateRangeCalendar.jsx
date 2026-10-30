@@ -42,7 +42,6 @@ export default function FlightDateRangeCalendar({
   departureDate,
   returnDate,
   phase,
-  tripType,
   onSelect,
   onClose,
   onClear,
@@ -58,13 +57,23 @@ export default function FlightDateRangeCalendar({
   const [hoveredDate, setHoveredDate] = useState("");
 
   const today = toISO(new Date());
-  const isRound = tripType === "round";
 
   const currentMonth = new Date();
   currentMonth.setDate(1);
   currentMonth.setHours(0, 0, 0, 0);
 
   const previousDisabled = month <= currentMonth;
+
+  const changeMonth = (amount) => {
+    setMonth(
+      (currentMonthDate) =>
+        new Date(
+          currentMonthDate.getFullYear(),
+          currentMonthDate.getMonth() + amount,
+          1
+        )
+    );
+  };
 
   const secondMonth = new Date(
     month.getFullYear(),
@@ -254,11 +263,11 @@ export default function FlightDateRangeCalendar({
       aria-label="Seleccionar fechas del vuelo"
       className="
         w-full
-        max-h-[78dvh] overflow-y-auto
+        max-h-[78dvh] overflow-y-auto overscroll-contain
         rounded-[24px]
         border border-[#DCE3EF]
         bg-white
-        p-4 sm:p-4
+        p-3 sm:p-4
         shadow-[0_20px_60px_rgba(25,20,90,0.25)]
       "
     >
@@ -313,10 +322,10 @@ export default function FlightDateRangeCalendar({
 
 
 
-      <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+      <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-8">
         {renderMonth(month, "first")}
 
-        <div className="hidden md:block">
+        <div className="min-w-0">
           {renderMonth(secondMonth, "second")}
         </div>
       </div>

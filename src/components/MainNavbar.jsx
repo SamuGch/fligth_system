@@ -67,7 +67,7 @@ export default function MainNavbar() {
         <div className="relative -top-[2px] hidden items-center gap-4 text-base font-medium leading-none md:flex">
           <Link to="/" className="text-white no-underline transition-colors hover:text-white/80">Vuelos</Link>
           <span className="text-white/40">|</span>
-          <span className="cursor-default text-white/70">Hoteles</span>
+          {/*<span className="cursor-default text-white/70">Hoteles</span>*/}
         </div>
       </div>
 

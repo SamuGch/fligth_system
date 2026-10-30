@@ -3,73 +3,14 @@ import FlightSearchModal from "./FlightSearchModal";
 import {
   Search,
   ChevronDown,
+  CalendarDays,
   PlaneTakeoff,
   PlaneLanding
 } from 'lucide-react';
 import { obtenerAeropuertos } from "../services/aeropuertoService";
 import * as Api from "../tools/Api";
 import AirportCombobox from "./AirportCombobox";
-import AvailableFlightDates from "./AvailableFlightDates";
-
-function getLocalFlightDate(value) {
-  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return value;
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Guatemala",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const dateParts = Object.fromEntries(
-    parts
-      .filter(({ type }) => ["year", "month", "day"].includes(type))
-      .map(({ type, value: partValue }) => [type, partValue])
-  );
-
-  return `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
-}
-
-function getFlightPage(response) {
-  if (Array.isArray(response)) {
-    return { flights: response, totalPages: 1, limit: null };
-  }
-
-  if (!response || !Array.isArray(response.data)) {
-    throw new Error("Formato de respuesta de vuelos inválido.");
-  }
-
-  const parsedTotalPages = Number(response.total_pages);
-
-  return {
-    flights: response.data,
-    totalPages:
-      Number.isInteger(parsedTotalPages) && parsedTotalPages > 0
-        ? parsedTotalPages
-        : 1,
-    limit: Number(response.limit) || null,
-  };
-}
-
-async function getAllFlights() {
-  const firstPage = getFlightPage(await Api.get("/vuelo"));
-  const remainingPages = await Promise.all(
-    Array.from({ length: firstPage.totalPages - 1 }, (_, index) => {
-      const page = index + 2;
-      const limit = firstPage.limit ? `&limit=${firstPage.limit}` : "";
-      return Api.get(`/vuelo?page=${page}${limit}`);
-    })
-  );
-
-  return [
-    ...firstPage.flights,
-    ...remainingPages.flatMap((response) => getFlightPage(response).flights),
-  ];
-}
+import FlightDateRangeCalendar from "./FlightDateRangeCalendar";
 
 function getAlternativeDates(results) {
   const dates =
@@ -106,9 +47,22 @@ function mergeAlternativeDates(currentDates, nextDates) {
   );
 }
 
+function formatSearchDate(value, placeholder) {
+  if (!value) return placeholder;
+
+  const [year, month, day] = value.split("-").map(Number);
+
+  return new Date(year, month - 1, day).toLocaleDateString("es-GT", {
+    weekday: "short",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function FlightSearch() {
   const [modalOpen, setModalOpen] = useState(false);
-  const [tripTypeOpen, setTripTypeOpen] = useState(false);
+  const [calendarPhase, setCalendarPhase] = useState("");
   const [airports, setAirports] = useState([]);
   const [loadingAirports, setLoadingAirports] = useState(true);
   const [airportsError, setAirportsError] = useState("");
@@ -125,96 +79,6 @@ export default function FlightSearch() {
     departureDate: "",
     returnDate: ""
   });
-
-  const [availableDepartureDates, setAvailableDepartureDates] = useState([]);
-  const [availableReturnDates, setAvailableReturnDates] = useState([]);
-  const [loadingDates, setLoadingDates] = useState(false);
-  const [datesError, setDatesError] = useState("");
-
-  useEffect(() => {
-    let active = true;
-
-    const originId = Number(searchData.OrigenID);
-    const destinationId = Number(searchData.DestinationID);
-
-    if (!originId || !destinationId || originId === destinationId) return;
-
-    async function loadAvailableDates() {
-      setLoadingDates(true);
-
-      try {
-        const [flights, routes] = await Promise.all([
-          getAllFlights(),
-          Api.get("/ruta"),
-        ]);
-
-        if (!active) return;
-
-        if (!Array.isArray(routes)) {
-          throw new Error("Formato de respuesta de rutas inválido.");
-        }
-
-        const outboundRoutes = new Set(
-          routes
-            .filter(
-              (route) =>
-                route.activa &&
-                Number(route.aeropuertoOrigenId) === originId &&
-                Number(route.aeropuertoDestinoId) === destinationId
-            )
-            .map((route) => Number(route.id))
-        );
-
-        const inboundRoutes = new Set(
-          routes
-            .filter(
-              (route) =>
-                route.activa &&
-                Number(route.aeropuertoOrigenId) === destinationId &&
-                Number(route.aeropuertoDestinoId) === originId
-            )
-            .map((route) => Number(route.id))
-        );
-
-        const today = getLocalFlightDate(new Date());
-
-        const extractDates = (routeIds) =>
-          [
-            ...new Set(
-              flights
-                .filter(
-                  (flight) =>
-                    routeIds.has(Number(flight.rutaId)) &&
-                    flight.estado === "PROGRAMADO"
-                )
-                .map((flight) =>
-                  getLocalFlightDate(flight.fechaSalida)
-                )
-                .filter((date) => date && date >= today)
-            ),
-          ].sort();
-
-        setAvailableDepartureDates(extractDates(outboundRoutes));
-        setAvailableReturnDates(extractDates(inboundRoutes));
-      } catch (error) {
-        if (!active) return;
-
-        setDatesError(
-          error instanceof Error
-            ? error.message
-            : "No se pudieron consultar las fechas."
-        );
-      } finally {
-        if (active) setLoadingDates(false);
-      }
-    }
-
-    void loadAvailableDates();
-
-    return () => {
-      active = false;
-    };
-  }, [searchData.OrigenID, searchData.DestinationID]);
 
   useEffect(() => {
     let active = true;
@@ -261,7 +125,7 @@ export default function FlightSearch() {
       }
 
       if (!searchData.departureDate) {
-        setSearchError("Selecciona una fecha de salida disponible.");
+        setSearchError("Selecciona una fecha de salida.");
         return;
       }
 
@@ -269,7 +133,7 @@ export default function FlightSearch() {
         searchData.tripType === "round" &&
         !searchData.returnDate
       ) {
-        setSearchError("Selecciona una fecha de regreso disponible.");
+        setSearchError("Selecciona una fecha de regreso.");
         return;
       }
 
@@ -309,11 +173,108 @@ export default function FlightSearch() {
     }
   };
 
+  const handleCalendarSelect = (date) => {
+    if (calendarPhase === "departure") {
+      setSearchData((current) => ({
+        ...current,
+        departureDate: date,
+        returnDate:
+          current.returnDate && current.returnDate >= date
+            ? current.returnDate
+            : "",
+      }));
+      setCalendarPhase(searchData.tripType === "round" ? "return" : "");
+      return;
+    }
+
+    setSearchData((current) => ({
+      ...current,
+      returnDate: date,
+    }));
+    setCalendarPhase("");
+  };
+
+  const renderDateSelector = (phase, label, value, placeholder) => {
+    const isOpen = calendarPhase === phase;
+    const isDisabled = phase === "return" && !searchData.departureDate;
+
+    return (
+      <div
+        className={`relative w-full min-w-0 ${isOpen ? "z-40" : "z-0"}`}
+      >
+        <button
+          type="button"
+          aria-label={`${label}: ${formatSearchDate(value, placeholder)}`}
+          aria-haspopup="dialog"
+          aria-expanded={isOpen}
+          disabled={isDisabled}
+          onClick={() =>
+            setCalendarPhase((current) =>
+              current === phase ? "" : phase
+            )
+          }
+          className={`flex w-full min-w-0 items-center gap-4 rounded-2xl border bg-white px-5 py-3 text-left transition-all duration-200 focus-visible:outline-2 focus-visible:outline-[#3333CC] ${
+            isOpen
+              ? "border-[#3333CC] ring-2 ring-[#3333CC]/10"
+              : "border-[#DCE3EF] hover:border-[#3333CC]"
+          } ${
+            isDisabled
+              ? "cursor-not-allowed opacity-50"
+              : "cursor-pointer"
+          }`}
+        >
+          <CalendarDays className="h-8 w-8 shrink-0 text-slate-600" />
+          <span className="min-w-0 flex-1">
+            <span className="mb-1 block text-xs text-slate-400">
+              {label}
+            </span>
+            <span
+              className={`block truncate text-sm font-semibold sm:text-base ${
+                value ? "text-[#101936]" : "text-[#64748B]"
+              }`}
+            >
+              {formatSearchDate(value, placeholder)}
+            </span>
+          </span>
+          <ChevronDown
+            className={`h-4 w-4 shrink-0 text-[#455675] transition-transform duration-200 ${
+              isOpen ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        {isOpen && (
+          <div
+            className={`absolute top-full z-50 mt-2 w-[min(760px,calc(100vw-2rem))] ${
+              phase === "return" ? "right-0" : "left-0"
+            }`}
+          >
+            <FlightDateRangeCalendar
+              departureDate={searchData.departureDate}
+              returnDate={searchData.returnDate}
+              phase={phase}
+              onSelect={handleCalendarSelect}
+              onClose={() => setCalendarPhase("")}
+              onClear={() => {
+                setSearchData((current) => ({
+                  ...current,
+                  departureDate: "",
+                  returnDate: "",
+                }));
+                setCalendarPhase("departure");
+              }}
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       <div>
         {/* Search Widget */}
-        <div className="relative z-30 -mt-42 sm:-mt-8 md:-mt-16 lg:-mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25">
+        <div className="relative z-30 mt-0 md:-mt-16 lg:-mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25">
           <div className="bg-white rounded-4xl p-5 py-5 shadow-[0_15px_45px_rgba(51,51,153,0.25),0_0_35px_rgba(140,155,255,0.25)] border border-white/70">
             {/* Top Row: Selectors */}
             <div className="flex items-center mb-4 gap-3 border-b border-gray-100 pb-4">
@@ -323,11 +284,11 @@ export default function FlightSearch() {
                   role="group"
                   aria-label="Tipo de viaje"
                   className="
-                    flex w-full sm:w-[340px]
+                    flex w-70 sm:w-50
                     items-center
                     rounded-full
                     bg-[#eeebf5]
-                    p-1
+                    p-1.5
                     shadow-inner
                   "
                 >
@@ -335,6 +296,7 @@ export default function FlightSearch() {
                   <button
                     type="button"
                     onClick={() => {
+                      setCalendarPhase("");
                       setSearchData((current) => ({
                         ...current,
                         tripType: "round",
@@ -345,13 +307,13 @@ export default function FlightSearch() {
                       flex-1
                       min-w-0
                       rounded-full
-                      px-4 py-3
+                      <px-4></px-4> py-3
                       text-sm sm:text-base
                       whitespace-nowrap
                       transition-all duration-300 ease-in-out
                       ${
                         searchData.tripType === "round"
-                          ? "bg-white text-[#3b2b7a] font-semibold shadow-md"
+                          ? "bg-[#333399] text-white font-semibold shadow-md"
                           : "bg-transparent text-[#3b2b7a]/70 font-normal hover:text-[#3b2b7a]"
                       }
                     `}
@@ -363,6 +325,7 @@ export default function FlightSearch() {
                   <button
                     type="button"
                     onClick={() => {
+                      setCalendarPhase("");
                       setSearchData((current) => ({
                         ...current,
                         tripType: "one",
@@ -380,7 +343,7 @@ export default function FlightSearch() {
                       transition-all duration-300 ease-in-out
                       ${
                         searchData.tripType === "one"
-                          ? "bg-white text-[#3b2b7a] font-semibold shadow-md"
+                          ? "bg-[#333399] text-white font-semibold shadow-md"
                           : "bg-transparent text-[#3b2b7a]/70 font-normal hover:text-[#3b2b7a]"
                       }
                     `}
@@ -522,10 +485,7 @@ export default function FlightSearch() {
                 }
                 disabled={loadingAirports || Boolean(airportsError)}
                 onChange={(airportId) => {
-                  setAvailableDepartureDates([]);
-                  setAvailableReturnDates([]);
-                  setDatesError("");
-                  setLoadingDates(false);
+                  setCalendarPhase("");
                   setSearchData((current) => ({
                     ...current,
                     OrigenID: airportId,
@@ -556,10 +516,7 @@ export default function FlightSearch() {
                 }
                 disabled={loadingAirports || Boolean(airportsError)}
                 onChange={(airportId) => {
-                  setAvailableDepartureDates([]);
-                  setAvailableReturnDates([]);
-                  setDatesError("");
-                  setLoadingDates(false);
+                  setCalendarPhase("");
                   setSearchData((current) => ({
                     ...current,
                     DestinationID: airportId,
@@ -571,46 +528,21 @@ export default function FlightSearch() {
 
 
               {/* Salida */}
-              <AvailableFlightDates
-                label="Salida"
-                value={searchData.departureDate}
-                dates={availableDepartureDates}
-                loading={loadingDates}
-                disabled={
-                  !searchData.OrigenID ||
-                  !searchData.DestinationID
-                }
-                placeholder="Selecciona tu salida"
-                onChange={(date) => {
-                  setSearchData((current) => ({
-                    ...current,
-                    departureDate: date,
-                    returnDate: "",
-                  }));
-                }}
-              />
+              {renderDateSelector(
+                "departure",
+                "Salida",
+                searchData.departureDate,
+                "Selecciona tu salida"
+              )}
 
               {/* Regreso */}
-              {searchData.tripType === "round" && (
-                <AvailableFlightDates
-                  label="Regreso"
-                  value={searchData.returnDate}
-                  dates={availableReturnDates.filter(
-                    (date) =>
-                      searchData.departureDate &&
-                      date >= searchData.departureDate
-                  )}
-                  loading={loadingDates}
-                  disabled={!searchData.departureDate}
-                  placeholder="Selecciona tu regreso"
-                  onChange={(date) => {
-                    setSearchData((current) => ({
-                      ...current,
-                      returnDate: date,
-                    }));
-                  }}
-                />
-              )}
+              {searchData.tripType === "round" &&
+                renderDateSelector(
+                  "return",
+                  "Regreso",
+                  searchData.returnDate,
+                  "Selecciona tu regreso"
+                )}
 
 
               {/* Botón Buscar */}
@@ -627,19 +559,10 @@ export default function FlightSearch() {
                 {searchError}
               </p>
             )}
-            {datesError && (
-              <p role="alert" className="mt-3 text-sm text-red-700">
-                {datesError}
-              </p>
-            )}
           </div>
 
         </div>
       </div>
-
-
-
-
 
       <FlightSearchModal
         isOpen={modalOpen}
