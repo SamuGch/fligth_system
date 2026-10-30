@@ -38,6 +38,14 @@ const getDays = (monthDate) => {
   });
 };
 
+const formatMonthTitle = (monthDate) =>
+  new Intl.DateTimeFormat("es-ES", {
+    month: "long",
+    year: "numeric",
+  })
+    .format(monthDate)
+    .replace(" de ", " ");
+
 export default function FlightDateRangeCalendar({
   departureDate,
   returnDate,
@@ -45,6 +53,8 @@ export default function FlightDateRangeCalendar({
   onSelect,
   onClose,
   onClear,
+  availableDates = [],
+  loading = false,
 }) {
   const [month, setMonth] = useState(() => {
     const base = departureDate
@@ -132,11 +142,8 @@ export default function FlightDateRangeCalendar({
         )}
 
         {/* Nombre del mes */}
-        <h4 className="text-center text-sm font-semibold text-[#101936] capitalize">
-          {new Intl.DateTimeFormat("es-ES", {
-            month: "long",
-            year: "numeric",
-          }).format(monthDate)}
+        <h4 className="text-center text-sm font-bold capitalize text-[#101936]">
+          {formatMonthTitle(monthDate)}
         </h4>
 
         {/* En móvil: siguiente mes en el primer calendario */}
@@ -210,10 +217,14 @@ export default function FlightDateRangeCalendar({
           );
 
           const disabled =
+            loading ||
             iso < today ||
+            !availableDates.includes(iso) ||
             (phase === "return" &&
               departureDate &&
               iso < departureDate);
+
+          const isAvailable = availableDates.includes(iso);
 
           return (
             <button
@@ -233,13 +244,13 @@ export default function FlightDateRangeCalendar({
                 onSelect(iso);
               }}
               className={`
-                h-9 sm:h-8 w-full
+                h-11 sm:h-10 w-full
                 flex items-center justify-center
                 text-sm
                 transition-colors
                 cursor-pointer
                 disabled:cursor-not-allowed
-                disabled:text-slate-300
+                disabled:pointer-events-none disabled:opacity-25
 
                 ${isSelected
                   ? "rounded-full bg-[#333399] text-white font-bold"
@@ -249,7 +260,15 @@ export default function FlightDateRangeCalendar({
                 }
               `}
             >
-              {date.getDate()}
+              <span className="flex flex-col items-center leading-none">
+                <span>{date.getDate()}</span>
+                {isAvailable && !disabled && (
+                  <span
+                    aria-hidden="true"
+                    className="mt-1 h-1 w-1 rounded-full bg-[#3333CC]"
+                  />
+                )}
+              </span>
             </button>
           );
         })}
@@ -273,6 +292,31 @@ export default function FlightDateRangeCalendar({
     >
 
       {/* Encabezado del calendario */}
+      {loading && (
+        <div className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">
+          <span className="h-3 w-3 animate-spin rounded-full border-2 border-[#3333CC]/30 border-t-[#3333CC]" />
+          Consultando fechas disponibles...
+        </div>
+      )}
+
+      {!loading && availableDates.length === 0 && (
+        <p className="mb-3 rounded-xl bg-slate-50 px-3 py-2 text-center text-xs text-slate-500">
+          No hay vuelos programados para esta ruta.
+        </p>
+      )}
+
+      {!loading && availableDates.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] font-medium text-slate-500">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-[#3333CC]" />
+            Fechas con vuelos
+          </span>
+          <span className="text-slate-400">
+            Selecciona una fecha marcada
+          </span>
+        </div>
+      )}
+
       <div className="grid grid-cols-[64px_minmax(0,1fr)_64px] items-center gap-2">
 
         {/* Botón limpiar - izquierda */}

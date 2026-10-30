@@ -1,7 +1,5 @@
 
-const API_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:8080"
-).replace(/\/$/, "");
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 export async function obtenerAeropuertos() {
   const response = await fetch(`${API_URL}/aeropuerto`);

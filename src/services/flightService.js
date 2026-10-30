@@ -44,7 +44,10 @@ async function obtenerDatos(endpoint) {
     throw new Error(`Error consultando ${endpoint}: ${response.status}`);
   }
 
-  const data = await response.json();
+  const responseData = await response.json();
+  const data = Array.isArray(responseData)
+    ? responseData
+    : responseData?.data;
 
   if (!Array.isArray(data)) {
     throw new Error(`Respuesta inesperada de ${endpoint}`);
@@ -69,6 +72,44 @@ function fechaLocal(fecha) {
     month: "2-digit",
     day: "2-digit",
   });
+}
+
+export async function obtenerFechasDisponibles(origenId, destinoId) {
+  const [vuelos, rutas] = await Promise.all([
+    obtenerDatos("/vuelo"),
+    obtenerDatos("/ruta"),
+  ]);
+
+  const rutasActivas = rutas.filter((ruta) => ruta.activa !== false);
+  const getDatesForRoute = (from, to) => {
+    const routeIds = new Set(
+      rutasActivas
+        .filter(
+          (ruta) =>
+            Number(ruta.aeropuertoOrigenId) === Number(from) &&
+            Number(ruta.aeropuertoDestinoId) === Number(to)
+        )
+        .map((ruta) => Number(ruta.id))
+    );
+
+    return [
+      ...new Set(
+        vuelos
+          .filter(
+            (vuelo) =>
+              routeIds.has(Number(vuelo.rutaId)) &&
+              vuelo.estado === "PROGRAMADO"
+          )
+          .map((vuelo) => fechaLocal(vuelo.fechaSalida))
+          .filter(Boolean)
+      ),
+    ].sort();
+  };
+
+  return {
+    departure: getDatesForRoute(origenId, destinoId),
+    return: getDatesForRoute(destinoId, origenId),
+  };
 }
 
 export async function searchFlights({

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import FlightSearchModal from "./FlightSearchModal";
 import {
   Search,
@@ -8,6 +8,7 @@ import {
   PlaneLanding
 } from 'lucide-react';
 import { obtenerAeropuertos } from "../services/aeropuertoService";
+import { obtenerFechasDisponibles } from "../services/flightService";
 import * as Api from "../tools/Api";
 import AirportCombobox from "./AirportCombobox";
 import FlightDateRangeCalendar from "./FlightDateRangeCalendar";
@@ -54,15 +55,17 @@ function formatSearchDate(value, placeholder) {
   const [year, month, day] = value.split("-").map(Number);
 
   return new Date(year, month - 1, day).toLocaleDateString("es-GT", {
-    weekday: "short",
     day: "2-digit",
-    month: "long",
+    month: "short",
     year: "numeric",
   });
 }
 
 export default function FlightSearch() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpansionVisible, setIsExpansionVisible] = useState(false);
+  const closeTimerRef = useRef(null);
   const [calendarPhase, setCalendarPhase] = useState("");
   const [airports, setAirports] = useState([]);
   const [loadingAirports, setLoadingAirports] = useState(true);
@@ -72,6 +75,11 @@ export default function FlightSearch() {
   const [searchError, setSearchError] = useState("");
   const [loadingAlternativeDate, setLoadingAlternativeDate] = useState("");
   const [alternativeDates, setAlternativeDates] = useState([]);
+  const [availableDates, setAvailableDates] = useState({
+    departure: [],
+    return: [],
+  });
+  const [loadingAvailableDates, setLoadingAvailableDates] = useState(false);
 
   const [searchData, setSearchData] = useState({
     tripType: "round",
@@ -84,6 +92,40 @@ export default function FlightSearch() {
   const closeSearchToast = useCallback(() => {
     setSearchError("");
   }, []);
+
+  const openExpandedSearch = useCallback(() => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+
+    setIsExpanded(true);
+    requestAnimationFrame(() => setIsExpansionVisible(true));
+  }, []);
+
+  const closeExpandedSearch = useCallback(() => {
+    setIsExpansionVisible(false);
+    setCalendarPhase("");
+    closeTimerRef.current = setTimeout(() => {
+      setIsExpanded(false);
+      closeTimerRef.current = null;
+    }, 300);
+  }, []);
+
+  useEffect(() => () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (!isExpanded) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") closeExpandedSearch();
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isExpanded, closeExpandedSearch]);
 
   useEffect(() => {
     let active = true;
@@ -117,6 +159,44 @@ export default function FlightSearch() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!searchData.OrigenID || !searchData.DestinationID) {
+      return undefined;
+    }
+
+    async function cargarFechasDisponibles() {
+      setLoadingAvailableDates(true);
+
+      try {
+        const dates = await obtenerFechasDisponibles(
+          searchData.OrigenID,
+          searchData.DestinationID
+        );
+
+        if (active) setAvailableDates(dates);
+      } catch (error) {
+        if (active) {
+          setAvailableDates({ departure: [], return: [] });
+          setSearchError(
+            error instanceof Error
+              ? error.message
+              : "No se pudieron consultar las fechas disponibles."
+          );
+        }
+      } finally {
+        if (active) setLoadingAvailableDates(false);
+      }
+    }
+
+    void cargarFechasDisponibles();
+
+    return () => {
+      active = false;
+    };
+  }, [searchData.OrigenID, searchData.DestinationID]);
 
   const handleSearch = async () => {
     setSearchError("");
@@ -213,12 +293,13 @@ export default function FlightSearch() {
           aria-haspopup="dialog"
           aria-expanded={isOpen}
           disabled={isDisabled}
-          onClick={() =>
+          onClick={() => {
+            openExpandedSearch();
             setCalendarPhase((current) =>
               current === phase ? "" : phase
-            )
-          }
-          className={`flex w-full min-w-0 items-center gap-4 rounded-2xl border bg-white px-5 py-3 text-left transition-all duration-200 focus-visible:outline-2 focus-visible:outline-[#3333CC] ${
+            );
+          }}
+          className={`flex w-full min-w-0 items-center gap-2 rounded-2xl border bg-white px-4 py-3 text-left transition-all duration-200 focus-visible:outline-2 focus-visible:outline-[#3333CC] ${
             isOpen
               ? "border-[#3333CC] ring-2 ring-[#3333CC]/10"
               : "border-[#DCE3EF] hover:border-[#3333CC]"
@@ -228,13 +309,13 @@ export default function FlightSearch() {
               : "cursor-pointer"
           }`}
         >
-          <CalendarDays className="h-8 w-8 shrink-0 text-slate-600" />
-          <span className="min-w-0 flex-1">
-            <span className="mb-1 block text-xs text-slate-400">
+          <CalendarDays className="mr-2 h-8 w-8 flex-shrink-0 text-gray-500" />
+          <span className="flex min-w-0 flex-1 flex-col justify-center text-left">
+            <span className="mb-1 block text-[11px] font-medium uppercase tracking-wider leading-none text-gray-400">
               {label}
             </span>
             <span
-              className={`block truncate text-sm font-semibold sm:text-base ${
+              className={`block min-w-0 truncate whitespace-nowrap text-sm font-semibold leading-none ${
                 value ? "text-[#101936]" : "text-[#64748B]"
               }`}
             >
@@ -260,6 +341,10 @@ export default function FlightSearch() {
               phase={phase}
               onSelect={handleCalendarSelect}
               onClose={() => setCalendarPhase("")}
+              availableDates={
+                availableDates[phase]
+              }
+              loading={loadingAvailableDates}
               onClear={() => {
                 setSearchData((current) => ({
                   ...current,
@@ -277,10 +362,53 @@ export default function FlightSearch() {
 
   return (
     <>
-      <div>
+      <div
+        className={
+          isExpanded
+            ? `fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm transition-opacity duration-300 ease-out sm:pt-16 ${
+                isExpansionVisible
+                  ? "opacity-100"
+                  : "pointer-events-none opacity-0"
+              }`
+            : ""
+        }
+        onClick={isExpanded ? closeExpandedSearch : undefined}
+      >
+        <div
+          className={`${
+            isExpanded
+              ? `mx-auto w-full max-w-6xl transition-all duration-300 ease-out ${
+                  isExpansionVisible
+                    ? "translate-y-0 scale-100 opacity-100"
+                    : "-translate-y-2 scale-95 opacity-0"
+                }`
+              : ""
+          }`}
+          onClick={(event) => event.stopPropagation()}
+        >
         {/* Search Widget */}
-        <div className="relative z-30 mt-0 md:-mt-16 lg:-mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25">
-          <div className="bg-white rounded-4xl p-5 py-5 shadow-[0_15px_45px_rgba(51,51,153,0.25),0_0_35px_rgba(140,155,255,0.25)] border border-white/70">
+        <div
+          className={`relative z-50 ${
+            isExpanded
+              ? "mx-auto w-full max-w-6xl"
+              : "mt-0 md:-mt-16 lg:-mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25"
+          }`}
+        >
+          <div className={`relative bg-white rounded-4xl p-5 py-5 shadow-[0_15px_45px_rgba(51,51,153,0.25),0_0_35px_rgba(140,155,255,0.25)] border border-white/70 ${
+            isExpanded
+              ? "shadow-2xl transition-all duration-200 sm:p-8"
+              : ""
+          }`}>
+            {isExpanded && (
+              <button
+                type="button"
+                onClick={closeExpandedSearch}
+                aria-label="Cerrar búsqueda enfocada"
+                className="absolute right-4 top-4 z-50 flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-[#3333CC]"
+              >
+                <span aria-hidden="true" className="text-xl leading-none">✕</span>
+              </button>
+            )}
             {/* Top Row: Selectors */}
             <div className="flex items-center mb-4 gap-3 border-b border-gray-100 pb-4">
               {/* Selector de tipo de viaje */}
@@ -301,6 +429,7 @@ export default function FlightSearch() {
                   <button
                     type="button"
                     onClick={() => {
+                      openExpandedSearch();
                       setCalendarPhase("");
                       setSearchData((current) => ({
                         ...current,
@@ -318,8 +447,8 @@ export default function FlightSearch() {
                       transition-all duration-300 ease-in-out
                       ${
                         searchData.tripType === "round"
-                          ? "bg-[#333399] text-white font-semibold shadow-md"
-                          : "bg-transparent text-[#3b2b7a]/70 font-normal hover:text-[#3b2b7a]"
+                          ? "bg-slate-950/80 text-white font-semibold shadow-md backdrop-blur-xl"
+                          : "bg-transparent text-slate-700/70 font-normal hover:text-slate-950"
                       }
                     `}
                   >
@@ -330,6 +459,7 @@ export default function FlightSearch() {
                   <button
                     type="button"
                     onClick={() => {
+                      openExpandedSearch();
                       setCalendarPhase("");
                       setSearchData((current) => ({
                         ...current,
@@ -348,8 +478,8 @@ export default function FlightSearch() {
                       transition-all duration-300 ease-in-out
                       ${
                         searchData.tripType === "one"
-                          ? "bg-[#333399] text-white font-semibold shadow-md"
-                          : "bg-transparent text-[#3b2b7a]/70 font-normal hover:text-[#3b2b7a]"
+                          ? "bg-slate-950/80 text-white font-semibold shadow-md backdrop-blur-xl"
+                          : "bg-transparent text-slate-700/70 font-normal hover:text-slate-950"
                       }
                     `}
                   >
@@ -472,9 +602,9 @@ export default function FlightSearch() {
 
             {/* Bottom Row: Inputs */}
             <div
-              className={`grid grid-cols-1 md:grid-cols-2 items-center gap-3 ${searchData.tripType === "round"
-                ? "xl:grid-cols-[1.5fr_1.5fr_1fr_1fr_auto]"
-                : "xl:grid-cols-[1.5fr_1.5fr_1fr_auto]"
+              className={`grid min-w-0 grid-cols-1 items-center gap-2 md:grid-cols-2 ${searchData.tripType === "round"
+                ? "xl:grid-cols-[minmax(160px,1.3fr)_minmax(160px,1.3fr)_minmax(150px,1fr)_minmax(150px,1fr)_auto]"
+                : "xl:grid-cols-[minmax(160px,1.3fr)_minmax(160px,1.3fr)_minmax(150px,1fr)_auto]"
                 }`}
             >
               {/* Origen */}
@@ -483,6 +613,7 @@ export default function FlightSearch() {
                 icon={PlaneTakeoff}
                 airports={airports}
                 value={searchData.OrigenID}
+                onFocus={openExpandedSearch}
                 placeholder={
                   loadingAirports
                     ? "Cargando aeropuertos..."
@@ -514,6 +645,7 @@ export default function FlightSearch() {
                     Number(airport.id) !== Number(searchData.OrigenID)
                 )}
                 value={searchData.DestinationID}
+                onFocus={openExpandedSearch}
                 placeholder={
                   loadingAirports
                     ? "Cargando aeropuertos..."
@@ -553,8 +685,11 @@ export default function FlightSearch() {
               {/* Botón Buscar */}
               <button
                 type="button"
-                onClick={handleSearch}
-                className="w-full xl:w-auto bg-[#333399] hover:bg-[#2c2c5c] text-white rounded-full p-4 flex items-center justify-center gap-3 transition-colors shadow-lg shadow-indigo-900/20 whitespace-nowrap pl-5 pr-6 "  >
+                    onClick={() => {
+                      openExpandedSearch();
+                      handleSearch();
+                    }}
+                className="min-w-0 w-full xl:w-auto bg-slate-950/80 hover:bg-slate-900/90 text-white rounded-full p-4 flex items-center justify-center gap-3 transition-colors shadow-lg shadow-slate-950/20 backdrop-blur-xl whitespace-nowrap pl-5 pr-6"  >
                 <Search className="w-5 h-5" />
                 <span className="font-semibold">Buscar vuelos</span>
               </button>
@@ -562,6 +697,7 @@ export default function FlightSearch() {
           </div>
 
         </div>
+      </div>
       </div>
 
       {searchError && (

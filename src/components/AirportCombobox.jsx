@@ -1,7 +1,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  Search,
   MapPin,
   Check,
   ChevronDown
@@ -13,6 +12,7 @@ export default function AirportCombobox({
   airports = [],
   value,
   onChange,
+  onFocus,
   placeholder = "Selecciona aeropuerto",
   disabled = false
 }) {
@@ -88,10 +88,10 @@ export default function AirportCombobox({
         }}
         className={`
     w-full min-w-0
-    flex items-center gap-4
+    flex items-center gap-3
     rounded-2xl
     border
-    px-5 py-3
+    px-4 py-3
     bg-white
     cursor-text
     transition-all duration-200
@@ -104,7 +104,8 @@ export default function AirportCombobox({
       >
         <Icon className="w-8 h-8 shrink-0 text-slate-600" />
 
-        <div className="flex-1 min-w-0">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="min-w-0 flex-1">
           <label
             htmlFor={`airport-${label}`}
             className="block text-xs text-slate-400 mb-1"
@@ -123,12 +124,13 @@ export default function AirportCombobox({
               open
                 ? ""
                 : selectedAirport
-                  ? `${selectedAirport.city} (${selectedAirport.code})`
+                  ? selectedAirport.city
                   : placeholder
             }
             onFocus={() => {
               setQuery("");
               setOpen(true);
+              onFocus?.();
             }}
             onChange={(event) => {
               setQuery(event.target.value);
@@ -159,6 +161,12 @@ export default function AirportCombobox({
               }
       `}
           />
+          </div>
+          {!open && selectedAirport && (
+            <span className="shrink-0 rounded-md bg-[#F0F0FF] px-1.5 py-1 text-[11px] font-bold tracking-wide text-[#3333CC]">
+              {selectedAirport.code}
+            </span>
+          )}
         </div>
 
         <ChevronDown
