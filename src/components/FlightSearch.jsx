@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import FlightSearchModal from "./FlightSearchModal";
 import {
   Search,
@@ -11,6 +11,7 @@ import { obtenerAeropuertos } from "../services/aeropuertoService";
 import * as Api from "../tools/Api";
 import AirportCombobox from "./AirportCombobox";
 import FlightDateRangeCalendar from "./FlightDateRangeCalendar";
+import Toast from "./Toast";
 
 function getAlternativeDates(results) {
   const dates =
@@ -79,6 +80,10 @@ export default function FlightSearch() {
     departureDate: "",
     returnDate: ""
   });
+
+  const closeSearchToast = useCallback(() => {
+    setSearchError("");
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -284,7 +289,7 @@ export default function FlightSearch() {
                   role="group"
                   aria-label="Tipo de viaje"
                   className="
-                    flex w-70 sm:w-50
+                    flex w-70
                     items-center
                     rounded-full
                     bg-[#eeebf5]
@@ -307,7 +312,7 @@ export default function FlightSearch() {
                       flex-1
                       min-w-0
                       rounded-full
-                      <px-4></px-4> py-3
+                      px-4 py-3
                       text-sm sm:text-base
                       whitespace-nowrap
                       transition-all duration-300 ease-in-out
@@ -554,15 +559,17 @@ export default function FlightSearch() {
                 <span className="font-semibold">Buscar vuelos</span>
               </button>
             </div>
-            {searchError && (
-              <p role="alert" className="mt-3 text-sm text-red-700">
-                {searchError}
-              </p>
-            )}
           </div>
 
         </div>
       </div>
+
+      {searchError && (
+        <Toast
+          message={searchError}
+          onClose={closeSearchToast}
+        />
+      )}
 
       <FlightSearchModal
         isOpen={modalOpen}
