@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
+  AlertTriangle,
   CalendarDays,
   Check,
   ChevronRight,
@@ -453,6 +454,15 @@ export default function FlightSelectionPage() {
       ? [{ departureDate: searchData.returnDate, price: flightPrice(selectedReturn) || null }]
       : []),
   ].sort((a, b) => a.departureDate.localeCompare(b.departureDate));
+  const nextReturnDate = returnAlternativeDates
+    .map((option) => option?.departureDate)
+    .filter(
+      (date) =>
+        date &&
+        date > (searchData.departureDate ?? "") &&
+        date !== searchData.returnDate,
+    )
+    .sort()[0];
   const itinerarySummary = !selectedOutbound
     ? "Selecciona tu vuelo de ida"
     : searchData.tripType !== "round"
@@ -502,6 +512,25 @@ export default function FlightSelectionPage() {
                 <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Selecciona tu vuelo de ida</h1>
                 <p className="mt-1 font-medium text-slate-700">{formatDate(searchData.departureDate)}</p>
               </div>
+              {searchData.tripType === "round" &&
+                !loadingReturn &&
+                !returnFlights.length && (
+                  <div
+                    role="status"
+                    className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/95 p-4 text-amber-950 shadow-sm"
+                  >
+                    <AlertTriangle className="mt-0.5 shrink-0 text-amber-600" size={20} />
+                    <div>
+                      <p className="font-semibold">
+                        Esta búsqueda no tiene vuelos de regreso disponibles.
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-amber-900/80">
+                        Puedes elegir la ida, pero después tendrás que seleccionar
+                        otra fecha de regreso o modificar la búsqueda.
+                      </p>
+                    </div>
+                  </div>
+                )}
               <section className="mb-6">
                 <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800"><CalendarDays size={17} /> Fechas de salida</h2>
                 <DateRibbon dates={outboundDateOptions} selectedDate={searchData.departureDate} loadingDate={loadingDate} onSelect={selectAlternativeDate} />
@@ -567,7 +596,19 @@ export default function FlightSelectionPage() {
                 ))}
               </div>
             ) : (
-              <NoFlightsFound onModifySearch={() => navigate("/")} />
+              <NoFlightsFound
+                title="No hay vuelos de regreso para esta fecha"
+                description={
+                  nextReturnDate
+                    ? `El vuelo de ida sí está disponible, pero no hay regreso el ${formatDate(searchData.returnDate)}. Prueba con otra fecha de regreso.`
+                    : "El vuelo de ida sí está disponible, pero no encontramos un regreso futuro para esta ruta. Elige otra fecha o modifica la búsqueda."
+                }
+                onSelectAlternative={
+                  nextReturnDate ? () => loadReturnFlights(nextReturnDate) : undefined
+                }
+                alternativeLabel="Probar otra fecha"
+                onModifySearch={() => navigate("/")}
+              />
             )}
             </section>
           </>
