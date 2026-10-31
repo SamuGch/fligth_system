@@ -9,9 +9,13 @@ import { tripCategory } from "../tools/tripFormatting";
 function EmptyTrips() {
   return (
     <div className="rounded-3xl border border-dashed border-violet-200 bg-white/80 px-5 py-14 text-center shadow-sm sm:py-20">
-      <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-violet-100 text-violet-700"><Plane size={30} /></div>
-      <h2 className="mt-5 text-xl font-extrabold text-slate-900">Aún no tienes viajes</h2>
-      <Link to="/" className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 font-bold text-white transition hover:bg-violet-800">Buscar un vuelo, y reserva tu asiento :3 <ArrowRight size={18} /></Link>
+      <img
+        src="/NoFlights.png"
+        alt=""
+        className="mx-auto h-auto w-48 max-w-full sm:w-64"
+      />
+      <h2 className="mt-5 text-xl font-extrabold text-slate-900">Aún no hay viajes</h2>
+      <Link to="/" className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 font-bold text-white transition hover:bg-violet-800">Buscar un vuelo, y reserva tu asiento<ArrowRight size={18} /></Link>
     </div>
   );
 }
