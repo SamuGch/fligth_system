@@ -1,9 +1,5 @@
-
 import { useRef, useState } from "react";
-import {
-  Check,
-  ChevronDown
-} from "lucide-react";
+import { Check, ChevronDown, MapPin } from "lucide-react";
 
 function normalizeAirport(item) {
   return {
@@ -27,42 +23,36 @@ export default function AirportCombobox({
   active = false,
   placeholder = "Selecciona aeropuerto",
   disabled = false,
-  compact = false
+  compact = false,
 }) {
   const [query, setQuery] = useState("");
-
   const containerRef = useRef(null);
   const searchRef = useRef(null);
-  const normalizedAirports = airports.map(normalizeAirport);
 
+  const normalizedAirports = airports.map(normalizeAirport);
   const open = active;
 
-  // Aeropuerto seleccionado
   const selectedAirport = normalizedAirports.find(
     (airport) => Number(airport.id) === Number(value)
   );
 
-  // buscar sin importar acentos
+  // Búsqueda insensible a mayúsculas y acentos.
   const normalize = (text) =>
     String(text ?? "")
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
 
-  // Filtrar por ciudad o IATA
   const filteredAirports = normalizedAirports.filter((airport) =>
     normalize(
       `${airport.iata} ${airport.ciudad} ${airport.pais} ${airport.nombre}`
-    ).includes(
-      normalize(query.trim())
-    )
+    ).includes(normalize(query.trim()))
   );
 
-  // Cerrar al hacer clic fuera o presionar Escape
   const selectAirport = (airport) => {
     onChange(Number(airport.id));
     setQuery("");
-    onClose?.();
+    // No llamar a onClose aquí: FlightSearch decide si abre Destino o Salida.
   };
 
   const startEditing = () => {
@@ -70,6 +60,7 @@ export default function AirportCombobox({
 
     setQuery("");
     onFocus?.();
+
     requestAnimationFrame(() => {
       searchRef.current?.focus();
     });
@@ -79,10 +70,9 @@ export default function AirportCombobox({
     <div
       ref={containerRef}
       onClick={(event) => event.stopPropagation()}
-      className={`relative w-full min-w-0 ${open ? "z-40" : "z-0"
-        }`}
+      className={`relative w-full min-w-0 ${open ? "z-40" : "z-0"}`}
     >
-      {/* Campo principal con altura uniforme */}
+      {/* Campo principal de 64 px */}
       <div
         onClick={startEditing}
         className={`
@@ -90,9 +80,10 @@ export default function AirportCombobox({
           items-center gap-3 rounded-2xl border bg-white
           ${compact ? "px-3" : "px-4"}
           cursor-text transition-all duration-200
-          ${open
-            ? "border-[#333399] ring-2 ring-[#333399]/10"
-            : "border-[#DCE3EF] hover:border-[#333399]"
+          ${
+            open
+              ? "border-[#333399] ring-2 ring-[#333399]/10"
+              : "border-[#DCE3EF] hover:border-[#333399]"
           }
           ${disabled ? "cursor-not-allowed opacity-50" : ""}
         `}
@@ -109,7 +100,9 @@ export default function AirportCombobox({
 
             {!open && selectedAirport ? (
               <span className="block truncate whitespace-nowrap text-[14px] font-semibold leading-tight text-[#101936]">
-                {selectedAirport.ciudad || selectedAirport.nombre || selectedAirport.iata}
+                {selectedAirport.ciudad ||
+                  selectedAirport.nombre ||
+                  selectedAirport.iata}
               </span>
             ) : (
               <input
@@ -121,8 +114,10 @@ export default function AirportCombobox({
                 autoComplete="off"
                 placeholder={open ? "Buscar ciudad o código..." : placeholder}
                 onFocus={() => {
-                  setQuery("");
-                  if (!active) onFocus?.();
+                  if (!active) {
+                    setQuery("");
+                    onFocus?.();
+                  }
                 }}
                 onClick={(event) => event.stopPropagation()}
                 onChange={(event) => setQuery(event.target.value)}
@@ -151,11 +146,13 @@ export default function AirportCombobox({
         </div>
 
         <ChevronDown
-          className={`h-4 w-4 shrink-0 text-[#455675] pointer-events-none transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 shrink-0 pointer-events-none text-[#455675] transition-transform duration-200 ${
+            open ? "rotate-180" : ""
+          }`}
         />
       </div>
 
-      {/* Lista personalizada */}
+      {/* Lista de aeropuertos */}
       {open && (
         <div
           role="dialog"
@@ -163,18 +160,19 @@ export default function AirportCombobox({
           className="
             absolute left-0 top-full z-50 mt-2
             w-full min-w-full sm:w-[420px]
-            max-h-64 overflow-y-auto
-            rounded-2xl
-            border border-gray-100
-            bg-white
-            p-2
-            shadow-2xl
+            max-w-[calc(100vw-2rem)]
+            rounded-2xl border border-[#DCE3EF]
+            bg-white p-3
+            shadow-[0_15px_40px_rgba(51,51,153,0.20)]
           "
         >
-          <div className="space-y-1">
+          <p className="px-2 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wider text-[#8292B0]">
+            AEROPUERTOS
+          </p>
+
+          <div className="max-h-60 space-y-1 overflow-y-auto">
             {filteredAirports.map((airport) => {
-              const selected =
-                Number(airport.id) === Number(value);
+              const selected = Number(airport.id) === Number(value);
 
               return (
                 <button
@@ -183,38 +181,49 @@ export default function AirportCombobox({
                   aria-pressed={selected}
                   onClick={() => selectAirport(airport)}
                   className={`
-                    relative w-full
+                    flex w-full items-center gap-3
                     rounded-xl px-3 py-3
                     text-left cursor-pointer
                     transition-colors
-                    focus-visible:outline-2
-                    focus-visible:outline-[#333399]
-                    ${selected
-                      ? "bg-[#EEEDFF] text-[#333399]"
-                      : "text-[#101936] hover:bg-[#F5F4FF]"
+                    focus-visible:outline-2 focus-visible:outline-[#333399]
+                    ${
+                      selected
+                        ? "bg-[#EEEDFF] text-[#333399]"
+                        : "text-[#101936] hover:bg-[#F5F4FF]"
                     }
                   `}
                 >
-                  <span className="flex items-center justify-between gap-3">
-                    <span className={`min-w-0 truncate text-sm font-semibold ${selected ? "text-[#333399]" : "text-[#101936]"}`}>
-                      {[airport.ciudad, airport.pais].filter(Boolean).join(", ")}
-                    </span>
-                    <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-bold ${selected ? "bg-[#DDDDFB] text-[#333399]" : "bg-[#EEEDFF] text-[#333399]"}`}>
-                      {airport.iata}
-                    </span>
+                  <MapPin
+                    className={`h-4 w-4 shrink-0 ${
+                      selected ? "text-[#3333CC]" : "text-[#64748B]"
+                    }`}
+                    aria-hidden="true"
+                  />
+
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                    {airport.ciudad || airport.nombre || "Aeropuerto"}
                   </span>
-                  <span className="mt-1 block truncate text-xs text-gray-500">
-                    {airport.nombre || "Aeropuerto"}
+
+                  <span
+                    className={`shrink-0 text-xs ${
+                      selected ? "text-[#333399]" : "text-[#64748B]"
+                    }`}
+                  >
+                    {airport.iata}
                   </span>
+
                   {selected && (
-                    <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#333399]" />
+                    <Check
+                      className="h-4 w-4 shrink-0 text-[#3333CC]"
+                      aria-hidden="true"
+                    />
                   )}
                 </button>
               );
             })}
 
             {filteredAirports.length === 0 && (
-              <p className="py-5 text-center text-sm text-slate-500">
+              <p className="py-5 text-center text-sm text-[#64748B]">
                 No se encontraron aeropuertos
               </p>
             )}
