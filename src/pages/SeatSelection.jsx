@@ -697,7 +697,7 @@ export default function SeatSelection() {
   return (
     <div
       className="relative flex w-full flex-col bg-cover bg-center bg-fixed px-4 pb-4 pt-20 font-sans text-slate-800 sm:px-6 min-h-screen lg:h-screen lg:overflow-hidden"
-      style={{ backgroundImage: 'url("/font.jpeg")' }}
+      style={{ backgroundImage: 'url("/allFonts.png")' }}
     >
       <div className="fixed inset-0 z-0 bg-white/45 backdrop-blur-md pointer-events-none" />
       <div className="flex min-h-0 flex-1 flex-col">

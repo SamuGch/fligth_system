@@ -423,7 +423,7 @@ export default function FlightSelectionPage() {
   return (
     <div
       className="min-h-screen overflow-x-hidden bg-cover bg-center bg-fixed font-sans text-slate-800"
-      style={{ backgroundImage: 'url("/font.jpeg")' }}
+      style={{ backgroundImage: 'url("/allFonts.png")' }}
     >
       <div className="fixed inset-0 z-0 bg-white/35 backdrop-blur-md pointer-events-none"></div>
       <MainNavbar className="!fixed !left-4 !right-4 !top-3 !mx-0 sm:!left-6 sm:!right-6 sm:!top-5 lg:!left-12 lg:!right-12 xl:!left-25 xl:!right-25" />

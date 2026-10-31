@@ -4,7 +4,7 @@ export default function AccountLayout({ children }) {
   return (
     <div
       className="relative min-h-dvh overflow-x-hidden bg-cover bg-center bg-fixed font-sans"
-      style={{ backgroundImage: 'url("/font.jpeg")' }}
+      style={{ backgroundImage: 'url("/allFonts.png")' }}
     >
       <div className="pointer-events-none absolute inset-0 bg-white/35 backdrop-blur-md" />
       <div className="pointer-events-none absolute -left-32 top-10 h-80 w-80 rounded-full bg-violet-200/35 blur-3xl" />

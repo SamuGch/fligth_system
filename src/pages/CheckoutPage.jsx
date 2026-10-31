@@ -452,7 +452,7 @@ export default function CheckoutPage() {
 
   if (!flight || seats.length === 0 || reservationId == null) {
     return (
-      <div className="relative flex min-h-dvh items-center justify-center bg-cover bg-center bg-fixed p-4 font-sans sm:p-6" style={{ backgroundImage: 'url("/font.jpeg")' }}>
+      <div className="relative flex min-h-dvh items-center justify-center bg-cover bg-center bg-fixed p-4 font-sans sm:p-6" style={{ backgroundImage: 'url("/allFonts.png")' }}>
         <div className="fixed inset-0 z-0 bg-white/45 backdrop-blur-md" />
         <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/80 bg-white/90 p-5 text-center shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-8">
           <h1 className="text-xl font-bold text-slate-900">No hay una compra pendiente</h1>
@@ -470,7 +470,7 @@ export default function CheckoutPage() {
   const confirmed = resultStatus === "CONFIRMADA";
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col bg-cover bg-center bg-fixed px-3 pb-3 pt-20 font-sans text-slate-800 sm:px-5 lg:h-dvh lg:overflow-hidden lg:px-8 lg:pt-[6.75rem]" style={{ backgroundImage: 'url("/font.jpeg")' }}>
+    <div className="relative flex min-h-screen w-full flex-col bg-cover bg-center bg-fixed px-3 pb-3 pt-20 font-sans text-slate-800 sm:px-5 lg:h-dvh lg:overflow-hidden lg:px-8 lg:pt-[6.75rem]" style={{ backgroundImage: 'url("/allFonts.png")' }}>
       <div className="fixed inset-0 z-0 bg-white/45 backdrop-blur-md pointer-events-none" />
       <MainNavbar className="!fixed !left-4 !right-4 !top-3 !mx-0 sm:!left-6 sm:!right-6 sm:!top-5 lg:!left-12 lg:!right-12 xl:!left-25 xl:!right-25" />
       <main className="relative z-10 mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col">
