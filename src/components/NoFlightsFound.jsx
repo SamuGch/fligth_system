@@ -18,7 +18,7 @@ export default function NoFlightsFound({
       {/* Imagen de vuelos no disponibles */}
       <div className="mb-7 flex w-full items-center justify-center">
         <img
-          src={imageSrc="/NoFlights.png"}
+          src={imageSrc}
           alt="No hay vuelos disponibles para la fecha seleccionada"
           className="
             h-auto w-full max-w-[260px]

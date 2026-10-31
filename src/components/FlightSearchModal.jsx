@@ -3,6 +3,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { CalendarDays, Clock3, Plane, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import NoFlightsFound from "./NoFlightsFound";
+import {
+  formatFlightLocation,
+  formatFlightOperator,
+  getFlightMetadata,
+} from "../tools/flightFormatting";
 
 function formatTime(value) {
   if (!value) return "--:--";
@@ -137,9 +142,9 @@ export default function FlightSearchModal({
             </h2>
             {firstFlight && (
               <p className="mt-1 break-words text-xs leading-snug text-white/80 sm:text-sm">
-                {firstFlight.originCity ?? firstFlight.origin} ({firstFlight.origin})
+                {formatFlightLocation(getFlightMetadata(firstFlight).origin).name} ({formatFlightLocation(getFlightMetadata(firstFlight).origin).code})
                 {" → "}
-                {firstFlight.destinationCity ?? firstFlight.destination} ({firstFlight.destination})
+                {formatFlightLocation(getFlightMetadata(firstFlight).destination).name} ({formatFlightLocation(getFlightMetadata(firstFlight).destination).code})
               </p>
             )}
           </div>
@@ -260,6 +265,9 @@ export default function FlightSearchModal({
           ) : (
             <div className="space-y-4">
               {flights.map((flight, index) => {
+                const metadata = getFlightMetadata(flight);
+                const origin = formatFlightLocation(metadata.origin, flight.origin);
+                const destination = formatFlightLocation(metadata.destination, flight.destination);
                 const segments = Array.isArray(flight.segments)
                   ? flight.segments
                   : [];
@@ -269,13 +277,16 @@ export default function FlightSearchModal({
 
                 return (
                   <article
-                    key={`${flight.flightNumber}-${index}`}
+                    key={`${metadata.number ?? "flight"}-${index}`}
                     className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6"
                   >
                     <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="font-bold text-slate-900">{flight.flightNumber}</p>
-                        <p className="mt-1 text-sm text-slate-500">Operado por {flight.airline}</p>
+                        <p className="font-bold text-slate-900">{metadata.number ?? "Vuelo disponible"}</p>
+                        <p className="mt-1 text-sm text-slate-500">Operado por {formatFlightOperator(flight)}</p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          Terminal {metadata.terminal ?? "pendiente"} · Puerta {metadata.gate ?? "pendiente"}
+                        </p>
                       </div>
                       {hasStops ? (
                         <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
@@ -292,9 +303,9 @@ export default function FlightSearchModal({
 
                     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(4rem,auto)_minmax(0,1fr)] items-center gap-2 sm:gap-5">
                       <div className="min-w-0">
-                        <p className="text-xl font-bold text-slate-900 sm:text-2xl">{formatTime(flight.departure)}</p>
-                        <p className="mt-1 break-words text-sm font-medium text-slate-700">{flight.originCity}</p>
-                        <p className="text-xs text-slate-500">{flight.origin}</p>
+                        <p className="text-xl font-bold text-slate-900 sm:text-2xl">{formatTime(metadata.departure)}</p>
+                        <p className="mt-1 break-words text-sm font-medium text-slate-700">{origin.name}</p>
+                        <p className="text-xs text-slate-500">{origin.code}</p>
                       </div>
                       <div className="min-w-0 text-center text-slate-500 sm:min-w-32">
                         <p className="flex items-center justify-center gap-1 text-xs">
@@ -304,9 +315,9 @@ export default function FlightSearchModal({
                         <p className="text-xs">{hasStops ? `${segmentCount - 1} escala(s)` : "Vuelo directo"}</p>
                       </div>
                       <div className="min-w-0 text-right">
-                        <p className="text-xl font-bold text-slate-900 sm:text-2xl">{formatTime(flight.arrival)}</p>
-                        <p className="mt-1 break-words text-sm font-medium text-slate-700">{flight.destinationCity}</p>
-                        <p className="text-xs text-slate-500">{flight.destination}</p>
+                        <p className="text-xl font-bold text-slate-900 sm:text-2xl">{formatTime(metadata.arrival)}</p>
+                        <p className="mt-1 break-words text-sm font-medium text-slate-700">{destination.name}</p>
+                        <p className="text-xs text-slate-500">{destination.code}</p>
                       </div>
                     </div>
 

@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Plane,
@@ -11,21 +11,36 @@ import {
   Star,
   Armchair,
   Check,
-  Clock3,
 } from "lucide-react";
 import { obtenerTiposAsiento } from "../services/asientoService";
 import { createTemporaryReservation } from "../services/apiClient";
 import { reservationErrorMessage } from "../services/reservationErrors";
 import { invalidateTripsCache } from "../services/tripsCache";
 import { useAuth } from "../context/AuthContext";
+import AuthModal from "../components/auth/AuthModal";
 import MainNavbar from "../components/MainNavbar";
-import * as Api from "../tools/Api"
+import * as Api from "../tools/Api";
+import {
+  formatFlightLocation,
+  formatFlightOperator,
+  getFlightMetadata,
+} from "../tools/flightFormatting";
 
 const CABIN_THEMES = [
   { name: "violet", icon: Crown },
   { name: "amber", icon: Star },
   { name: "emerald", icon: Armchair },
 ];
+const SEAT_SELECTION_INTENT_KEY = "airtravel_seat_selection_intent";
+
+function readSeatSelectionIntent() {
+  try {
+    const stored = sessionStorage.getItem(SEAT_SELECTION_INTENT_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
 
 function adaptarAsiento(asiento, tiposAsiento, vueloId) {
   const tipoAsientoId =
@@ -40,9 +55,7 @@ function adaptarAsiento(asiento, tiposAsiento, vueloId) {
     asiento.ocupado === true ||
     ["OCUPADO", "CONFIRMADO"].includes(estado);
   const reservado = ["RESERVADO", "BLOQUEADO"].includes(estado);
-  const disponible =
-    asiento.disponible ??
-    (asiento.activo === true || estado === "DISPONIBLE");
+  const disponible = asiento.disponible === true;
   const activo = disponible === true && !ocupado && !reservado;
   const status = ocupado
     ? "Ocupado"
@@ -57,6 +70,7 @@ function adaptarAsiento(asiento, tiposAsiento, vueloId) {
   return {
     id: String(asiento.numero),
     databaseId,
+    vueloAsientoId: asiento.vueloAsientoId ?? databaseId,
     selectionId: `${vueloId}-${databaseId}`,
     vueloId,
     avionId: asiento.avionId ?? asiento.avion_id,
@@ -74,7 +88,47 @@ function adaptarAsiento(asiento, tiposAsiento, vueloId) {
 }
 
 function getSegmentFlightId(segment) {
-  return segment.flightId ?? segment.vueloId ?? segment.id;
+  return segment?.flightId ?? segment?.vueloId ?? segment?.id;
+}
+
+function getFarePrice(flight, seatTypeId) {
+  const fare = flight?.prices?.find(
+    (item) => Number(item.seatTypeId) === Number(seatTypeId),
+  );
+  const price = Number(flight?.price ?? fare?.price ?? flight?.prices?.[0]?.price);
+  return Number.isFinite(price) ? price : 0;
+}
+
+function normalizeLegs(state) {
+  const addFlightSegments = (flight, direction) => {
+    if (!flight) return [];
+    const segments = Array.isArray(flight.segments) && flight.segments.length
+      ? flight.segments
+      : [flight];
+
+    return segments.map((segment, index) => ({
+      ...segment,
+      vueloId: getSegmentFlightId(segment),
+      origen: segment.origen ?? segment.origin,
+      destino: segment.destino ?? segment.destination,
+      flightNumber: segment.flightNumber ?? flight.flightNumber,
+      avionId: segment.avionId ?? segment.avion_id ?? flight.avionId,
+      price: segment.price ?? flight.price,
+      prices: segment.prices ?? flight.prices,
+      departureDate: segment.departureDate ?? flight.departureDate,
+      direction,
+      segmentIndex: index,
+    }));
+  };
+
+  if (state?.outboundFlight || state?.returnFlight) {
+    return [
+      ...addFlightSegments(state.outboundFlight, "Ida"),
+      ...addFlightSegments(state.returnFlight, "Vuelta"),
+    ];
+  }
+
+  return addFlightSegments(state?.flight, "Ida");
 }
 
 const SEAT_STYLES = {
@@ -106,21 +160,25 @@ const SEAT_STYLES = {
 };
 
 const currency = (amount) =>
-  `Q${amount.toLocaleString("es-GT")}`;
+  `$${Number(amount || 0).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} USD`;
 
 const createPaymentDeadline = () => Date.now() + 5 * 60 * 1000;
 
 function Seat({ seat, selected, onClick }) {
   const status = selected ? "Seleccionado" : seat.status;
   const colors = SEAT_STYLES[status] ?? SEAT_STYLES["No disponible"];
-  const disabled = !selected && seat.status !== "Disponible";
+  const disabled = !selected && (!seat.seatTypeAllowed || seat.status !== "Disponible");
+  const unavailableClass = !seat.seatTypeAllowed ? "opacity-45" : "";
 
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={() => onClick(seat)}
-      title={`${seat.id} · ${seat.classLabel} · ${status} · Q${seat.price}`}
+      title={`${seat.id} · ${seat.classLabel} · ${status} · Q${seat.price}${seat.seatTypeAllowed ? "" : " · Clase no seleccionada"}`}
       aria-label={`Asiento ${seat.id}, ${seat.classLabel}, ${status}`}
       aria-pressed={selected}
       className={`
@@ -131,6 +189,7 @@ function Seat({ seat, selected, onClick }) {
         focus-visible:outline-offset-2
         ${disabled ? "cursor-not-allowed" : "cursor-pointer hover:-translate-y-1"}
         ${selected ? "scale-105" : ""}
+        ${unavailableClass}
       `}
     >
       <span
@@ -209,6 +268,7 @@ function CabinSection({
   seats,
   selectedSeats,
   onSeatClick,
+  displayPrice,
 }) {
   const Icon = section.icon;
   const sectionSeats = seats.filter((seat) => seat.classId === section.id);
@@ -264,7 +324,7 @@ function CabinSection({
           Filas {section.start}–{section.end}
         </p>
         <p className="mt-2 text-sm font-bold text-violet-800">
-          {currency(section.price)} por asiento
+          {currency(displayPrice ?? section.price)} por asiento
         </p>
       </div>
 
@@ -311,129 +371,45 @@ function CabinSection({
   );
 }
 
-function FlightInfo({ flight }) {
-  const stopCount = Math.max(
-    Number(flight.stops) || 0,
-    (flight.segments?.length ?? 1) - 1,
-  );
-
-  return (
-    <div
-      className="rounded-2xl border border-white/60 bg-white/90 p-4 shadow-lg backdrop-blur-md sm:p-7
-                 flex flex-col lg:flex-row
-                 lg:items-center gap-6"
-    >
-      <div className="flex min-w-0 items-center gap-3 lg:min-w-48 lg:gap-4">
-        <div
-          className="w-16 h-16 rounded-2xl bg-violet-50
-                     flex items-center justify-center"
-        >
-          <Plane
-            size={31}
-            className="text-[#3b2b7a]"
-          />
-        </div>
-
-        <div>
-          <h3 className="text-xl font-bold text-slate-900">
-            {flight.airline}
-          </h3>
-          <p className="text-sm text-slate-500">
-            {flight.flightNumber}
-          </p>
-        </div>
-      </div>
-
-      <div className="hidden lg:block h-16 w-px bg-slate-200" />
-
-      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(4rem,0.8fr)_minmax(0,1fr)] items-center gap-2 sm:gap-3">
-        <div className="min-w-0">
-          <p className="text-xl font-bold text-slate-900 sm:text-2xl">
-            {flight.departureTime}
-          </p>
-          <p className="font-semibold text-[#3b2b7a]">
-            {flight.origin}
-          </p>
-          <p className="wrap-break-word text-xs text-slate-500">
-            {flight.originCity}
-          </p>
-        </div>
-
-        <div className="min-w-0 text-center">
-          <p className="text-xs text-slate-500 mb-2">
-            <Clock3 size={12} className="inline mr-1" />
-            {flight.duration}
-          </p>
-
-          <div className="flex items-center gap-2">
-            <Plane
-              size={18}
-              className="text-violet-400 rotate-90"
-            />
-            <div className="border-t-2 border-dashed
-                            border-violet-200 flex-1" />
-            <Plane
-              size={18}
-              className="text-violet-400 rotate-90"
-            />
-          </div>
-
-          <p className="text-xs text-slate-500 mt-2">
-            {stopCount > 0 ? `${stopCount} escala(s)` : "Vuelo directo"}
-          </p>
-        </div>
-
-        <div className="min-w-0 text-right">
-          <p className="text-xl font-bold text-slate-900 sm:text-2xl">
-            {flight.arrivalTime}
-          </p>
-          <p className="font-semibold text-[#3b2b7a]">
-            {flight.destination}
-          </p>
-          <p className="break-words text-xs text-slate-500">
-            {flight.destinationCity}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function SeatSelection() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { client } = useAuth();
-  const selectedFlight = location.state?.flight ?? {};
-  const flight = {
-    ...selectedFlight,
-    departureTime: selectedFlight.departureTime ?? selectedFlight.departure,
-    arrivalTime: selectedFlight.arrivalTime ?? selectedFlight.arrival,
-  };
-  const vuelos = useMemo(() => {
-    const seleccion = location.state?.flight;
-    if (seleccion?.segments?.length) return seleccion.segments;
-    return seleccion?.vueloId ? [seleccion] : [];
-  }, [location.state?.flight]);
-
-  const [selectedSeats, setSelectedSeats] = useState([]);
+  const { client, session } = useAuth();
+  const [savedIntent] = useState(() => readSeatSelectionIntent());
+  const searchData = useMemo(
+    () => location.state?.searchData ?? savedIntent?.searchData ?? {},
+    [location.state?.searchData, savedIntent?.searchData],
+  );
+  const targetSeatTypeId = Number(searchData.seatTypeId) || 2;
+  const totalPassengers = Math.max(
+    1,
+    Number(searchData.totalPassengers) || 1,
+  );
+  const legs = useMemo(() => normalizeLegs(location.state), [location.state]);
+  const selectedFlight = useMemo(
+    () => location.state?.flight ?? location.state?.outboundFlight ?? legs[0] ?? {},
+    [location.state?.flight, location.state?.outboundFlight, legs],
+  );
+  const flight = useMemo(
+    () => ({
+      ...selectedFlight,
+      departureTime: selectedFlight.departureTime ?? selectedFlight.departure,
+      arrivalTime: selectedFlight.arrivalTime ?? selectedFlight.arrival,
+    }),
+    [selectedFlight],
+  );
+  const [selectedSeatsByFlight, setSelectedSeatsByFlight] = useState(
+    () => savedIntent?.selectedSeatsByFlight ?? {},
+  );
   const [asientos, setAsientos] = useState([]);
-  const [activeSegmentIndex, setActiveSegmentIndex] = useState(0);
+  const [activeFlightIndex, setActiveFlightIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [reserving, setReserving] = useState(false);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const body = document.body;
-    root.classList.add("scrollbar-hidden");
-    body.classList.add("scrollbar-hidden");
-
-    return () => {
-      root.classList.remove("scrollbar-hidden");
-      body.classList.remove("scrollbar-hidden");
-    };
-  }, []);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingAuth, setPendingAuth] = useState(false);
+  const reservationAttemptedRef = useRef(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -442,16 +418,15 @@ export default function SeatSelection() {
       setLoading(true);
       setError("");
       setAsientos([]);
-      setSelectedSeats([]);
 
       try {
-        if (vuelos.length === 0) {
+        if (legs.length === 0) {
           throw new Error("No se recibieron vuelos para cargar sus asientos.");
         }
 
         const [respuestas, tiposAsiento] = await Promise.all([
           Promise.all(
-            vuelos.map((vuelo) =>
+            legs.map((vuelo) =>
               Api.get(`/vuelo/${getSegmentFlightId(vuelo)}/asientos`),
             ),
           ),
@@ -464,13 +439,18 @@ export default function SeatSelection() {
               ? respuesta
               : respuesta?.asientos ?? [];
 
-            return asientosVuelo.map((asiento) =>
-              adaptarAsiento(
+            return asientosVuelo.map((asiento) => {
+              const normalizedSeat = adaptarAsiento(
                 asiento,
                 tiposAsiento,
-                getSegmentFlightId(vuelos[index]),
-              ),
-            );
+                getSegmentFlightId(legs[index]),
+              );
+              return {
+                ...normalizedSeat,
+                seatTypeAllowed:
+                  Number(normalizedSeat.tipoAsientoId) === targetSeatTypeId,
+              };
+            });
           })
           .sort(
             (a, b) =>
@@ -498,9 +478,11 @@ export default function SeatSelection() {
     return () => {
       cancelado = true;
     };
-  }, [vuelos]);
+  }, [legs, targetSeatTypeId]);
 
-  const activeSegment = vuelos[activeSegmentIndex];
+  const activeSegment = legs[activeFlightIndex];
+  const activeFlightId = getSegmentFlightId(activeSegment);
+  const selectedSeats = selectedSeatsByFlight[activeFlightId] ?? [];
   const asientosDelSegmento = useMemo(
     () =>
       asientos.filter(
@@ -544,42 +526,83 @@ export default function SeatSelection() {
           ),
           icon: theme.icon,
           theme: theme.name,
+          displayPrice: getFarePrice(activeSegment, targetSeatTypeId),
         };
       })
       .sort((a, b) => a.start - b.start);
-  }, [asientosDelSegmento]);
+  }, [asientosDelSegmento, activeSegment, targetSeatTypeId]);
 
   const handleSeatClick = (seat) => {
     setMessage("");
-    if (!seat.activo || seat.ocupado) return;
+    if (
+      !seat.seatTypeAllowed ||
+      !seat.activo ||
+      seat.ocupado ||
+      (selectedSeats.length >= totalPassengers &&
+        !selectedSeats.some((item) => item.selectionId === seat.selectionId))
+    ) return;
 
-    setSelectedSeats((prev) => {
-      const existe = prev.some(
-        (item) => item.selectionId === seat.selectionId,
+    const existe = selectedSeats.some(
+      (item) => item.selectionId === seat.selectionId,
+    );
+    const nextSeats = existe
+      ? selectedSeats.filter((item) => item.selectionId !== seat.selectionId)
+      : [...selectedSeats, seat];
+
+    if (!existe && nextSeats.length === totalPassengers) {
+      const nextIncompleteIndex = legs.findIndex(
+        (leg, index) =>
+          index > activeFlightIndex &&
+          (selectedSeatsByFlight[getSegmentFlightId(leg)] ?? []).length < totalPassengers,
       );
-      return existe
-        ? prev.filter((item) => item.selectionId !== seat.selectionId)
-        : [...prev, seat];
-    });
+      if (nextIncompleteIndex >= 0) setActiveFlightIndex(nextIncompleteIndex);
+    }
+
+    setSelectedSeatsByFlight((previous) => ({
+      ...previous,
+      [activeFlightId]: nextSeats,
+    }));
   };
 
-  const subtotal = selectedSeats.reduce(
-    (sum, seat) => sum + seat.price,
-    0
+  const allSelectedSeats = useMemo(
+    () => Object.values(selectedSeatsByFlight).flat(),
+    [selectedSeatsByFlight],
   );
+  const handleRemoveSeat = (seat) => {
+    setSelectedSeatsByFlight((previous) => ({
+      ...previous,
+      [seat.vueloId]: (previous[seat.vueloId] ?? []).filter(
+        (item) => item.selectionId !== seat.selectionId,
+      ),
+    }));
+  };
+  const everyLegComplete = useMemo(
+    () => legs.length > 0 && legs.every(
+      (leg) => (selectedSeatsByFlight[getSegmentFlightId(leg)] ?? []).length === totalPassengers,
+    ),
+    [legs, selectedSeatsByFlight, totalPassengers],
+  );
+  const subtotal = allSelectedSeats.reduce((sum, seat) => sum + seat.price, 0);
 
-  // Cargo ficticio para la demostración.
-  const serviceFee = selectedSeats.length * 45;
+  const serviceFee = 0;
   const total = subtotal + serviceFee;
 
   const handleExit = () => {
-    navigate("/", {
-      replace: true,
+    navigate("/seleccion-vuelos", {
+      state: {
+        searchData,
+        searchResults: location.state?.searchResults,
+        outboundFlight: location.state?.outboundFlight,
+        returnFlight: location.state?.returnFlight,
+        alternativeDates: location.state?.alternativeDates,
+        returnFlights: location.state?.returnFlights,
+        returnAlternativeDates: location.state?.returnAlternativeDates,
+      },
     });
   };
 
-  const handleContinue = async () => {
-    if (selectedSeats.length === 0 || reserving) return;
+  const reserveSelectedSeats = useCallback(async () => {
+    if (!everyLegComplete || reserving) return;
 
     const clienteId = client?.id ?? client?.cliente_id ?? client?.clienteId;
     if (clienteId == null) {
@@ -593,7 +616,7 @@ export default function SeatSelection() {
     try {
       const reservation = await createTemporaryReservation({
         clienteId,
-        seatIds: selectedSeats.map((seat) => seat.databaseId),
+        seatIds: allSelectedSeats.map((seat) => seat.vueloAsientoId),
       });
 
       if (reservation?.id == null) {
@@ -605,54 +628,128 @@ export default function SeatSelection() {
       navigate("/checkout", {
         state: {
           flight,
-          passengers: selectedSeats.length,
-          selectedSeats,
-          subtotal,
-          serviceFee,
-          total,
+          outboundFlight: location.state?.outboundFlight,
+          returnFlight: location.state?.returnFlight,
+          searchData,
+          passengers: totalPassengers,
+          selectedSeats: allSelectedSeats,
+          selectedSeatsByFlight,
+          legs,
           reservation,
           paymentDeadline: createPaymentDeadline(),
         },
       });
+      sessionStorage.removeItem(SEAT_SELECTION_INTENT_KEY);
     } catch (reservationError) {
       setMessage(reservationErrorMessage(reservationError, "reserve"));
     } finally {
       setReserving(false);
     }
+  }, [
+    allSelectedSeats,
+    client,
+    everyLegComplete,
+    flight,
+    legs,
+    location.state,
+    navigate,
+    reserving,
+    searchData,
+    selectedSeatsByFlight,
+    totalPassengers,
+  ]);
+
+  const handleContinue = () => {
+    if (!everyLegComplete || reserving) return;
+    if (!session) {
+      sessionStorage.setItem(
+        SEAT_SELECTION_INTENT_KEY,
+        JSON.stringify({
+          ...location.state,
+          searchData,
+          selectedSeatsByFlight,
+        }),
+      );
+      setShowAuthModal(true);
+      return;
+    }
+    void reserveSelectedSeats();
   };
+
+  useEffect(() => {
+    if (
+      !session ||
+      (!savedIntent && !pendingAuth) ||
+      !everyLegComplete ||
+      reserving
+    ) return;
+    if (reservationAttemptedRef.current) return;
+    reservationAttemptedRef.current = true;
+    sessionStorage.removeItem(SEAT_SELECTION_INTENT_KEY);
+    void reserveSelectedSeats();
+  }, [
+    everyLegComplete,
+    pendingAuth,
+    reserving,
+    reserveSelectedSeats,
+    savedIntent,
+    session,
+  ]);
 
 
   return (
     <div
-      className="min-h-screen w-full bg-cover bg-center bg-fixed"
-      style={{ backgroundImage: 'url("/allFonts.png")' }}
+      className="relative flex h-screen w-full flex-col overflow-hidden bg-cover bg-center bg-fixed font-sans text-slate-800 px-4 pb-3 pt-3 sm:px-6"
+      style={{ backgroundImage: 'url("/font.jpeg")' }}
     >
-      <div className="flow-root min-h-screen w-full">
-        <MainNavbar />
+      <div className="fixed inset-0 z-0 bg-white/45 backdrop-blur-md pointer-events-none" />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <MainNavbar className="!fixed !left-4 !right-4 !top-3 !mx-0 sm:!left-6 sm:!right-6 sm:!top-5 lg:!left-12 lg:!right-12 xl:!left-25 xl:!right-25" />
 
-        {/* Distribución de dos columnas */}
-        <div
-          className="mx-auto grid min-h-[calc(100dvh-80px)] w-full max-w-[1600px] min-w-0 grid-cols-1 items-start gap-5 px-4 py-5 sm:px-6 lg:px-12 lg:py-8
-                     xl:grid-cols-[minmax(0,1fr)_390px] lg:gap-8"
-        >
-          {/* Columna izquierda */}
-          <main className="min-w-0 space-y-5">
-            <FlightInfo flight={flight} />
-
-            <section
-              className="min-w-0 rounded-3xl border border-white/60 bg-white/90 p-3 shadow-lg backdrop-blur-md sm:p-6 lg:p-8"
+        <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col pt-20 sm:pt-24">
+          <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={handleExit}
+              className="flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-md transition hover:bg-white hover:text-[#3b2b7a]"
             >
+              <ArrowLeft size={17} /> Volver a vuelos
+            </button>
+            <div className="hidden items-center gap-3 rounded-full border border-white/80 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-md sm:flex">
+              {["Vuelos", "Asientos", "Pasajeros", "Pago"].map((step, index) => (
+                <div key={step} className="flex items-center gap-2">
+                  <span
+                    className={`grid h-7 w-7 place-items-center rounded-full ${
+                      index === 0
+                        ? "bg-emerald-600 text-white"
+                        : index === 1
+                        ? "bg-[#3b2b7a] text-white shadow-md"
+                        : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {index === 0 ? <Check size={15} /> : index + 1}
+                  </span>
+                  {step}
+                  {index < 3 && <ArrowRight size={14} />}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div
+            className="grid min-h-0 flex-1 grid-cols-12 items-stretch gap-5"
+          >
+          {/* Columna izquierda */}
+          <main className="col-span-12 flex min-h-0 min-w-0 flex-col lg:col-span-8">
+            <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-3 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-4">
               <div
-                className="mb-6 flex flex-col justify-between gap-5 rounded-2xl border border-violet-100 bg-violet-50/90 p-4 sm:p-5 lg:flex-row lg:items-center"
+                className="mb-3 flex flex-col justify-between gap-2 rounded-2xl border border-white/80 bg-[#f0ecfa]/90 p-3 sm:flex-row sm:items-center"
               >
                 <div>
-                  <h2
-                    className="text-2xl font-bold
-                               text-[#21194d]"
-                  >
+                  <h2 className="text-lg font-bold text-[#21194d]">
                     Selecciona tus asientos
                   </h2>
-                  <p className="text-sm text-slate-500 mt-1">
+                  <p className="mt-1 text-xs text-slate-600">
                     Haz clic en los asientos disponibles
                     para cada pasajero
                   </p>
@@ -661,38 +758,54 @@ export default function SeatSelection() {
                 <SeatLegend />
               </div>
 
-              {vuelos.length > 1 && (
-                <div className="mb-5 flex flex-wrap gap-2" aria-label="Tramos del vuelo">
-                  {vuelos.map((vuelo, index) => (
+              <div className="shrink-0 bg-white pb-2">
+              {legs.length > 1 && (
+                <div className="mb-2 flex gap-2 overflow-x-auto pb-1 scrollbar-thin" aria-label="Tramos del vuelo">
+                  {legs.map((vuelo, index) => {
+                    const flightId = getSegmentFlightId(vuelo);
+                    const metadata = getFlightMetadata(vuelo);
+                    const origin = formatFlightLocation(metadata.origin, vuelo.origen);
+                    const destination = formatFlightLocation(metadata.destination, vuelo.destino);
+                    const assigned = selectedSeatsByFlight[flightId]?.length ?? 0;
+                    const complete = assigned === totalPassengers;
+                    return (
                     <button
-                      key={getSegmentFlightId(vuelo)}
+                      key={`${flightId}-${index}`}
                       type="button"
-                      onClick={() => setActiveSegmentIndex(index)}
-                      aria-pressed={activeSegmentIndex === index}
-                      className={`min-w-0 flex-1 basis-36 rounded-lg border px-3 py-3 text-left sm:px-4 ${
-                        activeSegmentIndex === index
-                          ? "border-violet-600 bg-violet-100 text-violet-900"
-                          : "border-slate-200 bg-white text-slate-600"
+                      onClick={() => setActiveFlightIndex(index)}
+                      aria-pressed={activeFlightIndex === index}
+                      className={`min-w-56 shrink-0 rounded-xl border px-3 py-2 text-left transition-all sm:min-w-64 sm:px-3 ${
+                        activeFlightIndex === index
+                          ? "border-[#3b2b7a] bg-[#3b2b7a] text-white shadow-lg shadow-violet-200"
+                          : "border-white/80 bg-white/85 text-slate-700 shadow-sm hover:border-violet-300 hover:bg-violet-50"
                       }`}
                     >
-                      <span className="block text-xs">Viaje {index + 1}</span>
-                      <span className="block text-sm font-semibold">
-                        {vuelo.origin} → {vuelo.destination}
+                      <span className="flex items-center justify-between gap-2 text-xs font-semibold">
+                        <span><Plane size={12} className="mr-1 inline" />{vuelo.direction}</span>
+                        {complete ? <Check size={14} /> : <span className={activeFlightIndex === index ? "text-amber-200" : "text-amber-600"}>⚠</span>}
                       </span>
-                      <span className="block text-xs">{vuelo.flightNumber}</span>
+                      <span className="mt-1 block text-sm font-bold">
+                        Tramo {index + 1}: {origin.code} → {destination.code}
+                      </span>
+                      <span className={`mt-1 block text-xs ${activeFlightIndex === index ? "text-white/75" : "text-slate-500"}`}>
+                        {vuelo.departureDate ?? metadata.departure?.slice?.(0, 10) ?? "Fecha pendiente"} · {metadata.number ?? "Vuelo"} · {formatFlightOperator(vuelo)}
+                      </span>
+                      <span className={`mt-1 block text-[11px] ${activeFlightIndex === index ? "text-white/65" : "text-slate-400"}`}>
+                        Terminal {metadata.terminal ?? "pendiente"} · Puerta {metadata.gate ?? "pendiente"}
+                      </span>
+                      <span className={`mt-1 block text-xs font-semibold ${complete ? (activeFlightIndex === index ? "text-emerald-200" : "text-emerald-700") : (activeFlightIndex === index ? "text-amber-200" : "text-amber-700")}`}>
+                        {complete ? `✓ ${assigned}/${totalPassengers} seleccionado${totalPassengers === 1 ? "" : "s"}` : "⚠ Falta asiento"}
+                      </span>
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
+              </div>
 
-              {/* Mapa y filtros */}
-              <div
-                className="grid grid-cols-1
-                           lg:grid-cols-[minmax(0,1fr)_1px]
-                           gap-4 items-start"
-              >
+              <div className="flex min-h-0 flex-1 overflow-y-auto rounded-2xl border border-white/70 bg-white/55 p-2 shadow-inner scrollbar-thin sm:p-3">
                 <div
-                  className="w-full min-w-0 overflow-x-hidden rounded-2xl border border-slate-200 bg-white/90 p-2 sm:p-6"
+                  className="w-full min-w-0 rounded-2xl border border-white/80 bg-white/85 p-2 sm:p-4"
                   aria-busy={loading}
                 >
                   {loading ? (
@@ -735,6 +848,7 @@ export default function SeatSelection() {
                             seats={asientosDelSegmento}
                             selectedSeats={selectedSeats}
                             onSeatClick={handleSeatClick}
+                            displayPrice={section.displayPrice}
                           />
                         ))}
                       </div>
@@ -815,72 +929,65 @@ export default function SeatSelection() {
           </main>
 
           {/* Columna derecha */}
-          <aside className="flex min-w-0 flex-col rounded-3xl border border-white/60 bg-white/95 p-5 shadow-lg backdrop-blur-md sm:p-6 lg:p-8">
-            <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-5">
-              <h2 className="text-xl font-bold
-                           text-[#21194d]"
-              >
-                Resumen de selección
+          <aside className="col-span-12 min-h-0 min-w-0 lg:sticky lg:top-3 lg:col-span-4 lg:h-full">
+            <div className="flex h-full max-h-full flex-col justify-between overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-3 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md">
+            <div className="flex items-center justify-between gap-2 border-b border-slate-200/80 pb-2">
+              <h2 className="text-lg font-bold text-[#21194d]">
+                Resumen de compra
               </h2>
 
               <span
-                className="bg-violet-100 text-violet-800
-                           rounded-full px-3 py-1
+                className="rounded-full bg-[#f0ecfa] text-[#3b2b7a]
+                           px-3 py-1
                            text-xs font-semibold"
               >
-                {selectedSeats.length} {selectedSeats.length === 1 ? "asiento" : "asientos"}
+                {allSelectedSeats.length} {allSelectedSeats.length === 1 ? "asiento" : "asientos"}
               </span>
             </div>
 
-            <div className="mt-6">
-              <h3
-                className="text-lg font-bold
-                           text-[#21194d] mb-4"
-              >
+            <div className="mt-2 min-h-0">
+              <h3 className="mb-1 text-sm font-bold text-[#21194d]">
                 Asientos seleccionados
               </h3>
 
-              <div className="space-y-3 pr-2 lg:max-h-64 lg:overflow-y-auto">
-                  {selectedSeats.length === 0 ? (
-                    <div className="text-center py-8 text-slate-400">
-                      <Armchair className="w-10 h-10 mx-auto mb-3" />
-                      <p className="text-sm">
+              <div className="max-h-28 space-y-1.5 overflow-y-auto pr-1 scrollbar-thin">
+                  {allSelectedSeats.length === 0 ? (
+                    <div className="py-3 text-center text-slate-400">
+                      <Armchair className="mx-auto mb-2 h-8 w-8" />
+                      <p className="text-xs">
                         Selecciona tus asientos para continuar
                       </p>
                     </div>
                   ) : (
-                    selectedSeats.map((seat, index) => (
+                    allSelectedSeats.map((seat, index) => (
                       <div
-                        key={seat.id}
-                        className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 p-3 sm:p-4"
+                        key={seat.selectionId}
+                        className="flex items-center gap-2 rounded-xl border border-white/80 bg-white/80 p-1.5 shadow-sm"
                       >
                         <div
-                          className="w-11 h-11 bg-violet-100 rounded-xl
+                          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-violet-100
                                     flex items-center justify-center"
                         >
-                          <UserRound
-                            size={22}
-                            className="text-violet-700"
-                          />
+                          <UserRound size={17} className="text-violet-700" />
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-slate-900">
-                            Pasajero {index + 1}
+                          <p className="truncate text-xs font-bold text-slate-900">
+                            Pasajero {index + 1} · {legs.find((leg) => String(getSegmentFlightId(leg)) === String(seat.vueloId))?.direction ?? "Tramo"}
                           </p>
 
-                          <p className="text-xs text-slate-500">
+                          <p className="truncate text-[11px] text-slate-500">
                             {seat.id} · {seat.classLabel}
                           </p>
                         </div>
 
-                        <span className="font-bold text-[#21194d]">
+                        <span className="text-xs font-bold text-[#21194d]">
                           {currency(seat.price)}
                         </span>
 
                         <button
                           type="button"
-                          onClick={() => handleSeatClick(seat)}
+                          onClick={() => handleRemoveSeat(seat)}
                           aria-label={`Quitar asiento ${seat.id}`}
                           className="text-slate-400 hover:text-red-500
                                     cursor-pointer"
@@ -893,21 +1000,13 @@ export default function SeatSelection() {
                 </div>
             </div>
 
-            <div
-              className="mt-7 rounded-2xl border border-slate-200 bg-white/70 p-4 pt-5 sm:p-5"
-            >
-              <h3
-                className="text-lg font-bold
-                           text-[#21194d] mb-5"
-              >
+            <div             className="mt-2 rounded-xl border border-white/80 bg-white/70 p-2.5">
+              <h3 className="mb-2 text-sm font-bold text-[#21194d]">
                 Detalle de precios
               </h3>
 
-              <div className="space-y-4">
-                <div
-                  className="border-t border-slate-200
-                             pt-5 space-y-3"
-                >
+              <div className="space-y-2">
+                <div className="space-y-1.5 border-t border-slate-200 pt-2">
                   <div
                     className="flex justify-between
                                text-sm text-slate-600"
@@ -930,17 +1029,14 @@ export default function SeatSelection() {
                 </div>
               </div>
 
-              <div
-                className="mt-6 flex items-center justify-between gap-3 rounded-2xl bg-violet-50 px-4 py-5 sm:px-5 sm:py-6"
-              >
+              <div className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-[#f0ecfa] px-3 py-2.5">
                 <p className="font-bold text-[#3b2b7a]">
                   Total a pagar
                 </p>
 
                 <div className="text-right">
                   <p
-                    className="text-2xl font-extrabold sm:text-3xl
-                               text-[#3b2b7a]"
+                    className="text-lg font-extrabold text-[#3b2b7a]"
                   >
                     {currency(total)}
                   </p>
@@ -960,17 +1056,17 @@ export default function SeatSelection() {
               </p>
             )}
 
-            <div className="mt-auto pt-8 space-y-3">
+            <div className="mt-2 space-y-1">
               <button
                 type="button"
                 onClick={handleContinue}
-                disabled={selectedSeats.length === 0 || loading || Boolean(error) || reserving}
+                disabled={!everyLegComplete || loading || Boolean(error) || reserving}
                 className="w-full bg-[#3b2b7a]
                            hover:bg-[#2b205c]
                            disabled:opacity-50
                            disabled:cursor-not-allowed
                            text-white rounded-2xl
-                           py-4 font-semibold
+                           py-3 font-semibold
                            flex items-center justify-center
                            gap-3 transition-colors
                            cursor-pointer"
@@ -1000,9 +1096,21 @@ export default function SeatSelection() {
                 Volver a vuelos
               </button>
             </div>
+            </div>
           </aside>
         </div>
       </div>
+      </div>
+      {showAuthModal && (
+        <AuthModal
+          mode="login"
+          onClose={() => setShowAuthModal(false)}
+          onAuthenticated={() => {
+            setPendingAuth(true);
+            setShowAuthModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

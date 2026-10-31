@@ -9,7 +9,7 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-export default function MainNavbar() {
+export default function MainNavbar({ className = "" }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, signOut } = useAuth();
@@ -61,7 +61,7 @@ export default function MainNavbar() {
   };
 
   return (
-    <nav className="sticky top-3 z-50 mx-4 rounded-2xl border border-white/15 bg-slate-950/80 font-sans text-white shadow-[0_12px_30px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:top-5 sm:mx-6 sm:rounded-full lg:mx-12 xl:mx-25">
+    <nav className={`sticky top-3 z-50 mx-4 rounded-2xl border border-white/15 bg-slate-950/80 font-sans text-white shadow-[0_12px_30px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:top-5 sm:mx-6 sm:rounded-full lg:mx-12 xl:mx-25 ${className}`}>
       <div className="relative flex min-h-16 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-7">
         <Link

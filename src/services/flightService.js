@@ -52,8 +52,68 @@ function getArrayResponse(response, endpoint) {
   if (!Array.isArray(data)) {
     throw new Error(`Respuesta inesperada de ${endpoint}`);
   }
-
   return data;
+}
+
+async function enrichFlight(flight) {
+  const flightId =
+    flight?.vueloId ??
+    flight?.vuelo_id ??
+    flight?.segments?.[0]?.vueloId ??
+    flight?.segments?.[0]?.vuelo_id ??
+    (Number.isInteger(Number(flight?.id)) ? flight.id : null);
+  if (!flightId) return flight;
+
+  try {
+    const response = await fetch(buildApiUrl(`/vuelo/${flightId}`));
+    if (!response.ok) {
+      throw new Error(`Error consultando /vuelo/${flightId}: ${response.status}`);
+    }
+    const payload = await response.json();
+    const details = payload?.data ?? payload;
+    const segments = Array.isArray(flight.segments)
+      ? await Promise.all(flight.segments.map(enrichFlight))
+      : flight.segments;
+    return { ...flight, ...details, ...(segments ? { segments } : {}) };
+  } catch (error) {
+    console.warn("No se pudo completar la información del vuelo.", error);
+    return flight;
+  }
+}
+
+async function enrichFlightResults(response) {
+  const result = response?.data ?? response;
+  if (!result || typeof result !== "object") return response;
+
+  const enrichList = (flights) =>
+    Array.isArray(flights) ? Promise.all(flights.map(enrichFlight)) : flights;
+  const enriched = { ...result };
+  if (result.outbound) {
+    enriched.outbound = {
+      ...result.outbound,
+      flights: await enrichList(result.outbound.flights),
+    };
+  }
+
+  if (result.inbound) {
+    enriched.inbound = {
+      ...result.inbound,
+      flights: await enrichList(result.inbound.flights),
+    };
+  }
+  if (Array.isArray(result.flights)) enriched.flights = await enrichList(result.flights);
+  return response?.data ? { ...response, data: enriched } : enriched;
+}
+
+export async function obtenerDetalleVuelo(flightId) {
+  const normalizedId = Number(flightId);
+  if (!Number.isInteger(normalizedId) || normalizedId <= 0) return null;
+  const response = await fetch(buildApiUrl(`/vuelo/${normalizedId}`));
+  if (!response.ok) {
+    throw new Error(`Error consultando /vuelo/${normalizedId}: ${response.status}`);
+  }
+  const payload = await response.json();
+  return payload?.data ?? payload;
 }
 
 export async function obtenerFechasDisponibles(
@@ -96,11 +156,12 @@ export async function buscarVuelos({
   seatTypeId,
   departureDate,
 }) {
-  return post("/vuelo/buscar", {
+  const response = await post("/vuelo/buscar", {
     OrigenID,
     DestinationID,
     totalPassengers,
     seatTypeId,
     departureDate,
   });
+  return enrichFlightResults(response);
 }

@@ -13,6 +13,11 @@ import {
   requiresPassengerConfirmation,
   tripStatus,
 } from "../../tools/tripFormatting";
+import {
+  formatFlightLocation,
+  formatFlightOperator,
+  getFlightMetadata,
+} from "../../tools/flightFormatting";
 
 export default function TripCard({ trip }) {
   const navigate = useNavigate();
@@ -21,9 +26,13 @@ export default function TripCard({ trip }) {
     String(trip.tipo_viaje).toUpperCase() === "DIRECTO" ||
     Number(trip.cantidad_escalas) === 0;
   const flightNumbers = (trip.tramos || [])
-    .map((segment) => segment.numero_vuelo)
+    .map((segment) => getFlightMetadata(segment).number)
     .filter(Boolean)
     .join(" · ");
+  const firstSegment = trip.tramos?.[0];
+  const firstMetadata = getFlightMetadata(firstSegment);
+  const origin = formatFlightLocation(firstMetadata.origin, trip.origen?.codigo_iata);
+  const destination = formatFlightLocation(firstMetadata.destination, trip.destino?.codigo_iata);
   const goToReservationPage = (path = "") => {
     navigate(`/reservas/${trip.reserva_id}${path}`, { state: { trip } });
   };
@@ -55,10 +64,10 @@ export default function TripCard({ trip }) {
         <div className="grid items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
           <div>
             <p className="text-3xl font-black tracking-tight text-slate-900">
-              {trip.origen?.codigo_iata || "---"}
+              {origin.code}
             </p>
             <p className="mt-1 line-clamp-1 text-sm font-semibold text-slate-700">
-              {trip.origen?.ciudad || trip.origen?.nombre || "Origen"}
+              {origin.name}
             </p>
             <p className="mt-1 text-xs text-slate-400">
               {formatTime(trip.fecha_salida)}
@@ -71,10 +80,10 @@ export default function TripCard({ trip }) {
           </div>
           <div className="sm:text-right">
             <p className="text-3xl font-black tracking-tight text-slate-900">
-              {trip.destino?.codigo_iata || "---"}
+              {destination.code}
             </p>
             <p className="mt-1 line-clamp-1 text-sm font-semibold text-slate-700">
-              {trip.destino?.ciudad || trip.destino?.nombre || "Destino"}
+              {destination.name}
             </p>
             <p className="mt-1 text-xs text-slate-400">
               {formatTime(trip.fecha_llegada)}
@@ -82,7 +91,15 @@ export default function TripCard({ trip }) {
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-4 sm:grid-cols-4">
+        <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-4 sm:grid-cols-5">
+          <div>
+            <p className="text-[11px] font-bold tracking-wide text-slate-400">
+              Aerolínea / vuelo
+            </p>
+            <p className="mt-1 truncate text-sm font-bold text-slate-700">
+              {firstSegment ? `${formatFlightOperator(firstSegment)} · ${flightNumbers || "Vuelo pendiente"}` : "Vuelo pendiente"}
+            </p>
+          </div>
           <div>
             <p className="text-[11px] font-bold tracking-wide text-slate-400">
               Salida

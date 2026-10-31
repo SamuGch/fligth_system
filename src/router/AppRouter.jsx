@@ -13,6 +13,7 @@ import SeatSelection from "../pages/SeatSelection";
 import CheckoutPage from "../pages/CheckoutPage";
 import DepositPaymentPage from "../pages/DepositPaymentPage";
 import PassengerConfirmationPage from "../pages/PassengerConfirmationPage";
+import FlightSelectionPage from "../pages/FlightSelectionPage";
 
 export default function AppRouter() {
   const location = useLocation();
@@ -22,6 +23,8 @@ export default function AppRouter() {
     <>
       <Routes location={backgroundLocation || location}>
         <Route path="/" element={<Home />} />
+        <Route path="/seleccion-vuelos" element={<FlightSelectionPage />} />
+        <Route path="/seleccion-asientos" element={<SeatSelection />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/checkout" element={<CheckoutPage />} />
@@ -31,7 +34,6 @@ export default function AppRouter() {
           <Route path="/reservas/:reservaId/registrar-pago" element={<DepositPaymentPage />} />
           <Route path="/reservas/:reservaId/confirmar-datos" element={<PassengerConfirmationPage />} />
           <Route path="/historial-compras" element={<ReservationsPage history />} />
-          <Route path="/seleccion-asientos" element={<SeatSelection />} />
         </Route>
 
         {/* Permite abrir directamente una URL modal conservando Home detrás. */}

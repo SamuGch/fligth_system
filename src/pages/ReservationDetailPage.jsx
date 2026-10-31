@@ -7,9 +7,11 @@ import {
   CircleAlert,
   Clock3,
   CreditCard,
+  Download,
   FileCheck2,
   LoaderCircle,
   Plane,
+  QrCode,
   Route,
   X,
   XCircle,
@@ -25,10 +27,15 @@ import {
   requiresPassengerConfirmation,
   tripStatus,
 } from "../tools/tripFormatting";
+import {
+  formatFlightLocation,
+  formatFlightOperator,
+  getFlightMetadata,
+} from "../tools/flightFormatting";
 
 function DetailItem({ label, value, icon: Icon }) {
   return (
-    <div className="flex gap-3 rounded-2xl bg-slate-50 p-4">
+    <div className="flex gap-3 rounded-2xl border border-white/70 bg-slate-50/75 p-4 backdrop-blur-sm">
       <Icon className="mt-0.5 shrink-0 text-violet-600" size={20} />
       <div>
         <p className="text-xs font-bold tracking-wide text-slate-400">
@@ -55,12 +62,113 @@ function cancellationErrorMessage(requestError) {
   return "No pudimos procesar la cancelación en este momento. Inténtalo nuevamente en unos minutos.";
 }
 
+function getDisplayRoute(trip) {
+  const firstSegment = trip?.tramos?.[0];
+  const metadata = getFlightMetadata(firstSegment);
+  return {
+    origin: metadata.origin.codigo_iata ? metadata.origin : trip?.origen ?? {},
+    destination: metadata.destination.codigo_iata ? metadata.destination : trip?.destino ?? {},
+  };
+}
+
+function ticketSeed(value) {
+  return String(value ?? "AIRFLY")
+    .split("")
+    .reduce((hash, character, index) => ((hash * 31 + character.charCodeAt(0) + index) >>> 0), 2166136261);
+}
+
+function TicketQr({ value }) {
+  const seed = ticketSeed(value);
+  const modules = 21;
+  const cells = [];
+  const finder = (originRow, originColumn) => {
+    for (let row = 0; row < 7; row += 1) {
+      for (let column = 0; column < 7; column += 1) {
+        const edge = row === 0 || row === 6 || column === 0 || column === 6;
+        const center = row >= 2 && row <= 4 && column >= 2 && column <= 4;
+        cells.push(
+          <rect
+            key={`finder-${originRow}-${originColumn}-${row}-${column}`}
+            x={(originColumn + column) * 4}
+            y={(originRow + row) * 4}
+            width="4"
+            height="4"
+            fill={edge || center ? "#21194d" : "white"}
+          />,
+        );
+      }
+    }
+  };
+  finder(0, 0);
+  finder(0, 14);
+  finder(14, 0);
+  for (let row = 0; row < modules; row += 1) {
+    for (let column = 0; column < modules; column += 1) {
+      const inFinder =
+        (row < 8 && column < 8) ||
+        (row < 8 && column > 12) ||
+        (row > 12 && column < 8);
+      if (!inFinder && ((seed + row * 17 + column * 23 + row * column) % 7 < 3)) {
+        cells.push(
+          <rect key={`cell-${row}-${column}`} x={column * 4} y={row * 4} width="4" height="4" fill="#21194d" />,
+        );
+      }
+    }
+  }
+  return (
+    <svg viewBox="0 0 84 84" role="img" aria-label="Código QR de la reserva" className="h-28 w-28 rounded-xl bg-white p-2">
+      <rect width="84" height="84" fill="white" />
+      {cells}
+    </svg>
+  );
+}
+
+async function downloadTicket(trip) {
+  const route = getDisplayRoute(trip);
+  const origin = route.origin?.codigo_iata || "---";
+  const destination = route.destination?.codigo_iata || "---";
+  const segments = (trip.tramos || []).slice(0, 4);
+  const segmentStart = 535;
+  const segmentGap = 105;
+  const detailsTop = segmentStart + Math.max(segments.length, 1) * segmentGap + 35;
+  const qrTop = segmentStart - 15;
+  const imageHeight = detailsTop + 220;
+  const escapeXml = (value) => String(value ?? "").replace(/[<>&'"]/g, (character) => ({
+    "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", "\"": "&quot;",
+  }[character]));
+  const segmentLines = segments.map((segment, index) => {
+    const metadata = getFlightMetadata(segment);
+    const origin = formatFlightLocation(metadata.origin);
+    const destination = formatFlightLocation(metadata.destination);
+    const y = segmentStart + index * segmentGap;
+    return `<text x="95" y="${y}" font-family="Arial" font-size="22" font-weight="700" fill="#21194d">TRAMO ${index + 1} · ${escapeXml(origin.code)} → ${escapeXml(destination.code)}</text><text x="95" y="${y + 30}" font-family="Arial" font-size="15" fill="#667085">${escapeXml(metadata.number || "Vuelo")} · ${escapeXml(formatFlightOperator(segment))}</text><text x="95" y="${y + 55}" font-family="Arial" font-size="15" fill="#667085">Salida: ${escapeXml(formatDateTime(metadata.departure))}   ·   Llegada: ${escapeXml(formatDateTime(metadata.arrival))} · Terminal ${escapeXml(metadata.terminal || "pendiente")} · Puerta ${escapeXml(metadata.gate || "pendiente")}</text>`;
+  }).join("");
+  const qrSvg = new XMLSerializer().serializeToString(document.querySelector(`[aria-label="Código QR de la reserva"]`));
+  const qrData = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(qrSvg)))}`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="${imageHeight}" viewBox="0 0 1400 ${imageHeight}"><rect width="100%" height="100%" fill="#f7f5ff"/><rect x="55" y="45" width="1290" height="110" rx="28" fill="#21194d"/><text x="95" y="95" font-family="Arial" font-size="28" font-weight="700" fill="white">AIR TRAVEL</text><text x="95" y="130" font-family="Arial" font-size="17" fill="#d9d4ff">BOLETO ELECTRÓNICO · RESERVA #${escapeXml(trip.reserva_id)}</text><rect x="55" y="155" width="1290" height="270" rx="28" fill="white"/><text x="95" y="225" font-family="Arial" font-size="22" font-weight="700" fill="#667085">RUTA PRINCIPAL</text><text x="95" y="320" font-family="Arial" font-size="68" font-weight="800" fill="#21194d">${escapeXml(origin)}</text><text x="700" y="320" text-anchor="middle" font-family="Arial" font-size="45" fill="#7455df">✈</text><text x="1240" y="320" text-anchor="end" font-family="Arial" font-size="68" font-weight="800" fill="#21194d">${escapeXml(destination)}</text><text x="95" y="370" font-family="Arial" font-size="18" fill="#667085">${escapeXml(route.origin?.ciudad || "Origen")}</text><text x="1240" y="370" text-anchor="end" font-family="Arial" font-size="18" fill="#667085">${escapeXml(route.destination?.ciudad || "Destino")}</text><rect x="55" y="445" width="1290" height="${imageHeight - 490}" rx="28" fill="white"/>${segmentLines}<image href="${qrData}" x="1080" y="${qrTop}" width="190" height="190"/><text x="95" y="${detailsTop}" font-family="Arial" font-size="20" font-weight="700" fill="#21194d">Resumen de reserva</text><text x="95" y="${detailsTop + 38}" font-family="Arial" font-size="17" fill="#667085">Estado: ${escapeXml(tripStatus(trip).label)}</text><text x="95" y="${detailsTop + 68}" font-family="Arial" font-size="17" fill="#667085">Total: ${escapeXml(money(trip.total))}   ·   Pago: ${escapeXml(trip.metodo_pago || "Pago registrado")}</text><text x="95" y="${detailsTop + 98}" font-family="Arial" font-size="17" fill="#667085">Referencia: ${escapeXml(trip.pago?.referencia || "Sin referencia")}</text><text x="95" y="${detailsTop + 155}" font-family="Arial" font-size="15" fill="#667085">Presenta este boleto junto con un documento de identificación.</text></svg>`;
+  const image = new Image();
+  image.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+  await new Promise((resolve, reject) => {
+    image.onload = resolve;
+    image.onerror = reject;
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = 1400;
+  canvas.height = imageHeight;
+  canvas.getContext("2d").drawImage(image, 0, 0);
+  const link = document.createElement("a");
+  link.href = canvas.toDataURL("image/png");
+  link.download = `boleto-airfly-${trip.reserva_id}.png`;
+  link.click();
+}
+
 export default function ReservationDetailPage() {
   const { reservaId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [downloadingTicket, setDownloadingTicket] = useState(false);
   const [cancelFeedback, setCancelFeedback] = useState(null);
   const [updatedTrip, setUpdatedTrip] = useState(null);
   const stateTrip = location.state?.trip;
@@ -79,6 +187,16 @@ export default function ReservationDetailPage() {
 
   const closeCancellationModal = () => {
     if (!cancelling) setCancelModalOpen(false);
+  };
+
+  const handleDownloadTicket = async () => {
+    if (downloadingTicket) return;
+    setDownloadingTicket(true);
+    try {
+      await downloadTicket(trip);
+    } finally {
+      setDownloadingTicket(false);
+    }
   };
 
   const confirmCancellation = async () => {
@@ -164,20 +282,21 @@ export default function ReservationDetailPage() {
   }
 
   const status = tripStatus(trip);
+  const displayRoute = getDisplayRoute(trip);
   return (
     <AccountLayout>
       <button
         type="button"
         onClick={() => navigate("/reservas")}
-        className="mb-5 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold text-slate-600 transition hover:text-violet-700"
+        className="mb-5 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-md transition hover:bg-white hover:text-violet-700"
       >
         <ArrowLeft size={19} /> Volver a mis viajes
       </button>
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_20px_60px_rgba(51,45,120,0.10)]">
-        <div className="bg-[linear-gradient(120deg,#292570,#5147b8)] p-5 text-white sm:p-8">
+      <div className="space-y-6">
+        <section className="rounded-3xl border border-white/20 bg-slate-950/85 p-5 text-white shadow-[0_20px_55px_rgba(15,23,42,0.22)] backdrop-blur-xl sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/65">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-200">
                 Reserva #{trip.reserva_id}
               </p>
               <h1 className="mt-2 text-2xl font-black sm:text-3xl">
@@ -202,36 +321,54 @@ export default function ReservationDetailPage() {
                   <XCircle size={18} /> Cancelar reserva
                 </button>
               )}
+              <button type="button" disabled={downloadingTicket} onClick={() => void handleDownloadTicket()} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-white/15 px-4 text-sm font-bold text-white transition hover:bg-white/25 disabled:cursor-wait disabled:opacity-70">
+                {downloadingTicket ? <><LoaderCircle className="animate-spin" size={18} /> Generando boleto...</> : <><Download size={18} /> Descargar boleto</>}
+              </button>
             </div>
           </div>
-          <div className="mt-8 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <div className="mt-7 grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-5">
             <div>
-              <p className="text-3xl font-black sm:text-4xl">
-                {trip.origen?.codigo_iata || "---"}
+              <p className="text-3xl font-black text-white sm:text-4xl">
+                {displayRoute.origin?.codigo_iata || "---"}
               </p>
-              <p className="mt-1 text-xs text-white/70 sm:text-sm">
-                {trip.origen?.ciudad || "Origen"}
+              <p className="mt-1 text-xs text-slate-300 sm:text-sm">
+                {displayRoute.origin?.ciudad || "Origen"}
               </p>
             </div>
-            <div className="flex items-center gap-2 text-white/70">
-              <span className="hidden h-px w-10 bg-white/35 sm:block" />
+            <div className="flex items-center gap-2 text-[#7455df]">
+              <span className="hidden h-px w-10 bg-[#7455df]/30 sm:block" />
               <Plane size={25} />
-              <span className="hidden h-px w-10 bg-white/35 sm:block" />
+              <span className="hidden h-px w-10 bg-[#7455df]/30 sm:block" />
             </div>
             <div className="text-right">
-              <p className="text-3xl font-black sm:text-4xl">
-                {trip.destino?.codigo_iata || "---"}
+              <p className="text-3xl font-black text-white sm:text-4xl">
+                {displayRoute.destination?.codigo_iata || "---"}
               </p>
-              <p className="mt-1 text-xs text-white/70 sm:text-sm">
-                {trip.destino?.ciudad || "Destino"}
+              <p className="mt-1 text-xs text-slate-300 sm:text-sm">
+                {displayRoute.destination?.ciudad || "Destino"}
               </p>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="p-4 sm:p-8">
+        <div className="space-y-6">
+          <div className="grid gap-5 rounded-3xl border border-white/70 bg-white/75 p-5 shadow-lg backdrop-blur-md sm:grid-cols-[1fr_auto] sm:items-center sm:p-6">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-700">Boleto electrónico</p>
+              <h2 className="mt-2 text-xl font-black text-slate-900">Tu viaje está listo para consultar</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">Guarda este comprobante y presenta el código junto con tu identificación al momento de viajar.</p>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold text-violet-800">
+                <span className="rounded-full bg-white/80 px-3 py-1.5">Reserva #{trip.reserva_id}</span>
+                <span className="rounded-full bg-white/80 px-3 py-1.5">{trip.tramos?.length ?? 0} tramo(s)</span>
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <TicketQr value={`${trip.reserva_id}-${trip.fecha_salida}`} />
+              <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-violet-700"><QrCode size={13} /> Código de embarque</span>
+            </div>
+          </div>
           {(action === "payment" || trip.debe_registrar_pago) && (
-            <div className="mb-6 flex flex-col justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800 sm:flex-row sm:items-center">
+            <div className="flex flex-col justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800 shadow-sm sm:flex-row sm:items-center">
               <CreditCard className="shrink-0" size={22} />
               <div className="flex-1">
                 <p className="font-extrabold">
@@ -246,7 +383,7 @@ export default function ReservationDetailPage() {
             </div>
           )}
           {requiresPassengerConfirmation(trip) && (
-            <div className="mb-6 flex flex-col justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 sm:flex-row sm:items-center">
+            <div className="flex flex-col justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 shadow-sm sm:flex-row sm:items-center">
               <FileCheck2 className="shrink-0" size={22} />
               <div className="flex-1">
                 <p className="font-extrabold">
@@ -261,6 +398,7 @@ export default function ReservationDetailPage() {
             </div>
           )}
 
+          <div className="rounded-3xl border border-white/70 bg-white/75 p-5 shadow-lg backdrop-blur-md sm:p-6">
           <h2 className="text-lg font-extrabold text-slate-900">
             Información general
           </h2>
@@ -290,49 +428,63 @@ export default function ReservationDetailPage() {
               value={`${money(trip.total)} · ${trip.metodo_pago || "Pago por definir"}`}
             />
           </div>
+          </div>
 
-          <h2 className="mt-8 text-lg font-extrabold text-slate-900">
+          <div className="rounded-3xl border border-white/70 bg-white/75 p-5 shadow-lg backdrop-blur-md sm:p-6">
+          <h2 className="text-lg font-extrabold text-slate-900">
             Itinerario
           </h2>
           <div className="mt-4 space-y-3">
             {(trip.tramos || []).map((segment, index) => (
+              (() => {
+                const metadata = getFlightMetadata(segment);
+                const origin = formatFlightLocation(metadata.origin);
+                const destination = formatFlightLocation(metadata.destination);
+                return (
               <div
                 key={`${segment.vuelo_id}-${segment.orden}`}
-                className="rounded-2xl border border-slate-200 p-4 sm:p-5"
+                className="rounded-2xl border border-white/80 bg-white/65 p-4 shadow-sm sm:p-5"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs font-bold uppercase tracking-wide text-violet-600">
                     Tramo {segment.orden || index + 1}
                   </p>
                   <p className="text-sm font-extrabold text-slate-800">
-                    {segment.numero_vuelo || "Vuelo"} ·{" "}
-                    {segment.aerolinea || "Air Travel"}
+                    {metadata.number || "Vuelo"} · {formatFlightOperator(segment)}
                   </p>
                 </div>
                 <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                   <div>
                     <p className="text-xl font-black text-slate-900">
-                      {segment.origen?.codigo_iata || "---"}
+                      {origin.code}
                     </p>
+                    <p className="mt-1 text-xs text-slate-500">{origin.name}</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      {formatDateTime(segment.fecha_salida)}
+                      {formatDateTime(metadata.departure)}
                     </p>
                   </div>
                   <ArrowRight className="text-violet-500" size={20} />
                   <div className="text-right">
                     <p className="text-xl font-black text-slate-900">
-                      {segment.destino?.codigo_iata || "---"}
+                      {destination.code}
                     </p>
+                    <p className="mt-1 text-xs text-slate-500">{destination.name}</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      {formatDateTime(segment.fecha_llegada)}
+                      {formatDateTime(metadata.arrival)}
                     </p>
                   </div>
                 </div>
+                <p className="mt-4 text-xs font-semibold text-slate-500">
+                  Terminal {metadata.terminal || "pendiente"} · Puerta {metadata.gate || "pendiente"}
+                </p>
               </div>
+                );
+              })()
             ))}
           </div>
+          </div>
           {trip.pago && (
-            <div className="mt-8 rounded-2xl border border-blue-100 bg-blue-50 p-5">
+            <div className="rounded-3xl border border-blue-100 bg-blue-50/80 p-5 shadow-sm">
               <div className="flex items-center gap-2 font-extrabold text-blue-900">
                 <CheckCircle2 size={20} /> Pago registrado
               </div>
@@ -352,7 +504,7 @@ export default function ReservationDetailPage() {
             </div>
           )}
         </div>
-      </section>
+      </div>
 
       {cancelModalOpen && (
         <div

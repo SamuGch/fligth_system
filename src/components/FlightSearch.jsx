@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import FlightSearchModal from "./FlightSearchModal";
 import {
   Search,
   ChevronDown,
@@ -7,50 +6,13 @@ import {
   PlaneTakeoff,
   PlaneLanding
 } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
 import { obtenerAeropuertos } from "../services/aeropuertoService";
-import {
-  buscarVuelos,
-  obtenerFechasDisponibles,
-} from "../services/flightService";
+import { buscarVuelos, obtenerFechasDisponibles } from "../services/flightService";
 import AirportCombobox from "./AirportCombobox";
 import FlightDateRangeCalendar from "./FlightDateRangeCalendar";
 import Toast from "./Toast";
 import PassengerClassSelector from "./PassengerClassSelector";
-
-function getAlternativeDates(results) {
-  const dates =
-    results?.outbound?.alternativeDates ?? results?.alternativeDates;
-
-  return Array.isArray(dates)
-    ? [...dates].sort((a, b) =>
-        a.departureDate.localeCompare(b.departureDate)
-      )
-    : [];
-}
-
-function mergeAlternativeDates(currentDates, nextDates) {
-  const nextDatesByDate = new Map(
-    nextDates.map((dateOption) => [
-      dateOption.departureDate,
-      dateOption,
-    ])
-  );
-  const currentDateSet = new Set(
-    currentDates.map((dateOption) => dateOption.departureDate)
-  );
-
-  return [
-    ...currentDates.map(
-      (dateOption) =>
-        nextDatesByDate.get(dateOption.departureDate) ?? dateOption
-    ),
-    ...nextDates.filter(
-      (dateOption) => !currentDateSet.has(dateOption.departureDate)
-    ),
-  ].sort((a, b) =>
-    a.departureDate.localeCompare(b.departureDate)
-  );
-}
 
 function formatSearchDate(value, placeholder) {
   if (!value) return placeholder;
@@ -81,7 +43,6 @@ function normalizeCalendarDates(data) {
 }
 
 export default function FlightSearch() {
-  const [modalOpen, setModalOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isExpansionVisible, setIsExpansionVisible] = useState(false);
   const closeTimerRef = useRef(null);
@@ -90,11 +51,7 @@ export default function FlightSearch() {
   const [airports, setAirports] = useState([]);
   const [loadingAirports, setLoadingAirports] = useState(true);
   const [airportsError, setAirportsError] = useState("");
-  const [data, setData] = useState({})
-  const [alternativeDatesError, setAlternativeDatesError] = useState("");
   const [searchError, setSearchError] = useState("");
-  const [loadingAlternativeDate, setLoadingAlternativeDate] = useState("");
-  const [alternativeDates, setAlternativeDates] = useState([]);
   const [availableDates, setAvailableDates] = useState({
     departure: [],
     return: [],
@@ -120,6 +77,7 @@ export default function FlightSearch() {
     seatTypeId: 2,
     seatClassName: "Económica",
   });
+  const navigate = useNavigate();
 
   const closeSearchToast = useCallback(() => {
     setSearchError("");
@@ -297,8 +255,6 @@ export default function FlightSearch() {
 
   const handleSearch = async () => {
     setSearchError("");
-    setAlternativeDatesError("");
-    setAlternativeDates([]);
 
     try {
       if (!searchData.OrigenID || !searchData.DestinationID) {
@@ -320,38 +276,22 @@ export default function FlightSearch() {
       }
 
       const response = await buscarVuelos(searchData);
-      setAlternativeDates(getAlternativeDates(response));
-      setData(response);
-      setModalOpen(true);
+      navigate("/seleccion-vuelos", {
+        state: {
+          searchData,
+          searchResults: response,
+          alternativeDates:
+            response?.outbound?.alternativeDates ??
+            response?.alternativeDates ??
+            [],
+        },
+      });
     } catch (error) {
       setSearchError(
         error instanceof Error
           ? error.message
           : "No se pudieron buscar vuelos.",
       );
-    }
-  };
-
-  const handleSelectAlternativeDate = async (departureDate) => {
-    setLoadingAlternativeDate(departureDate);
-    setAlternativeDatesError("");
-
-    try {
-      const updatedSearchData = { ...searchData, departureDate };
-      const response = await buscarVuelos(updatedSearchData);
-      setSearchData(updatedSearchData);
-      setAlternativeDates((currentDates) =>
-        mergeAlternativeDates(currentDates, getAlternativeDates(response))
-      );
-      setData(response);
-    } catch (error) {
-      setAlternativeDatesError(
-        error instanceof Error
-          ? error.message
-          : "No se pudieron consultar los vuelos para esta fecha.",
-      );
-    } finally {
-      setLoadingAlternativeDate("");
     }
   };
 
@@ -823,16 +763,6 @@ export default function FlightSearch() {
         />
       )}
 
-      <FlightSearchModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        searchData={searchData}
-        searchResults={data}
-        alternativeDates={alternativeDates}
-        alternativeDatesError={alternativeDatesError}
-        loadingAlternativeDate={loadingAlternativeDate}
-        onSelectAlternativeDate={handleSelectAlternativeDate}
-      />
     </>
   );
 }

@@ -29,7 +29,7 @@ const inputClass = `
   focus:ring-4 focus:ring-[#3333CC]/10
 `;
 
-export default function AuthModal({ mode }) {
+export default function AuthModal({ mode, onClose, onAuthenticated }) {
   const isRegister = mode === "register";
 
   const [showPassword, setShowPassword] = useState(false);
@@ -59,6 +59,10 @@ export default function AuthModal({ mode }) {
   );
 
   const close = useCallback(() => {
+    if (onClose) {
+      onClose();
+      return;
+    }
     sessionStorage.removeItem("airtravel_auth_notice");
     navigate(
       {
@@ -68,7 +72,7 @@ export default function AuthModal({ mode }) {
       },
       { replace: true, state: backgroundLocation.state },
     );
-  }, [backgroundLocation, navigate]);
+  }, [backgroundLocation, navigate, onClose]);
 
   const continueAfterAuth = useCallback(() => {
     const returnTo = location.state?.returnTo;
@@ -76,7 +80,10 @@ export default function AuthModal({ mode }) {
     const seatSelectionData = location.state?.seatSelectionData;
 
      // Nuevo flujo: autenticación antes de seleccionar asientos
-    if (returnTo === "/seleccion-asientos" && seatSelectionData?.flight) {
+    if (
+      returnTo === "/seleccion-asientos" &&
+      (seatSelectionData?.flight || seatSelectionData?.outboundFlight)
+    ) {
       navigate("/seleccion-asientos", {
         replace: true,
         state: seatSelectionData,
@@ -145,6 +152,10 @@ export default function AuthModal({ mode }) {
         }
       } else {
         await signIn(form.email, form.password);
+      }
+      if (onAuthenticated) {
+        onAuthenticated();
+        return;
       }
       setStatus({ loading: false, error: "", success: true });
     } catch (authError) {
@@ -483,4 +494,3 @@ export default function AuthModal({ mode }) {
     </ModalShell>
   );
 }
-
