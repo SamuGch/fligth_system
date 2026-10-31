@@ -623,17 +623,13 @@ export default function FlightSearch() {
                     active={activeDropdown === "passengers"}
                     onFocus={() => activateDropdown("passengers")}
                     onClose={() => setActiveDropdown(null)}
-                    onChange={(selection) =>
-                    (
+                    onChange={(selection) => {
                       setSearchData((current) => ({
                         ...current,
                         ...selection,
-                        departureDate: "",
-                        returnDate: "",
-                      })),
-                      setActiveDropdown(null)
-                    )
-                    }
+                      }));
+                      setActiveDropdown(null);
+                    }}
                   />
                 </div>
 
