@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { CalendarDays, Clock3, Plane, X } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
 import NoFlightsFound from "./NoFlightsFound";
 import {
   formatFlightLocation,
@@ -47,8 +46,6 @@ export default function FlightSearchModal({
   onSelectAlternativeDate,
 }) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { isAuthenticated } = useAuth();
   const flights = searchResults?.outbound?.flights ?? [];
   const alternativeDates =
     availableAlternativeDates.length > 0
@@ -76,24 +73,12 @@ export default function FlightSearchModal({
     const seatSelectionData = {
       flight: selectedFlight,
       avionId: selectedFlight.avionId,
+      searchData,
+      searchResults,
     };
 
     onClose();
-
-    if (isAuthenticated) {
-      navigate("/seleccion-asientos", {
-        state: seatSelectionData,
-      });
-      return;
-    }
-
-    navigate("/login", {
-      state: {
-        backgroundLocation: location,
-        returnTo: "/seleccion-asientos",
-        seatSelectionData,
-      },
-    });
+    navigate("/seleccion-asientos", { state: seatSelectionData });
   };
 
   const currentPrices = flights

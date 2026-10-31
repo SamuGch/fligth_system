@@ -453,7 +453,6 @@ export default function CheckoutPage() {
   if (!flight || seats.length === 0 || reservationId == null) {
     return (
       <div className="relative flex min-h-dvh items-center justify-center bg-cover bg-center bg-fixed p-4 font-sans sm:p-6" style={{ backgroundImage: 'url("/allFonts.png")' }}>
-        <div className="fixed inset-0 z-0 bg-white/45 backdrop-blur-md" />
         <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/80 bg-white/90 p-5 text-center shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-8">
           <h1 className="text-xl font-bold text-slate-900">No hay una compra pendiente</h1>
           <p className="mt-2 text-slate-500">Selecciona un vuelo y reserva sus asientos para continuar.</p>

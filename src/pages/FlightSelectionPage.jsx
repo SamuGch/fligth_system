@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -68,6 +68,18 @@ function getReturnFlights(data) {
   return data?.outbound?.flights ?? data?.inbound?.flights ?? data?.flights ?? [];
 }
 
+function getInboundFlights(data) {
+  return data?.inbound?.flights ?? [];
+}
+
+function getInitialReturnFlights(state) {
+  return state?.returnFlights?.length
+    ? state.returnFlights
+    : state?.returnFlight
+      ? [state.returnFlight]
+      : getInboundFlights(state?.searchResults);
+}
+
 function getStops(flight) {
   if (Array.isArray(flight?.segments) && flight.segments.length > 1) {
     return flight.segments.length - 1;
@@ -82,6 +94,33 @@ function getAlternativeDates(data) {
     data?.alternativeDates ??
     []
   );
+}
+
+function getInboundAlternativeDates(data) {
+  return data?.inbound?.alternativeDates ?? [];
+}
+
+function normalizeDateOptions(options, minimumDate = "") {
+  const seen = new Set();
+  return (Array.isArray(options) ? options : [])
+    .map((option) => {
+      if (typeof option === "string") {
+        return { departureDate: option, price: null };
+      }
+      return {
+        departureDate: option?.departureDate ?? option?.fecha ?? "",
+        price: option?.price ?? option?.precioMinimo ?? null,
+      };
+    })
+    .filter((option) => {
+      const valid =
+        /^\d{4}-\d{2}-\d{2}$/.test(option.departureDate) &&
+        (!minimumDate || option.departureDate > minimumDate);
+      if (!valid || seen.has(option.departureDate)) return false;
+      seen.add(option.departureDate);
+      return true;
+    })
+    .sort((a, b) => a.departureDate.localeCompare(b.departureDate));
 }
 
 function getAirportLabel(searchData, flight, side) {
@@ -115,11 +154,12 @@ function DateRibbon({ dates, selectedDate, loadingDate, onSelect }) {
             key={option.departureDate}
             type="button"
             disabled={selected || Boolean(loadingDate)}
+            aria-pressed={selected}
             onClick={() => onSelect(option.departureDate)}
-            className={`min-w-36 rounded-2xl border border-white/70 bg-white/90 px-4 py-3 text-center text-slate-800 shadow-sm backdrop-blur-md transition ${
+            className={`min-w-36 rounded-2xl border px-4 py-3 text-center shadow-sm backdrop-blur-md transition ${
               selected
-                ? "border-[#3b2b7a] bg-[#f0ecfa] text-[#3b2b7a] shadow-md"
-                : "text-slate-600 hover:-translate-y-0.5 hover:border-[#3b2b7a]/50"
+                ? "border-[#3b2b7a] bg-[#3b2b7a] text-white shadow-md ring-2 ring-[#3b2b7a]/20"
+                : "border-white/70 bg-white/90 text-slate-600 hover:-translate-y-0.5 hover:border-[#3b2b7a]/50"
             } disabled:cursor-default`}
           >
             {loading ? (
@@ -252,12 +292,11 @@ function FlightCard({ flight, selected, disabled, loading, onSelect }) {
       )}
 
       <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-3">
-        <p className="text-lg font-bold text-[#3b2b7a]">{formatPrice(flightPrice(flight))}</p>
         <button type="button" disabled={disabled} onClick={() => onSelect(flight)}
           className={`btn-primary flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-3 font-semibold ${
             selected ? "bg-emerald-600" : "bg-[#3b2b7a] hover:bg-[#2c205e]"
           } disabled:cursor-not-allowed`}>
-          {loading ? <><Loader2 size={17} className="animate-spin" /> Cargando...</> : selected ? <><Check size={17} /> Seleccionado</> : <><Plane size={17} /> Seleccionar</>}
+          {loading ? <><Loader2 size={17} className="animate-spin" /> Cargando...</> : selected ? <><Check size={17} /> Seleccionar</> : <><Plane size={17} /> Seleccionar</>}
         </button>
       </div>
     </article>
@@ -270,7 +309,13 @@ export default function FlightSelectionPage() {
   const initialSearchData = location.state?.searchData;
   const [searchData, setSearchData] = useState(initialSearchData ?? {});
   const [searchResults, setSearchResults] = useState(location.state?.searchResults ?? {});
-  const [alternativeDates, setAlternativeDates] = useState(location.state?.alternativeDates ?? []);
+  const [alternativeDates, setAlternativeDates] = useState(() =>
+    normalizeDateOptions(
+      location.state?.alternativeDates?.length
+        ? location.state.alternativeDates
+        : getAlternativeDates(location.state?.searchResults),
+    ),
+  );
   const [selectedOutbound, setSelectedOutbound] = useState(
     location.state?.outboundFlight ?? null,
   );
@@ -278,14 +323,14 @@ export default function FlightSelectionPage() {
     location.state?.returnFlight ?? null,
   );
   const [returnFlights, setReturnFlights] = useState(() =>
-    location.state?.returnFlights?.length
-      ? location.state.returnFlights
-      : location.state?.returnFlight
-        ? [location.state.returnFlight]
-        : [],
+    getInitialReturnFlights(location.state),
   );
   const [returnAlternativeDates, setReturnAlternativeDates] = useState(
-    location.state?.returnAlternativeDates ?? [],
+    normalizeDateOptions(
+      location.state?.returnAlternativeDates ??
+        getInboundAlternativeDates(location.state?.searchResults),
+      initialSearchData?.departureDate,
+    ),
   );
   const [step, setStep] = useState(
     location.state?.returnFlight ? "inbound" : "outbound",
@@ -293,21 +338,38 @@ export default function FlightSelectionPage() {
   const [loadingReturn, setLoadingReturn] = useState(
     initialSearchData?.tripType === "round" &&
       Boolean(initialSearchData?.returnDate) &&
-      !location.state?.returnFlights?.length,
+      !getInitialReturnFlights(location.state).length,
   );
   const [returnStatus, setReturnStatus] = useState(
     initialSearchData?.tripType === "round" && initialSearchData?.returnDate
-      ? "loading"
+      ? getInitialReturnFlights(location.state).length
+        ? "loaded"
+        : "loading"
       : "idle",
   );
   const [loadingDate, setLoadingDate] = useState("");
   const [error, setError] = useState("");
   const [selectingFlightKey, setSelectingFlightKey] = useState("");
-  const [continuing, setContinuing] = useState(false);
+  const dateRequestId = useRef(0);
 
   const outboundFlights = useMemo(() => flightsFrom(searchResults), [searchResults]);
   const outboundOrigin = getAirportLabel(searchData, outboundFlights[0], "origin");
   const outboundDestination = getAirportLabel(searchData, outboundFlights[0], "destination");
+
+  const navigateToSeats = (outboundFlight, returnFlight = null) => {
+    navigate("/seleccion-asientos", {
+      state: {
+        outboundFlight,
+        returnFlight,
+        searchData,
+        searchResults,
+        alternativeDates,
+        returnFlights,
+        returnAlternativeDates,
+      },
+    });
+  };
+
   useEffect(() => {
     if (!initialSearchData) navigate("/", { replace: true });
   }, [initialSearchData, navigate]);
@@ -337,7 +399,9 @@ export default function FlightSelectionPage() {
       .then(({ flights, alternativeDates: nextAlternativeDates }) => {
         if (active) {
           setReturnFlights(flights);
-          setReturnAlternativeDates(nextAlternativeDates);
+          setReturnAlternativeDates(
+            normalizeDateOptions(nextAlternativeDates, searchData.departureDate),
+          );
           setReturnStatus("loaded");
         }
       })
@@ -353,17 +417,38 @@ export default function FlightSelectionPage() {
 
   const selectOutbound = (flight) => {
     if (selectingFlightKey) return;
+    if (
+      searchData.tripType === "round" &&
+      (!searchData.returnDate || returnStatus !== "loaded" || !returnFlights.length)
+    ) {
+      setError(
+        "Elige una fecha de regreso con vuelos disponibles antes de seleccionar la ida.",
+      );
+      return;
+    }
     setSelectingFlightKey(flightKey(flight));
     setSelectedOutbound(flight);
     if (searchData.tripType === "round") {
       setStep("inbound");
     } else {
       setSelectedReturn(null);
+      navigateToSeats(flight);
     }
     window.setTimeout(() => setSelectingFlightKey(""), 250);
   };
 
   const loadReturnFlights = async (date) => {
+    if (
+      !date ||
+      !searchData.departureDate ||
+      date <= searchData.departureDate
+    ) {
+      setError("La fecha de regreso debe ser posterior a la fecha de salida.");
+      return;
+    }
+
+    const requestId = dateRequestId.current + 1;
+    dateRequestId.current = requestId;
     setLoadingDate(date);
     setError("");
     setReturnStatus("loading");
@@ -371,16 +456,20 @@ export default function FlightSelectionPage() {
       const nextSearchData = { ...searchData, returnDate: date };
       const { flights, alternativeDates: nextAlternativeDates } =
         await fetchReturnFlights(nextSearchData);
+      if (dateRequestId.current !== requestId) return;
       setSearchData(nextSearchData);
       setReturnFlights(flights);
-      setReturnAlternativeDates(nextAlternativeDates);
+      setReturnAlternativeDates(
+        normalizeDateOptions(nextAlternativeDates, nextSearchData.departureDate),
+      );
       setSelectedReturn(null);
       setReturnStatus("loaded");
     } catch (requestError) {
+      if (dateRequestId.current !== requestId) return;
       setReturnStatus("error");
       setError(requestError.message || "No se pudieron consultar los vuelos de regreso.");
     } finally {
-      setLoadingDate("");
+      if (dateRequestId.current === requestId) setLoadingDate("");
     }
   };
 
@@ -388,11 +477,23 @@ export default function FlightSelectionPage() {
     if (selectingFlightKey) return;
     setSelectingFlightKey(flightKey(flight));
     setSelectedReturn(flight);
-    window.setTimeout(() => setSelectingFlightKey(""), 250);
+window.setTimeout(() => setSelectingFlightKey(""), 250);
   };
 
   const continueToSeats = () => {
     if (continuing) return;
+    if (
+      !selectedOutbound ||
+      (searchData.tripType === "round" &&
+        (!selectedReturn ||
+          !searchData.returnDate ||
+          searchData.returnDate <= searchData.departureDate))
+    ) {
+      setError(
+        "Selecciona un vuelo de ida y un vuelo de regreso en fechas válidas para continuar.",
+      );
+      return;
+    }
     setContinuing(true);
     const state = {
       outboundFlight: selectedOutbound,
@@ -407,6 +508,8 @@ export default function FlightSelectionPage() {
   };
 
   const selectAlternativeDate = async (date) => {
+    const requestId = dateRequestId.current + 1;
+    dateRequestId.current = requestId;
     setLoadingDate(date);
     setError("");
     try {
@@ -430,51 +533,60 @@ export default function FlightSelectionPage() {
         tripType: searchData.tripType,
       };
       const response = await buscarVuelos(nextSearchData);
-      let nextReturnAlternativeDates = returnAlternativeDates;
-      if (nextSearchData.tripType === "round" && !nextReturnDate) {
+      if (dateRequestId.current !== requestId) return;
+      let nextReturnAlternativeDates = normalizeDateOptions(
+        getInboundAlternativeDates(response),
+        date,
+      );
+      let nextReturnFlights = getInboundFlights(response);
+      if (
+        nextSearchData.tripType === "round" &&
+        (!nextReturnDate || !nextReturnFlights.length)
+      ) {
         const dates = await obtenerFechasDisponiblesRuta(
           nextSearchData.DestinationID,
           nextSearchData.OrigenID,
           { totalPassengers: nextSearchData.totalPassengers },
         );
-        nextReturnAlternativeDates = dates.map((departureDate) => ({
-          departureDate,
-          price: null,
-        }));
+        if (dateRequestId.current !== requestId) return;
+        nextReturnAlternativeDates = normalizeDateOptions(dates, date);
       }
       setSearchData(nextSearchData);
       setSearchResults(response);
       setSelectedOutbound(null);
       setSelectedReturn(null);
       setStep("outbound");
-      setAlternativeDates(getAlternativeDates(response));
-      setReturnFlights([]);
-      if (nextReturnDate) {
-        setReturnAlternativeDates([]);
-      } else {
-        setReturnAlternativeDates(nextReturnAlternativeDates);
-      }
-      setLoadingReturn(Boolean(nextReturnDate));
-      setReturnStatus(nextReturnDate ? "loading" : "idle");
+      const nextAlternativeDates = normalizeDateOptions(
+        getAlternativeDates(response),
+      );
+      setAlternativeDates(nextAlternativeDates);
+      setReturnFlights(nextReturnFlights);
+      setReturnAlternativeDates(nextReturnAlternativeDates);
+      setLoadingReturn(false);
+      setReturnStatus(
+        nextReturnFlights.length
+          ? "loaded"
+          : nextReturnAlternativeDates.length
+            ? "idle"
+            : "unavailable",
+      );
       navigate("/seleccion-vuelos", {
         replace: true,
         state: {
           searchData: nextSearchData,
           searchResults: response,
-          alternativeDates: getAlternativeDates(response),
-          returnAlternativeDates: nextReturnDate
-            ? []
-            : nextReturnAlternativeDates,
+          alternativeDates: nextAlternativeDates,
+          returnAlternativeDates: nextReturnAlternativeDates,
         },
       });
     } catch (requestError) {
+      if (dateRequestId.current !== requestId) return;
       setError(requestError.message || "No se pudieron consultar los vuelos para esta fecha.");
     } finally {
-      setLoadingDate("");
+      if (dateRequestId.current === requestId) setLoadingDate("");
     }
   };
 
-  const canContinue = Boolean(selectedOutbound) && (searchData.tripType !== "round" || Boolean(selectedReturn));
   const subtotal = flightPrice(selectedOutbound) + flightPrice(selectedReturn);
   const currentPrice = outboundFlights.length ? Math.min(...outboundFlights.map(flightPrice)) : null;
   const outboundDateOptions = [...alternativeDates.filter((item) => item?.departureDate !== searchData.departureDate), ...(searchData.departureDate ? [{ departureDate: searchData.departureDate, price: currentPrice }] : [])].sort((a, b) => a.departureDate.localeCompare(b.departureDate));
@@ -486,6 +598,9 @@ export default function FlightSelectionPage() {
       ? [{ departureDate: searchData.returnDate, price: flightPrice(selectedReturn) || null }]
       : []),
   ].sort((a, b) => a.departureDate.localeCompare(b.departureDate));
+  const canSelectOutbound =
+    searchData.tripType !== "round" ||
+    (returnStatus === "loaded" && returnFlights.length > 0 && Boolean(searchData.returnDate));
   const nextReturnDate = returnAlternativeDates
     .map((option) => option?.departureDate)
     .filter(
@@ -510,7 +625,6 @@ export default function FlightSelectionPage() {
       className="min-h-screen overflow-x-hidden bg-cover bg-center bg-fixed font-sans text-slate-800"
       style={{ backgroundImage: 'url("/allFonts.png")' }}
     >
-      <div className="fixed inset-0 z-0 bg-white/35 backdrop-blur-md pointer-events-none"></div>
       <MainNavbar className="!fixed !left-4 !right-4 !top-3 !mx-0 sm:!left-6 sm:!right-6 sm:!top-5 lg:!left-12 lg:!right-12 xl:!left-25 xl:!right-25" />
       <main className="relative z-10 mx-auto max-w-5xl px-4 pb-8 pt-28 sm:px-6 sm:pt-32 lg:px-8 lg:pb-32">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -545,8 +659,7 @@ export default function FlightSelectionPage() {
                 <p className="mt-1 font-medium text-slate-700">{formatDate(searchData.departureDate)}</p>
               </div>
               {searchData.tripType === "round" &&
-                returnStatus === "loaded" &&
-                !returnFlights.length && (
+                (!canSelectOutbound || (returnStatus === "loaded" && !returnFlights.length)) && (
                   <div
                     role="status"
                     className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/95 p-4 text-amber-950 shadow-sm"
@@ -554,14 +667,38 @@ export default function FlightSelectionPage() {
                     <AlertTriangle className="mt-0.5 shrink-0 text-amber-600" size={20} />
                     <div>
                       <p className="font-semibold">
-                        Esta búsqueda no tiene vuelos de regreso disponibles.
+                        {returnStatus === "unavailable"
+                          ? "No hay vuelos de regreso futuros para esta salida."
+                          : returnStatus === "idle"
+                            ? "Elige primero una fecha de regreso disponible."
+                            : returnStatus === "loading"
+                              ? "Estamos comprobando los vuelos de regreso."
+                              : "Esta búsqueda no tiene vuelos de regreso disponibles."}
                       </p>
                       <p className="mt-1 text-sm leading-6 text-amber-900/80">
-                        Puedes elegir la ida, pero después tendrás que seleccionar
-                        otra fecha de regreso o modificar la búsqueda.
+                        {returnStatus === "idle"
+                          ? "No se puede seleccionar una ida de un viaje redondo sin confirmar su regreso."
+                          : returnStatus === "loading"
+                            ? "Espera un momento mientras actualizamos las opciones de regreso."
+                            : "Selecciona otra fecha de regreso o modifica la búsqueda para continuar."}
                       </p>
                     </div>
                   </div>
+                )}
+              {searchData.tripType === "round" &&
+                !canSelectOutbound &&
+                inboundDateOptions.length > 0 && (
+                  <section className="mb-6">
+                    <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
+                      <CalendarDays size={17} /> Fechas de regreso disponibles
+                    </h2>
+                    <DateRibbon
+                      dates={inboundDateOptions}
+                      selectedDate={searchData.returnDate}
+                      loadingDate={loadingDate}
+                      onSelect={loadReturnFlights}
+                    />
+                  </section>
                 )}
               <section className="mb-6">
                 <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800"><CalendarDays size={17} /> Fechas de salida</h2>
@@ -569,7 +706,7 @@ export default function FlightSelectionPage() {
               </section>
               {outboundFlights.length ? <div className="space-y-4">{outboundFlights.map((flight, index) => {
                 const isSelected = flightKey(selectedOutbound) === flightKey(flight);
-                return <FlightCard key={`${flight.flightNumber ?? "flight"}-${index}`} flight={flight} selected={isSelected} loading={selectingFlightKey === flightKey(flight)} disabled={Boolean(selectedOutbound && !isSelected) || Boolean(selectingFlightKey)} onSelect={selectOutbound} />;
+                return <FlightCard key={`${flight.flightNumber ?? "flight"}-${index}`} flight={flight} selected={isSelected} loading={selectingFlightKey === flightKey(flight)} disabled={!canSelectOutbound || Boolean(selectedOutbound && !isSelected) || Boolean(selectingFlightKey)} onSelect={selectOutbound} />;
               })}</div> : <NoFlightsFound onModifySearch={() => navigate("/")} />}
             </>
           ) : selectedOutbound ? (
@@ -651,7 +788,7 @@ export default function FlightSelectionPage() {
         )}
       </main>
 
-      <aside className="static lg:fixed lg:bottom-0 lg:left-0 lg:right-0 z-40 mt-6 rounded-2xl border border-white/15 bg-slate-950/80 p-2.5 text-white shadow-[0_12px_30px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:rounded-full sm:p-3 lg:mt-0">
+      {/*<aside className="static lg:fixed lg:bottom-0 lg:left-0 lg:right-0 z-40 mt-6 rounded-2xl border border-white/15 bg-slate-950/80 p-2.5 text-white shadow-[0_12px_30px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:rounded-full sm:p-3 lg:mt-0">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 lg:px-6">
           <div className="min-w-0">
             <p className="text-sm text-slate-300">Resumen de compra</p>
@@ -659,10 +796,12 @@ export default function FlightSelectionPage() {
           </div>
           <div className="flex items-center justify-between gap-5 sm:justify-end">
             <p className="text-xl font-bold text-white">${subtotal.toFixed(2)} USD</p>
+            
             <button type="button" disabled={!canContinue || continuing} onClick={continueToSeats} className="btn-secondary flex min-h-9 items-center gap-2 rounded-full px-4 py-2 font-semibold shadow-lg disabled:opacity-50">{continuing ? <><Loader2 size={17} className="animate-spin" /> Cargando...</> : <>Continuar a selección de asientos <ChevronRight size={17} /></>}</button>
+            
           </div>
         </div>
-      </aside>
+      </aside>*/}
     </div>
   );
 }

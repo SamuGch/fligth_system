@@ -699,7 +699,6 @@ export default function SeatSelection() {
       className="relative flex min-h-screen w-full flex-col bg-cover bg-center bg-fixed px-4 pb-4 pt-20 font-sans text-slate-800 sm:px-6 lg:h-screen lg:overflow-hidden lg:px-12 xl:px-[160px]"
       style={{ backgroundImage: 'url("/allFonts.png")' }}
     >
-      <div className="fixed inset-0 z-0 bg-white/45 backdrop-blur-md pointer-events-none" />
       <div className="flex min-h-0 flex-1 flex-col">
         <MainNavbar className="!fixed !left-4 !right-4 !top-3 !mx-0 sm:!left-6 sm:!right-6 sm:!top-5 lg:!left-12 lg:!right-12 xl:!left-25 xl:!right-25" />
 
