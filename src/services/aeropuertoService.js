@@ -22,12 +22,24 @@ export async function obtenerAeropuertos() {
       .filter((aeropuerto) => aeropuerto.activo === true)
       .map((aeropuerto) => ({
         id: aeropuerto.id,
-        code: aeropuerto.codigoIata,
-        name: aeropuerto.nombre,
-        city: aeropuerto.ciudad,
-        country: aeropuerto.pais,
+        iata:
+          aeropuerto.codigo_iata ??
+          aeropuerto.codigoIata ??
+          aeropuerto.code ??
+          "",
+        nombre: aeropuerto.nombre ?? aeropuerto.name ?? "",
+        ciudad: aeropuerto.ciudad ?? aeropuerto.city ?? "",
+        pais: aeropuerto.pais ?? aeropuerto.country ?? "",
+        code:
+          aeropuerto.codigo_iata ??
+          aeropuerto.codigoIata ??
+          aeropuerto.code ??
+          "",
+        name: aeropuerto.nombre ?? aeropuerto.name ?? "",
+        city: aeropuerto.ciudad ?? aeropuerto.city ?? "",
+        country: aeropuerto.pais ?? aeropuerto.country ?? "",
       }))
-      .sort((a, b) => a.city.localeCompare(b.city));
+      .sort((a, b) => a.ciudad.localeCompare(b.ciudad));
   })().catch((error) => {
     airportsRequest = undefined;
     throw error;
