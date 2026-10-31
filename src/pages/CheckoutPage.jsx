@@ -56,7 +56,8 @@ function formatExpiration(value) {
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { state } = useLocation();
+  const location = useLocation();
+  const { state } = location;
   const { client, session } = useAuth();
 
   const flight = state?.flight;
@@ -80,6 +81,9 @@ export default function CheckoutPage() {
   const [purchaseResult, setPurchaseResult] = useState(null);
   const purchaseCompletedRef = useRef(false);
   const releaseCompletedRef = useRef(false);
+  const backGuardInstalledRef = useRef(false);
+  const browserBackInProgressRef = useRef(false);
+  const allowBrowserNavigationRef = useRef(false);
   const [paymentDeadline] = useState(() => {
     const storedDeadline = Number(state?.paymentDeadline);
     return Number.isFinite(storedDeadline) && storedDeadline > 0
@@ -149,17 +153,60 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (reservationId == null) return undefined;
 
+    if (!backGuardInstalledRef.current) {
+      backGuardInstalledRef.current = true;
+      navigate(location.pathname, {
+        state: {
+          ...state,
+          checkoutBackGuard: String(reservationId),
+        },
+      });
+    }
+
+    return undefined;
+  }, [location.pathname, navigate, reservationId, state]);
+
+  useEffect(() => {
+    if (reservationId == null) return undefined;
+
     const releaseOnAbandon = () => {
       void releaseTemporarySeats({ keepalive: true }).catch(() => undefined);
     };
 
-    // React Router also listens for popstate. Capture lets us start the
-    // keepalive request before the router changes routes and unmounts checkout.
-    window.addEventListener("popstate", releaseOnAbandon, { capture: true });
+    const releaseBeforeBrowserBack = () => {
+      if (allowBrowserNavigationRef.current) {
+        allowBrowserNavigationRef.current = false;
+        browserBackInProgressRef.current = false;
+        return;
+      }
+
+      if (browserBackInProgressRef.current) return;
+      browserBackInProgressRef.current = true;
+      setLeaving(true);
+      setError("");
+
+      void releaseTemporarySeats()
+        .then(() => {
+          allowBrowserNavigationRef.current = true;
+          window.history.back();
+        })
+        .catch((releaseError) => {
+          setError(
+            releaseError instanceof Error
+              ? releaseError.message
+              : "No se pudieron liberar los asientos. Inténtalo nuevamente.",
+          );
+          setLeaving(false);
+          allowBrowserNavigationRef.current = true;
+          window.history.forward();
+        });
+    };
+
+    window.addEventListener("popstate", releaseBeforeBrowserBack);
     window.addEventListener("pagehide", releaseOnAbandon);
 
     return () => {
-      window.removeEventListener("popstate", releaseOnAbandon, { capture: true });
+      window.removeEventListener("popstate", releaseBeforeBrowserBack);
       window.removeEventListener("pagehide", releaseOnAbandon);
     };
   }, [releaseTemporarySeats, reservationId]);
@@ -252,13 +299,18 @@ export default function CheckoutPage() {
 
     try {
       await releaseTemporarySeats();
-      navigate("/seleccion-asientos", {
-        replace: true,
-        state: {
-          flight,
-          avionId: flight?.avionId ?? flight?.avion_id,
-        },
-      });
+      allowBrowserNavigationRef.current = true;
+      if (backGuardInstalledRef.current) {
+        navigate(-2);
+      } else {
+        navigate("/seleccion-asientos", {
+          replace: true,
+          state: {
+            flight,
+            avionId: flight?.avionId ?? flight?.avion_id,
+          },
+        });
+      }
     } catch (releaseError) {
       setError(
         releaseError instanceof Error
