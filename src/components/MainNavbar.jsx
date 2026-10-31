@@ -1,9 +1,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  ChevronDown,
-  Clock3,
-  Globe2,
   HelpCircle,
   User,
 } from "lucide-react";

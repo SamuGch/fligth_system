@@ -146,17 +146,12 @@ export async function obtenerFechasDisponibles(
   return getArrayResponse(response, "/vuelo/disponibilidad-calendario");
 }
 
-export async function buscarVuelos({
-  OrigenID,
-  DestinationID,
-  totalPassengers,
-  departureDate,
-}) {
+export async function buscarVuelos(searchData) {
   const response = await post("/vuelo/buscar", {
-    OrigenID,
-    DestinationID,
-    totalPassengers,
-    departureDate,
+    ...searchData,
+    OrigenID: Number(searchData?.OrigenID),
+    DestinationID: Number(searchData?.DestinationID),
+    totalPassengers: Number(searchData?.totalPassengers ?? 1),
   });
   return enrichFlightResults(response);
 }

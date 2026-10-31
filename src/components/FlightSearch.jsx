@@ -43,6 +43,10 @@ function normalizeCalendarDates(data) {
 
 const COMPLETED_RESERVATION_KEY = "airtravel_completed_reservation";
 
+function getAirportId(airport) {
+  return airport?.id ?? airport?.aeropuertoId;
+}
+
 export default function FlightSearch() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isExpansionVisible, setIsExpansionVisible] = useState(false);
@@ -63,10 +67,6 @@ export default function FlightSearch() {
     departure: 0,
     return: 0,
   });
-  const availableDatesRef = useRef(availableDates);
-  useEffect(() => {
-    availableDatesRef.current = availableDates;
-  }, [availableDates]);
 
   const [searchData, setSearchData] = useState({
     tripType: "round",
@@ -193,9 +193,6 @@ export default function FlightSearch() {
         destinationId,
         request
       );
-      console.log("FECHAS RECIBIDAS DEL BACKEND:", data);
-      console.log("ESTADO availableDates:", availableDatesRef.current);
-
       let dates = normalizeCalendarDates(data);
       let resolvedMonth = currentViewMonth;
 
@@ -210,8 +207,6 @@ export default function FlightSearch() {
           destinationId,
           { ...request, mesAnio: nextMonth }
         );
-        console.log("FECHAS RECIBIDAS DEL BACKEND:", nextData);
-
         const nextDates = normalizeCalendarDates(nextData);
         if (nextDates.length > 0) {
           dates = nextDates;
@@ -564,7 +559,11 @@ export default function FlightSearch() {
                     label="Destino"
                     icon={PlaneLanding}
                     compact={false}
-                    airports={airports.filter((airport) => Number(airport.id) !== Number(searchData.OrigenID))}
+                    airports={airports.filter(
+                      (airport) =>
+                        Number(getAirportId(airport)) !==
+                        Number(searchData.OrigenID)
+                    )}
                     value={searchData.DestinationID}
                     active={activeDropdown === "destination"}
                     onFocus={() => activateDropdown("destination")}

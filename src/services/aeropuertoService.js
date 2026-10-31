@@ -12,34 +12,29 @@ export async function obtenerAeropuertos() {
       throw new Error("No se pudieron obtener los aeropuertos.");
     }
 
-    const data = await response.json();
+    const responseData = await response.json();
+    const data = Array.isArray(responseData)
+      ? responseData
+      : responseData?.data;
 
     if (!Array.isArray(data)) {
       throw new Error("La API devolvió un formato de aeropuertos inválido.");
     }
 
     return data
-      .filter((aeropuerto) => aeropuerto.activo === true)
+      .filter((aeropuerto) => aeropuerto.activo !== false)
       .map((aeropuerto) => ({
-        id: aeropuerto.id,
-        iata:
-          aeropuerto.codigo_iata ??
-          aeropuerto.codigoIata ??
-          aeropuerto.code ??
-          "",
-        nombre: aeropuerto.nombre ?? aeropuerto.name ?? "",
-        ciudad: aeropuerto.ciudad ?? aeropuerto.city ?? "",
-        pais: aeropuerto.pais ?? aeropuerto.country ?? "",
+        id: aeropuerto.id ?? aeropuerto.aeropuertoId,
         code:
-          aeropuerto.codigo_iata ??
           aeropuerto.codigoIata ??
+          aeropuerto.codigo_iata ??
           aeropuerto.code ??
           "",
         name: aeropuerto.nombre ?? aeropuerto.name ?? "",
         city: aeropuerto.ciudad ?? aeropuerto.city ?? "",
         country: aeropuerto.pais ?? aeropuerto.country ?? "",
       }))
-      .sort((a, b) => a.ciudad.localeCompare(b.ciudad));
+      .sort((a, b) => a.city.localeCompare(b.city));
   })().catch((error) => {
     airportsRequest = undefined;
     throw error;
