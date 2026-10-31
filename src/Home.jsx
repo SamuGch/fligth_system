@@ -4,13 +4,23 @@ import {
   Headphones,
 } from 'lucide-react';
 
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 
 import Earth from './components/Earth';
 import Airplane from './components/Airplane';
 import FlightSearch from './components/FlightSearch';
 import MainNavbar from './components/MainNavbar';
+
+function ResponsiveEarth() {
+  const { size } = useThree();
+
+  return (
+    <group scale={size.width < 288 ? 0.99 : 0.8}>
+      <Earth />
+    </group>
+  );
+}
 
 function Home() {
   return (
@@ -64,7 +74,7 @@ function Home() {
             w-1/2 md:w-1/2
             flex justify-center
             relative z-0
-            h-[190px] sm:h-[260px]
+            h-[220px] sm:h-[260px]
             md:h-[460px] lg:h-[512px]
           "
         >
@@ -112,9 +122,7 @@ function Home() {
               intensity={2.5}
             />
 
-            <group scale={0.8}>
-              <Earth />
-            </group>
+            <ResponsiveEarth />
 
             <group scale={0.9}>
               <Airplane />
