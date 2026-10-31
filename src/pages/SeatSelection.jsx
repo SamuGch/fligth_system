@@ -737,7 +737,7 @@ export default function SeatSelection() {
           >
           {/* Columna izquierda */}
           <main className="col-span-12 flex min-w-0 flex-col lg:col-span-1 lg:h-full lg:min-h-0">
-            <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-3 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-4">
+            <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-3 sm:px-6 sm:py-4 xl:px-8 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md ">
               <div
                 className="mb-3 flex flex-col justify-between gap-2 rounded-2xl border border-white/80 bg-[#f0ecfa]/90 p-3 sm:flex-row sm:items-center"
               >
@@ -926,7 +926,7 @@ export default function SeatSelection() {
 
           {/* Columna derecha */}
           <aside className="col-span-12 flex min-w-0 flex-col justify-between mt-8 lg:col-span-1 lg:h-full lg:mt-0">
-            <div className="flex h-full max-h-full flex-col justify-between overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-3 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md">
+            <div className="flex h-full max-h-full flex-col justify-between overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-3 sm:px-6 sm:py-4 xl:px-8 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md">
             <div className="flex items-center justify-between gap-2 border-b border-slate-200/80 pb-2">
               <h2 className="text-lg font-bold text-[#21194d]">
                 Resumen de compra

@@ -469,21 +469,22 @@ export default function CheckoutPage() {
   const confirmed = resultStatus === "CONFIRMADA";
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col bg-cover bg-center bg-fixed px-3 pb-3 pt-20 font-sans text-slate-800 sm:px-5 lg:h-dvh lg:overflow-hidden lg:px-8 lg:pt-[6.75rem]" style={{ backgroundImage: 'url("/allFonts.png")' }}>
+    <div className="relative flex min-h-screen w-full flex-col bg-cover bg-center bg-fixed px-4 pb-4 pt-20 font-sans text-slate-800 sm:px-6 lg:h-dvh lg:overflow-hidden lg:px-12 xl:px-[160px]" style={{ backgroundImage: 'url("/allFonts.png")' }}>
+      <div className="fixed inset-0 z-0 bg-white/45 backdrop-blur-md pointer-events-none" />
       <MainNavbar className="!fixed !left-4 !right-4 !top-3 !mx-0 sm:!left-6 sm:!right-6 sm:!top-5 lg:!left-12 lg:!right-12 xl:!left-25 xl:!right-25" />
-      <main className="relative z-10 mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col">
-        <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
-          <button type="button" onClick={goBack} disabled={leaving || processing} className="flex items-center gap-1.5 rounded-full border border-white/80 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-md transition hover:bg-white hover:text-[#3b2b7a]">
+      <main className="relative z-10 mx-auto flex min-h-0 w-full flex-1 flex-col sm:pt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_max-content] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-x-5 lg:gap-y-3">
+        <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 lg:contents">
+          <button type="button" onClick={goBack} disabled={leaving || processing} className="flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-md transition hover:bg-white hover:text-[#3b2b7a] lg:justify-self-start">
             <ArrowLeft size={17} /> Volver a selección de asientos
           </button>
-          <ol aria-label="Progreso de compra" className="flex items-center gap-1.5 overflow-x-auto rounded-full border border-white/80 bg-white/80 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 shadow-sm backdrop-blur-md sm:gap-2">
+          <ol aria-label="Progreso de compra" className="flex min-w-0 items-center gap-2 overflow-x-auto rounded-full border border-white/80 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-md sm:gap-3">
             {["Vuelos", "Asientos", "Pasajeros", "Pago"].map((label, index) => {
               const step = index + 1;
               const complete = step < checkoutStep;
               const active = step === checkoutStep;
               return (
                 <li key={label} className={`flex shrink-0 items-center gap-2 ${active ? "text-[#3b2b7a]" : complete ? "text-emerald-700" : "text-slate-400"}`}>
-                  <span className={`grid h-6 w-6 place-items-center rounded-full ${complete ? "bg-emerald-500 text-white" : active ? "bg-[#3b2b7a] text-white shadow-md" : "bg-slate-100 text-slate-500"}`}>
+                  <span className={`grid h-7 w-7 place-items-center rounded-full ${complete ? "bg-emerald-500 text-white" : active ? "bg-[#3b2b7a] text-white shadow-md" : "bg-slate-100 text-slate-500"}`}>
                     {complete ? <Check size={15} /> : step}
                   </span>
                   <span className="hidden sm:inline">{label}</span>
@@ -494,8 +495,8 @@ export default function CheckoutPage() {
           </ol>
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-12 items-stretch gap-3 lg:gap-4">
-          <section className="col-span-12 flex min-h-0 min-w-0 flex-col rounded-3xl border border-white/80 bg-white/90 p-2.5 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-4 lg:col-span-8 lg:p-3">
+        <div className="grid min-h-0 flex-1 grid-cols-12 items-stretch gap-5 lg:contents">
+          <section className="col-span-12 flex min-h-0 min-w-0 flex-col rounded-3xl border border-white/80 bg-white/90 p-4 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-6 lg:col-span-1 xl:p-8">
             <div className="min-h-0 flex-1 overflow-y-auto pr-0 lg:overflow-hidden lg:pr-1">
             {checkoutStep === 3 ? (
               <>
@@ -636,8 +637,8 @@ export default function CheckoutPage() {
             </div>
           </section>
 
-          <aside className="col-span-12 min-h-0 lg:col-span-4">
-            <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-2.5 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-4">
+          <aside className="col-span-12 min-h-0 min-w-0 lg:col-span-1 lg:h-full">
+            <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-4 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-6 xl:p-8">
               <div className="flex shrink-0 items-center gap-2">
                 <div className="rounded-xl bg-violet-100 p-2 text-violet-700"><Plane size={20} /></div>
                 <h2 className="text-lg font-extrabold text-slate-900">Resumen de compra</h2>
