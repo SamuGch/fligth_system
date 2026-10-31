@@ -61,8 +61,8 @@ export default function TripCard({ trip }) {
       </div>
 
       <div className="p-4 sm:p-6">
-        <div className="grid items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
-          <div>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col text-center lg:text-left">
             <p className="text-3xl font-black tracking-tight text-slate-900">
               {origin.code}
             </p>
@@ -73,12 +73,12 @@ export default function TripCard({ trip }) {
               {formatTime(trip.fecha_salida)}
             </p>
           </div>
-          <div className="flex items-center gap-2 text-violet-500 sm:flex-col sm:gap-1">
+          <div className="flex items-center gap-2 text-violet-500 lg:flex-col lg:gap-1">
             <span className="h-px flex-1 bg-violet-200 sm:h-9 sm:w-px" />
             <Plane size={22} className="rotate-90 sm:rotate-0" />
             <span className="h-px flex-1 bg-violet-200 sm:h-9 sm:w-px" />
           </div>
-          <div className="sm:text-right">
+          <div className="flex flex-col text-center lg:text-right">
             <p className="text-3xl font-black tracking-tight text-slate-900">
               {destination.code}
             </p>
@@ -91,7 +91,7 @@ export default function TripCard({ trip }) {
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-4 sm:grid-cols-5">
+        <div className="mt-4 grid grid-cols-2 gap-4 rounded-2xl bg-slate-50 p-4 lg:mt-0 lg:grid-cols-5">
           <div>
             <p className="text-[11px] font-bold tracking-wide text-slate-400">
               Aerolínea / vuelo

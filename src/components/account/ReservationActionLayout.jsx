@@ -25,8 +25,8 @@ export default function ReservationActionLayout({
             {eyebrow} · Reserva #{trip.reserva_id}
           </p>
           <h1 className="mt-2 text-2xl font-black sm:text-3xl">{title}</h1>
-          <div className="mt-7 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-            <div>
+          <div className="mt-7 grid grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
+            <div className="text-center sm:text-left">
               <p className="text-3xl font-black sm:text-4xl">
                 {trip.origen?.codigo_iata || "---"}
               </p>
@@ -35,7 +35,7 @@ export default function ReservationActionLayout({
               </p>
             </div>
             <Plane size={26} className="text-white/75" />
-            <div className="text-right">
+            <div className="text-center sm:text-right">
               <p className="text-3xl font-black sm:text-4xl">
                 {trip.destino?.codigo_iata || "---"}
               </p>

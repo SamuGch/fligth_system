@@ -326,8 +326,8 @@ export default function ReservationDetailPage() {
               </button>
             </div>
           </div>
-          <div className="mt-7 grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-5">
-            <div>
+          <div className="mt-7 grid grid-cols-1 items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-5 sm:grid-cols-[1fr_auto_1fr]">
+            <div className="text-center sm:text-left">
               <p className="text-3xl font-black text-white sm:text-4xl">
                 {displayRoute.origin?.codigo_iata || "---"}
               </p>
@@ -340,7 +340,7 @@ export default function ReservationDetailPage() {
               <Plane size={25} />
               <span className="hidden h-px w-10 bg-[#7455df]/30 sm:block" />
             </div>
-            <div className="text-right">
+            <div className="text-center sm:text-right">
               <p className="text-3xl font-black text-white sm:text-4xl">
                 {displayRoute.destination?.codigo_iata || "---"}
               </p>
@@ -453,8 +453,8 @@ export default function ReservationDetailPage() {
                     {metadata.number || "Vuelo"} · {formatFlightOperator(segment)}
                   </p>
                 </div>
-                <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                  <div>
+                <div className="mt-4 grid grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
+                  <div className="text-center sm:text-left">
                     <p className="text-xl font-black text-slate-900">
                       {origin.code}
                     </p>
@@ -464,7 +464,7 @@ export default function ReservationDetailPage() {
                     </p>
                   </div>
                   <ArrowRight className="text-violet-500" size={20} />
-                  <div className="text-right">
+                  <div className="text-center sm:text-right">
                     <p className="text-xl font-black text-slate-900">
                       {destination.code}
                     </p>

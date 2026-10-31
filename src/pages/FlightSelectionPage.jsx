@@ -416,7 +416,7 @@ export default function FlightSelectionPage() {
     >
       <div className="fixed inset-0 z-0 bg-white/35 backdrop-blur-md pointer-events-none"></div>
       <MainNavbar className="!fixed !left-4 !right-4 !top-3 !mx-0 sm:!left-6 sm:!right-6 sm:!top-5 lg:!left-12 lg:!right-12 xl:!left-25 xl:!right-25" />
-      <main className="relative z-10 mx-auto max-w-5xl px-4 pb-32 pt-28 sm:px-6 sm:pt-32 lg:px-8">
+      <main className="relative z-10 mx-auto max-w-5xl px-4 pb-8 pt-28 sm:px-6 sm:pt-32 lg:px-8 lg:pb-32">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <button type="button" onClick={() => navigate("/")} className="flex w-fit items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm backdrop-blur-md transition hover:bg-white hover:text-[#3b2b7a]"><ArrowLeft size={17} /> Modificar búsqueda</button>
           <div className="flex w-fit items-center gap-2 rounded-full border border-white/70 bg-white/75 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-md sm:gap-3">
@@ -519,7 +519,7 @@ export default function FlightSelectionPage() {
         )}
       </main>
 
-      <aside className="fixed inset-x-4 bottom-3 z-40 rounded-2xl border border-white/15 bg-slate-950/80 p-2.5 text-white shadow-[0_12px_30px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:inset-x-6 sm:bottom-5 sm:rounded-full sm:p-3 lg:inset-x-12 xl:inset-x-25">
+      <aside className="static lg:fixed lg:bottom-0 lg:left-0 lg:right-0 z-40 mt-6 rounded-2xl border border-white/15 bg-slate-950/80 p-2.5 text-white shadow-[0_12px_30px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:rounded-full sm:p-3 lg:mt-0">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 lg:px-6">
           <div className="min-w-0">
             <p className="text-sm text-slate-300">Resumen de compra</p>

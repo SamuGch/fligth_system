@@ -433,10 +433,10 @@ export default function CheckoutPage() {
   const confirmed = resultStatus === "CONFIRMADA";
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-cover bg-center bg-fixed px-4 pb-16 pt-3 font-sans text-slate-800 sm:px-6" style={{ backgroundImage: 'url("/font.jpeg")' }}>
+    <div className="relative w-full flex flex-col bg-cover bg-center bg-fixed pt-24 px-4 sm:px-6 pb-8 min-h-screen lg:h-screen lg:overflow-hidden font-sans text-slate-800" style={{ backgroundImage: 'url("/font.jpeg")' }}>
       <div className="fixed inset-0 z-0 bg-white/45 backdrop-blur-md pointer-events-none" />
       <MainNavbar className="!fixed !left-4 !right-4 !top-3 !mx-0 sm:!left-6 sm:!right-6 sm:!top-5 lg:!left-12 lg:!right-12 xl:!left-25 xl:!right-25" />
-      <main className="relative z-10 mx-auto w-full max-w-[1600px] pt-20 sm:pt-24">
+      <main className="relative z-10 mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
           <button type="button" onClick={goBack} disabled={leaving || processing} className="flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-md transition hover:bg-white hover:text-[#3b2b7a]">
             <ArrowLeft size={17} /> Volver a selección de asientos
@@ -451,7 +451,7 @@ export default function CheckoutPage() {
                   <span className={`grid h-7 w-7 place-items-center rounded-full ${complete ? "bg-emerald-500 text-white" : active ? "bg-[#3b2b7a] text-white shadow-md" : "bg-slate-100 text-slate-500"}`}>
                     {complete ? <Check size={15} /> : step}
                   </span>
-                  {label}
+                  <span className="hidden sm:inline">{label}</span>
                   {step < 4 && <ArrowRight size={14} className="text-slate-300" />}
                 </li>
               );
@@ -459,8 +459,9 @@ export default function CheckoutPage() {
           </ol>
         </div>
 
-        <div className="grid items-start gap-6 lg:grid-cols-12">
-          <section className="min-w-0 rounded-3xl border border-white/80 bg-white/90 p-4 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-7 lg:col-span-8">
+        <div className="grid min-h-0 grid-cols-12 items-start gap-6">
+          <section className="col-span-12 flex flex-col min-w-0 rounded-3xl border border-white/80 bg-white/90 p-4 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-7 lg:col-span-8 lg:h-full lg:min-h-0">
+            <div className="flex-1 lg:min-h-0 lg:overflow-y-auto pr-0 lg:pr-2">
             {checkoutStep === 3 ? (
               <>
                 <div className="mb-7 flex items-center gap-3">
@@ -597,9 +598,10 @@ export default function CheckoutPage() {
                 {error && <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
               </>
             )}
+            </div>
           </section>
 
-          <aside className="space-y-5 lg:col-span-4 lg:sticky lg:top-5">
+          <aside className="col-span-12 mt-8 space-y-6 lg:col-span-4 lg:mt-0 lg:sticky lg:top-32">
             <div className="rounded-3xl border border-white/80 bg-white/90 p-5 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-7">
               <div className="flex items-center gap-3">
                 <div className="rounded-xl bg-violet-100 p-3 text-violet-700"><Plane size={23} /></div>

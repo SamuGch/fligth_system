@@ -699,14 +699,14 @@ export default function SeatSelection() {
 
   return (
     <div
-      className="relative flex h-screen w-full flex-col overflow-hidden bg-cover bg-center bg-fixed font-sans text-slate-800 px-4 pb-3 pt-3 sm:px-6"
+      className="relative flex w-full flex-col bg-cover bg-center bg-fixed px-4 pb-4 pt-20 font-sans text-slate-800 sm:px-6 min-h-screen lg:h-screen lg:overflow-hidden"
       style={{ backgroundImage: 'url("/font.jpeg")' }}
     >
       <div className="fixed inset-0 z-0 bg-white/45 backdrop-blur-md pointer-events-none" />
       <div className="flex min-h-0 flex-1 flex-col">
         <MainNavbar className="!fixed !left-4 !right-4 !top-3 !mx-0 sm:!left-6 sm:!right-6 sm:!top-5 lg:!left-12 lg:!right-12 xl:!left-25 xl:!right-25" />
 
-        <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col pt-20 sm:pt-24">
+        <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col sm:pt-4">
           <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3">
             <button
               type="button"
@@ -715,7 +715,7 @@ export default function SeatSelection() {
             >
               <ArrowLeft size={17} /> Volver a vuelos
             </button>
-            <div className="hidden items-center gap-3 rounded-full border border-white/80 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-md sm:flex">
+            <div className="flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-md sm:gap-3">
               {["Vuelos", "Asientos", "Pasajeros", "Pago"].map((step, index) => (
                 <div key={step} className="flex items-center gap-2">
                   <span
@@ -729,7 +729,7 @@ export default function SeatSelection() {
                   >
                     {index === 0 ? <Check size={15} /> : index + 1}
                   </span>
-                  {step}
+                  <span className="hidden sm:inline">{step}</span>
                   {index < 3 && <ArrowRight size={14} />}
                 </div>
               ))}
@@ -740,7 +740,7 @@ export default function SeatSelection() {
             className="grid min-h-0 flex-1 grid-cols-12 items-stretch gap-5"
           >
           {/* Columna izquierda */}
-          <main className="col-span-12 flex min-h-0 min-w-0 flex-col lg:col-span-8">
+          <main className="col-span-12 flex flex-col lg:col-span-8 lg:h-full lg:min-h-0">
             <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-3 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-4">
               <div
                 className="mb-3 flex flex-col justify-between gap-2 rounded-2xl border border-white/80 bg-[#f0ecfa]/90 p-3 sm:flex-row sm:items-center"
@@ -760,7 +760,7 @@ export default function SeatSelection() {
 
               <div className="shrink-0 bg-white pb-2">
               {legs.length > 1 && (
-                <div className="mb-2 flex gap-2 overflow-x-auto pb-1 scrollbar-thin" aria-label="Tramos del vuelo">
+                <div className="mb-2 flex flex-col gap-2 pb-1 lg:flex-row lg:overflow-x-auto lg:scrollbar-thin" aria-label="Tramos del vuelo">
                   {legs.map((vuelo, index) => {
                     const flightId = getSegmentFlightId(vuelo);
                     const metadata = getFlightMetadata(vuelo);
@@ -774,7 +774,7 @@ export default function SeatSelection() {
                       type="button"
                       onClick={() => setActiveFlightIndex(index)}
                       aria-pressed={activeFlightIndex === index}
-                      className={`min-w-56 shrink-0 rounded-xl border px-3 py-2 text-left transition-all sm:min-w-64 sm:px-3 ${
+                      className={`w-full rounded-xl border px-3 py-2 text-left transition-all lg:w-auto lg:min-w-64 lg:shrink-0 sm:px-3 ${
                         activeFlightIndex === index
                           ? "border-[#3b2b7a] bg-[#3b2b7a] text-white shadow-lg shadow-violet-200"
                           : "border-white/80 bg-white/85 text-slate-700 shadow-sm hover:border-violet-300 hover:bg-violet-50"
@@ -803,7 +803,7 @@ export default function SeatSelection() {
               )}
               </div>
 
-              <div className="flex min-h-0 flex-1 overflow-y-auto rounded-2xl border border-white/70 bg-white/55 p-2 shadow-inner scrollbar-thin sm:p-3">
+              <div className="flex-1 rounded-2xl border border-white/70 bg-white/55 p-2 pr-0 shadow-inner sm:p-3 lg:min-h-0 lg:overflow-y-auto lg:pr-2">
                 <div
                   className="w-full min-w-0 rounded-2xl border border-white/80 bg-white/85 p-2 sm:p-4"
                   aria-busy={loading}
@@ -929,7 +929,7 @@ export default function SeatSelection() {
           </main>
 
           {/* Columna derecha */}
-          <aside className="col-span-12 min-h-0 min-w-0 lg:sticky lg:top-3 lg:col-span-4 lg:h-full">
+          <aside className="col-span-12 flex flex-col justify-between mt-8 lg:col-span-4 lg:h-full lg:mt-0">
             <div className="flex h-full max-h-full flex-col justify-between overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-3 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md">
             <div className="flex items-center justify-between gap-2 border-b border-slate-200/80 pb-2">
               <h2 className="text-lg font-bold text-[#21194d]">
