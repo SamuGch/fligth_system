@@ -1,5 +1,4 @@
 const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
-const DEFAULT_SEAT_TYPE_ID = 2;
 
 function buildApiUrl(endpoint) {
   const normalizedEndpoint = endpoint.startsWith("/api/")
@@ -119,7 +118,7 @@ export async function obtenerDetalleVuelo(flightId) {
 export async function obtenerFechasDisponibles(
   origenId,
   destinoId,
-  { totalPassengers = 1, seatTypeId, mesAnio = currentMonth() } = {}
+  { totalPassengers = 1, mesAnio = currentMonth() } = {}
 ) {
   const normalizedOrigenId = Number(origenId);
   const normalizedDestinoId = Number(destinoId);
@@ -141,8 +140,6 @@ export async function obtenerFechasDisponibles(
     OrigenID: normalizedOrigenId,
     DestinationID: normalizedDestinoId,
     totalPassengers: Number(totalPassengers),
-    seatTypeId:
-      Number(seatTypeId) > 0 ? Number(seatTypeId) : DEFAULT_SEAT_TYPE_ID,
     mesAnio: formatMonthYear(mesAnio),
   });
 
@@ -153,14 +150,12 @@ export async function buscarVuelos({
   OrigenID,
   DestinationID,
   totalPassengers,
-  seatTypeId,
   departureDate,
 }) {
   const response = await post("/vuelo/buscar", {
     OrigenID,
     DestinationID,
     totalPassengers,
-    seatTypeId,
     departureDate,
   });
   return enrichFlightResults(response);

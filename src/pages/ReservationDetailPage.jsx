@@ -294,7 +294,7 @@ export default function ReservationDetailPage() {
       </button>
       <div className="space-y-6">
         <section className="rounded-3xl border border-white/20 bg-slate-950/85 p-5 text-white shadow-[0_20px_55px_rgba(15,23,42,0.22)] backdrop-blur-xl sm:p-7">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-200">
                 Reserva #{trip.reserva_id}
@@ -303,9 +303,9 @@ export default function ReservationDetailPage() {
                 Detalles de tu viaje
               </h1>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
               <span
-                className={`rounded-full bg-white px-3 py-1.5 text-xs font-bold ${status.classes
+                className={`self-center rounded-full bg-white px-3 py-1.5 text-xs font-bold sm:self-auto ${status.classes
                   .split(" ")
                   .filter((value) => value.startsWith("text-"))
                   .join(" ")}`}
@@ -316,17 +316,17 @@ export default function ReservationDetailPage() {
                 <button
                   type="button"
                   onClick={openCancellationModal}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-bold text-white shadow-lg shadow-red-950/20 transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300"
+                  className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-bold text-white shadow-lg shadow-red-950/20 transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 sm:w-auto"
                 >
                   <XCircle size={18} /> Cancelar reserva
                 </button>
               )}
-              <button type="button" disabled={downloadingTicket} onClick={() => void handleDownloadTicket()} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-white/15 px-4 text-sm font-bold text-white transition hover:bg-white/25 disabled:cursor-wait disabled:opacity-70">
+              <button type="button" disabled={downloadingTicket} onClick={() => void handleDownloadTicket()} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-white/15 px-4 text-sm font-bold text-white transition hover:bg-white/25 disabled:cursor-wait disabled:opacity-70 sm:w-auto">
                 {downloadingTicket ? <><LoaderCircle className="animate-spin" size={18} /> Generando boleto...</> : <><Download size={18} /> Descargar boleto</>}
               </button>
             </div>
           </div>
-          <div className="mt-7 grid grid-cols-1 items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-5 sm:grid-cols-[1fr_auto_1fr]">
+          <div className="mt-7 grid grid-cols-1 justify-items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 sm:grid-cols-[1fr_auto_1fr] sm:justify-items-stretch sm:p-5">
             <div className="text-center sm:text-left">
               <p className="text-3xl font-black text-white sm:text-4xl">
                 {displayRoute.origin?.codigo_iata || "---"}
@@ -335,7 +335,7 @@ export default function ReservationDetailPage() {
                 {displayRoute.origin?.ciudad || "Origen"}
               </p>
             </div>
-            <div className="flex items-center gap-2 text-[#7455df]">
+            <div className="flex items-center justify-center gap-2 text-[#7455df]">
               <span className="hidden h-px w-10 bg-[#7455df]/30 sm:block" />
               <Plane size={25} />
               <span className="hidden h-px w-10 bg-[#7455df]/30 sm:block" />

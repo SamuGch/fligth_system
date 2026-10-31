@@ -1,41 +1,8 @@
-import { useEffect, useId, useRef, useState } from "react";
-import { Check, ChevronDown, Loader2, Minus, Plus, Users, X } from "lucide-react";
-import { obtenerTiposAsiento } from "../services/asientoService";
+import { useId, useRef, useState } from "react";
+import { ChevronDown, Minus, Plus, Users, X } from "lucide-react";
 
 const MAX_PASSENGERS = 10;
 const DEFAULT_DETAILS = { adults: 1, children: 0, infants: 0 };
-const FALLBACK_CLASS = { id: null, name: "Económica" };
-
-function compactClassName(value) {
-  if (/econ/i.test(value)) return "Eco";
-  if (/ejec|business/i.test(value)) return "Ejec";
-  if (/prefer/i.test(value)) return "Pref";
-  if (/primera|first/i.test(value)) return "Prim";
-  return value;
-}
-
-function getClassName(item) {
-  return item?.nombre ?? item?.name ?? item?.descripcion ?? "Clase de cabina";
-}
-
-function normalizeClasses(items) {
-  if (!Array.isArray(items)) return [];
-
-  return items
-    .map((item) => ({
-      id: item?.id ?? item?.tipoAsientoId ?? null,
-      name: getClassName(item),
-    }))
-    .filter((item) => item.name);
-}
-
-function findEconomy(classes) {
-  return (
-    classes.find((item) =>
-      /econ|economy/i.test(item.name)
-    ) ?? classes[0] ?? FALLBACK_CLASS
-  );
-}
 
 function getSelection(value) {
   const details = {
@@ -53,41 +20,14 @@ function getSelection(value) {
       infants: Math.max(0, Number(details.infants) || 0),
     },
     totalPassengers: Math.max(1, Math.min(MAX_PASSENGERS, totalPassengers)),
-    seatTypeId: value?.seatTypeId ?? null,
-    seatClassName: value?.seatClassName ?? FALLBACK_CLASS.name,
   };
 }
 
 export default function PassengerClassSelector({ value, onChange, onFocus, onClose, active = false, compact = false }) {
   const open = active;
-  const [classes, setClasses] = useState([]);
-  const [loadingClasses, setLoadingClasses] = useState(true);
   const [draft, setDraft] = useState(() => getSelection(value));
-  const containerRef = useRef(null);
   const triggerRef = useRef(null);
   const listId = useId();
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadClasses() {
-      try {
-        const result = await obtenerTiposAsiento();
-        if (!active) return;
-        const availableClasses = normalizeClasses(result);
-        setClasses(availableClasses.length ? availableClasses : [FALLBACK_CLASS]);
-      } catch {
-        if (active) setClasses([FALLBACK_CLASS]);
-      } finally {
-        if (active) setLoadingClasses(false);
-      }
-    }
-
-    void loadClasses();
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const totalPassengers = Object.values(draft.passengerDetails).reduce(
     (total, count) => total + count,
@@ -115,18 +55,7 @@ export default function PassengerClassSelector({ value, onChange, onFocus, onClo
   };
 
   const confirmSelection = () => {
-    const selectedClass =
-      classes.find((item) => String(item.id) === String(draft.seatTypeId)) ??
-      classes.find((item) => item.name === draft.seatClassName) ??
-      findEconomy(classes);
-    const nextSelection = {
-      ...draft,
-      totalPassengers,
-      seatTypeId: selectedClass.id,
-      seatClassName: selectedClass.name,
-    };
-
-    onChange(nextSelection);
+    onChange({ ...draft, totalPassengers });
     onClose?.();
     triggerRef.current?.focus();
   };
@@ -139,14 +68,13 @@ export default function PassengerClassSelector({ value, onChange, onFocus, onClo
 
   return (
     <div
-      ref={containerRef}
       onClick={(event) => event.stopPropagation()}
       className={`relative w-full min-w-0 ${open ? "z-50" : "z-0"}`}
     >
       <button
         ref={triggerRef}
         type="button"
-        aria-label={`Pasajeros y clase: ${totalPassengers} ${totalPassengers === 1 ? "pasajero" : "pasajeros"}, ${draft.seatClassName}`}
+        aria-label={`Pasajeros: ${totalPassengers} ${totalPassengers === 1 ? "pasajero" : "pasajeros"}`}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
@@ -162,10 +90,10 @@ export default function PassengerClassSelector({ value, onChange, onFocus, onClo
         <Users className={`${compact ? "h-6 w-6" : "h-8 w-8"} mr-2 shrink-0 text-gray-500`} />
         <span className="flex min-w-0 flex-1 flex-col justify-center">
           <span className="mb-1 block text-[11px] font-medium uppercase tracking-wider leading-none text-gray-400">
-            Pasajeros y clase
+            Pasajeros
           </span>
           <span className="block truncate text-sm font-semibold leading-none text-[#101936]">
-            {totalPassengers} pax · {compactClassName(draft.seatClassName)}
+            {totalPassengers} pax
           </span>
         </span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-[#455675] transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
@@ -209,25 +137,6 @@ export default function PassengerClassSelector({ value, onChange, onFocus, onClo
                 </div>
               );
             })}
-          </div>
-
-          <div className="mt-3 border-t border-slate-100 pt-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Clase de cabina</p>
-            {loadingClasses ? (
-              <div className="flex items-center gap-2 py-3 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Consultando clases...</div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {classes.map((item) => {
-                  const selected = String(item.id) === String(draft.seatTypeId) || item.name === draft.seatClassName;
-                  return (
-                    <button key={`${item.id}-${item.name}`} type="button" aria-pressed={selected} onClick={() => setDraft((current) => ({ ...current, seatTypeId: item.id, seatClassName: item.name }))} className={`rounded-lg border px-2.5 py-2 text-center text-xs font-medium transition ${selected ? "border-[#3b2b7a] bg-[#f0ecfa] text-[#3b2b7a]" : "border-[#DCE3EF] text-[#101936] hover:border-[#3b2b7a]"}`}>
-                      <span className="block truncate">{item.name}</span>
-                      {selected && <Check className="mx-auto mt-0.5 h-3 w-3" />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
           <button type="button" onClick={confirmSelection} className="mt-3 w-full rounded-lg bg-[#3b2b7a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2b205c] focus-visible:outline-2 focus-visible:outline-[#3b2b7a] focus-visible:outline-offset-2">

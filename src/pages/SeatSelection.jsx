@@ -91,14 +91,6 @@ function getSegmentFlightId(segment) {
   return segment?.flightId ?? segment?.vueloId ?? segment?.id;
 }
 
-function getFarePrice(flight, seatTypeId) {
-  const fare = flight?.prices?.find(
-    (item) => Number(item.seatTypeId) === Number(seatTypeId),
-  );
-  const price = Number(flight?.price ?? fare?.price ?? flight?.prices?.[0]?.price);
-  return Number.isFinite(price) ? price : 0;
-}
-
 function normalizeLegs(state) {
   const addFlightSegments = (flight, direction) => {
     if (!flight) return [];
@@ -170,15 +162,14 @@ const createPaymentDeadline = () => Date.now() + 5 * 60 * 1000;
 function Seat({ seat, selected, onClick }) {
   const status = selected ? "Seleccionado" : seat.status;
   const colors = SEAT_STYLES[status] ?? SEAT_STYLES["No disponible"];
-  const disabled = !selected && (!seat.seatTypeAllowed || seat.status !== "Disponible");
-  const unavailableClass = !seat.seatTypeAllowed ? "opacity-45" : "";
+  const disabled = !selected && seat.status !== "Disponible";
 
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={() => onClick(seat)}
-      title={`${seat.id} · ${seat.classLabel} · ${status} · Q${seat.price}${seat.seatTypeAllowed ? "" : " · Clase no seleccionada"}`}
+      title={`${seat.id} · ${seat.classLabel} · ${status} · Q${seat.price}`}
       aria-label={`Asiento ${seat.id}, ${seat.classLabel}, ${status}`}
       aria-pressed={selected}
       className={`
@@ -189,7 +180,6 @@ function Seat({ seat, selected, onClick }) {
         focus-visible:outline-offset-2
         ${disabled ? "cursor-not-allowed" : "cursor-pointer hover:-translate-y-1"}
         ${selected ? "scale-105" : ""}
-        ${unavailableClass}
       `}
     >
       <span
@@ -380,7 +370,6 @@ export default function SeatSelection() {
     () => location.state?.searchData ?? savedIntent?.searchData ?? {},
     [location.state?.searchData, savedIntent?.searchData],
   );
-  const targetSeatTypeId = Number(searchData.seatTypeId) || 2;
   const totalPassengers = Math.max(
     1,
     Number(searchData.totalPassengers) || 1,
@@ -445,11 +434,7 @@ export default function SeatSelection() {
                 tiposAsiento,
                 getSegmentFlightId(legs[index]),
               );
-              return {
-                ...normalizedSeat,
-                seatTypeAllowed:
-                  Number(normalizedSeat.tipoAsientoId) === targetSeatTypeId,
-              };
+              return normalizedSeat;
             });
           })
           .sort(
@@ -478,7 +463,7 @@ export default function SeatSelection() {
     return () => {
       cancelado = true;
     };
-  }, [legs, targetSeatTypeId]);
+  }, [legs]);
 
   const activeSegment = legs[activeFlightIndex];
   const activeFlightId = getSegmentFlightId(activeSegment);
@@ -526,16 +511,15 @@ export default function SeatSelection() {
           ),
           icon: theme.icon,
           theme: theme.name,
-          displayPrice: getFarePrice(activeSegment, targetSeatTypeId),
+          displayPrice: section.price,
         };
       })
       .sort((a, b) => a.start - b.start);
-  }, [asientosDelSegmento, activeSegment, targetSeatTypeId]);
+  }, [asientosDelSegmento]);
 
   const handleSeatClick = (seat) => {
     setMessage("");
     if (
-      !seat.seatTypeAllowed ||
       !seat.activo ||
       seat.ocupado ||
       (selectedSeats.length >= totalPassengers &&

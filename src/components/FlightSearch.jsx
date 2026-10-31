@@ -74,8 +74,6 @@ export default function FlightSearch() {
     returnDate: "",
     totalPassengers: 1,
     passengerDetails: { adults: 1, children: 0, infants: 0 },
-    seatTypeId: 2,
-    seatClassName: "Económica",
   });
   const navigate = useNavigate();
 
@@ -178,7 +176,6 @@ export default function FlightSearch() {
 
     const request = {
       totalPassengers: searchData.totalPassengers,
-      seatTypeId: searchData.seatTypeId,
       mesAnio: currentViewMonth,
     };
     const originId =
@@ -249,7 +246,6 @@ export default function FlightSearch() {
   }, [
     searchData.DestinationID,
     searchData.OrigenID,
-    searchData.seatTypeId,
     searchData.totalPassengers,
   ]);
 
@@ -383,7 +379,7 @@ export default function FlightSearch() {
               }
               loading={loadingAvailableDates}
               onMonthChange={loadCalendarMonth}
-              emptyMessage="No hay vuelos programados en esta ruta para la cabina seleccionada."
+              emptyMessage="No hay vuelos programados en esta ruta."
               onClear={() => {
                 setSearchData((current) => ({
                   ...current,
