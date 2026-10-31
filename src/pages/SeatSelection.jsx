@@ -73,6 +73,10 @@ function adaptarAsiento(asiento, tiposAsiento, vueloId) {
   };
 }
 
+function getSegmentFlightId(segment) {
+  return segment.flightId ?? segment.vueloId ?? segment.id;
+}
+
 const SEAT_STYLES = {
   Disponible: {
     base: "bg-emerald-100 border-emerald-500 text-emerald-800",
@@ -448,7 +452,7 @@ export default function SeatSelection() {
         const [respuestas, tiposAsiento] = await Promise.all([
           Promise.all(
             vuelos.map((vuelo) =>
-              Api.get(`/vuelo/${vuelo.vueloId}/asientos`),
+              Api.get(`/vuelo/${getSegmentFlightId(vuelo)}/asientos`),
             ),
           ),
           obtenerTiposAsiento(),
@@ -464,7 +468,7 @@ export default function SeatSelection() {
               adaptarAsiento(
                 asiento,
                 tiposAsiento,
-                vuelos[index].vueloId,
+                getSegmentFlightId(vuelos[index]),
               ),
             );
           })
@@ -500,7 +504,8 @@ export default function SeatSelection() {
   const asientosDelSegmento = useMemo(
     () =>
       asientos.filter(
-        (seat) => String(seat.vueloId) === String(activeSegment?.vueloId),
+        (seat) =>
+          String(seat.vueloId) === String(getSegmentFlightId(activeSegment)),
       ),
     [asientos, activeSegment],
   );
@@ -660,7 +665,7 @@ export default function SeatSelection() {
                 <div className="mb-5 flex flex-wrap gap-2" aria-label="Tramos del vuelo">
                   {vuelos.map((vuelo, index) => (
                     <button
-                      key={vuelo.vueloId}
+                      key={getSegmentFlightId(vuelo)}
                       type="button"
                       onClick={() => setActiveSegmentIndex(index)}
                       aria-pressed={activeSegmentIndex === index}

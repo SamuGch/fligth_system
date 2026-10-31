@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CalendarDays, Clock3, Plane, X } from "lucide-react";
-import { airports } from "../data/airports";
 import { useAuth } from "../context/AuthContext";
 import NoFlightsFound from "./NoFlightsFound";
 
@@ -29,15 +28,6 @@ function formatPrice(value) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })} USD`;
-}
-
-function getLayoverLabel(layover) {
-  const airport = airports.find((item) => item.code === layover.airport);
-  const city = layover.city ?? airport?.city;
-  const country = layover.country ?? airport?.country;
-  const place = [city, country].filter(Boolean).join(", ");
-
-  return `${place || layover.airport}${place ? ` (${layover.airport})` : ""}`;
 }
 
 export default function FlightSearchModal({
@@ -77,11 +67,7 @@ export default function FlightSearchModal({
   if (!isOpen) return null;
 
   const handleSelectFlight = (flight) => {
-    const selectedFlight = {
-      ...flight,
-      vueloId: flight.vueloId ?? flight.id,
-      avionId: flight.avionId ?? flight.avion_id,
-    };
+    const selectedFlight = { ...flight };
     const seatSelectionData = {
       flight: selectedFlight,
       avionId: selectedFlight.avionId,
@@ -274,9 +260,12 @@ export default function FlightSearchModal({
           ) : (
             <div className="space-y-4">
               {flights.map((flight, index) => {
-                const layovers = flight.layovers ?? [];
-                const segmentCount = flight.segments?.length ?? 0;
-                const hasStops = segmentCount > 1 || Number(flight.stops) > 0 || layovers.length > 0;
+                const segments = Array.isArray(flight.segments)
+                  ? flight.segments
+                  : [];
+                const segmentCount = segments.length;
+                const hasStops = segmentCount > 1;
+                const totalPrice = Number(flight.prices?.[0]?.price);
 
                 return (
                   <article
@@ -290,10 +279,9 @@ export default function FlightSearchModal({
                       </div>
                       {hasStops ? (
                         <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
-                          {layovers.length || Math.max(segmentCount - 1, Number(flight.stops) || 0)} escala
-                          {(layovers.length || Math.max(segmentCount - 1, Number(flight.stops) || 0)) === 1 ? "" : "s"}
-                          {layovers[0] && ` en ${getLayoverLabel(layovers[0])}`}
-                          {layovers[0]?.duration && ` · ${layovers[0].duration}`}
+                          {segmentCount - 1 === 1
+                            ? "1 Escala"
+                            : `${segmentCount - 1} Escalas`}
                         </span>
                       ) : (
                         <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
@@ -313,7 +301,7 @@ export default function FlightSearchModal({
                           <Clock3 size={14} /> {flight.duration}
                         </p>
                         <div className="my-2 border-t border-dashed border-slate-300" />
-                        <p className="text-xs">{hasStops ? `${Math.max(segmentCount - 1, Number(flight.stops) || layovers.length)} escala(s)` : "Vuelo directo"}</p>
+                        <p className="text-xs">{hasStops ? `${segmentCount - 1} escala(s)` : "Vuelo directo"}</p>
                       </div>
                       <div className="min-w-0 text-right">
                         <p className="text-xl font-bold text-slate-900 sm:text-2xl">{formatTime(flight.arrival)}</p>
@@ -349,6 +337,11 @@ export default function FlightSearchModal({
                     )}
 
                     <div className="mt-5 flex justify-end">
+                      {Number.isFinite(totalPrice) && (
+                        <p className="mr-auto self-center text-lg font-bold text-[#3b2b7a]">
+                          {formatPrice(totalPrice)}
+                        </p>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleSelectFlight(flight)}
