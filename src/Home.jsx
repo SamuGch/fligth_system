@@ -45,7 +45,7 @@ function Home() {
             Tu próxima aventura
             <br className="hidden md:block" />
             <span
-              className="text-violet-100"
+              className="block text-violet-100"
               style={{ color: '#3333CC' }}
             >
               comienza aquí
