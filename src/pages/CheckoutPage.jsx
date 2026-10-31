@@ -30,6 +30,7 @@ import {
 } from "../tools/flightFormatting";
 
 const CHECKOUT_STORAGE_KEY = "airtravel_checkout_state";
+const COMPLETED_RESERVATION_KEY = "airtravel_completed_reservation";
 const emptyPassenger = {
   nombre_pasajero: "",
   apellido_pasajero: "",
@@ -134,6 +135,7 @@ export default function CheckoutPage() {
   );
   const [expired, setExpired] = useState(() => paymentDeadline <= Date.now());
   const purchaseCompletedRef = useRef(false);
+  const completedReservationIdRef = useRef(null);
   const releaseCompletedRef = useRef(false);
   const backGuardInstalledRef = useRef(false);
   const browserBackInProgressRef = useRef(false);
@@ -215,6 +217,17 @@ export default function CheckoutPage() {
       void releaseTemporarySeats({ keepalive: true }).catch(() => undefined);
     };
     const releaseBeforeBrowserBack = () => {
+      if (purchaseCompletedRef.current) {
+        window.history.forward();
+        const completedId = completedReservationIdRef.current;
+        if (completedId != null) {
+          navigate(`/reservas/${completedId}`, {
+            replace: true,
+            state: { purchaseSuccess: true },
+          });
+        }
+        return;
+      }
       if (allowBrowserNavigationRef.current) {
         allowBrowserNavigationRef.current = false;
         browserBackInProgressRef.current = false;
@@ -243,7 +256,7 @@ export default function CheckoutPage() {
       window.removeEventListener("popstate", releaseBeforeBrowserBack);
       window.removeEventListener("pagehide", releaseOnAbandon);
     };
-  }, [releaseTemporarySeats, reservationId]);
+  }, [navigate, releaseTemporarySeats, reservationId]);
 
   const updatePassenger = (passengerIndex, field, value) => {
     setPassengers((previous) => ({
@@ -305,8 +318,14 @@ export default function CheckoutPage() {
         passengers: passengerPayload(),
       });
       purchaseCompletedRef.current = true;
+      completedReservationIdRef.current = result?.id ?? reservationId;
       invalidateTripsCache();
+      limpiarSeleccion();
       sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);
+      sessionStorage.setItem(
+        COMPLETED_RESERVATION_KEY,
+        String(completedReservationIdRef.current),
+      );
       setPurchaseResult(result);
     } catch (purchaseError) {
       if (Number(purchaseError?.status) === 410) {
@@ -388,6 +407,16 @@ export default function CheckoutPage() {
 
   const goBack = async () => {
     if (leaving || processing) return;
+    if (purchaseCompletedRef.current) {
+      const completedId = completedReservationIdRef.current;
+      if (completedId != null) {
+        navigate(`/reservas/${completedId}`, {
+          replace: true,
+          state: { purchaseSuccess: true },
+        });
+      }
+      return;
+    }
     setLeaving(true);
     setError("");
     try {
@@ -428,7 +457,7 @@ export default function CheckoutPage() {
         <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/80 bg-white/90 p-5 text-center shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-8">
           <h1 className="text-xl font-bold text-slate-900">No hay una compra pendiente</h1>
           <p className="mt-2 text-slate-500">Selecciona un vuelo y reserva sus asientos para continuar.</p>
-          <button type="button" onClick={goHome} className="mt-5 rounded-xl bg-[#3b2b7a] px-6 py-3 font-semibold text-white">
+          <button type="button" onClick={goHome} className="btn-primary mt-5 rounded-xl px-6 py-3 font-semibold">
             Volver al inicio
           </button>
         </div>
@@ -441,22 +470,22 @@ export default function CheckoutPage() {
   const confirmed = resultStatus === "CONFIRMADA";
 
   return (
-    <div className="relative w-full flex flex-col bg-cover bg-center bg-fixed pt-24 px-4 sm:px-6 pb-8 min-h-screen lg:h-screen lg:overflow-hidden font-sans text-slate-800" style={{ backgroundImage: 'url("/font.jpeg")' }}>
+    <div className="relative flex min-h-screen w-full flex-col bg-cover bg-center bg-fixed px-3 pb-3 pt-20 font-sans text-slate-800 sm:px-5 lg:h-dvh lg:overflow-hidden lg:px-8 lg:pt-[6.75rem]" style={{ backgroundImage: 'url("/font.jpeg")' }}>
       <div className="fixed inset-0 z-0 bg-white/45 backdrop-blur-md pointer-events-none" />
       <MainNavbar className="!fixed !left-4 !right-4 !top-3 !mx-0 sm:!left-6 sm:!right-6 sm:!top-5 lg:!left-12 lg:!right-12 xl:!left-25 xl:!right-25" />
       <main className="relative z-10 mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-          <button type="button" onClick={goBack} disabled={leaving || processing} className="flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-md transition hover:bg-white hover:text-[#3b2b7a]">
+        <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
+          <button type="button" onClick={goBack} disabled={leaving || processing} className="flex items-center gap-1.5 rounded-full border border-white/80 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-md transition hover:bg-white hover:text-[#3b2b7a]">
             <ArrowLeft size={17} /> Volver a selección de asientos
           </button>
-          <ol aria-label="Progreso de compra" className="flex items-center gap-2 overflow-x-auto rounded-full border border-white/80 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-md sm:gap-3">
+          <ol aria-label="Progreso de compra" className="flex items-center gap-1.5 overflow-x-auto rounded-full border border-white/80 bg-white/80 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 shadow-sm backdrop-blur-md sm:gap-2">
             {["Vuelos", "Asientos", "Pasajeros", "Pago"].map((label, index) => {
               const step = index + 1;
               const complete = step < checkoutStep;
               const active = step === checkoutStep;
               return (
                 <li key={label} className={`flex shrink-0 items-center gap-2 ${active ? "text-[#3b2b7a]" : complete ? "text-emerald-700" : "text-slate-400"}`}>
-                  <span className={`grid h-7 w-7 place-items-center rounded-full ${complete ? "bg-emerald-500 text-white" : active ? "bg-[#3b2b7a] text-white shadow-md" : "bg-slate-100 text-slate-500"}`}>
+                  <span className={`grid h-6 w-6 place-items-center rounded-full ${complete ? "bg-emerald-500 text-white" : active ? "bg-[#3b2b7a] text-white shadow-md" : "bg-slate-100 text-slate-500"}`}>
                     {complete ? <Check size={15} /> : step}
                   </span>
                   <span className="hidden sm:inline">{label}</span>
@@ -467,57 +496,57 @@ export default function CheckoutPage() {
           </ol>
         </div>
 
-        <div className="grid min-h-0 grid-cols-12 items-start gap-6">
-          <section className="col-span-12 flex flex-col min-w-0 rounded-3xl border border-white/80 bg-white/90 p-4 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-7 lg:col-span-8 lg:h-full lg:min-h-0">
-            <div className="flex-1 lg:min-h-0 lg:overflow-y-auto pr-0 lg:pr-2">
+        <div className="grid min-h-0 flex-1 grid-cols-12 items-stretch gap-3 lg:gap-4">
+          <section className="col-span-12 flex min-h-0 min-w-0 flex-col rounded-3xl border border-white/80 bg-white/90 p-2.5 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-4 lg:col-span-8 lg:p-3">
+            <div className="min-h-0 flex-1 overflow-y-auto pr-0 lg:overflow-hidden lg:pr-1">
             {checkoutStep === 3 ? (
               <>
-                <div className="mb-7 flex items-center gap-3">
-                  <div className="rounded-2xl bg-violet-100 p-3 text-violet-700"><UserRound size={25} /></div>
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="rounded-xl bg-violet-100 p-2 text-violet-700"><UserRound size={21} /></div>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wider text-violet-700">Paso 3 · Pasajeros</p>
-                    <h1 className="text-xl font-extrabold text-slate-900">Información de pasajeros</h1>
-                    <p className="text-sm text-slate-500">Ingresa los datos exactamente como aparecen en el documento.</p>
+                    <h1 className="text-lg font-extrabold text-slate-900">Información de pasajeros</h1>
+                    <p className="text-xs text-slate-500">Ingresa los datos como aparecen en el documento.</p>
                   </div>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {Array.from({ length: passengerCount }, (_, index) => {
                     const passenger = passengers[index] ?? emptyPassenger;
                     return (
-                      <article key={index} className="rounded-2xl border border-white/80 bg-white/65 p-4 shadow-sm sm:p-5">
-                        <h2 className="mb-4 font-bold text-slate-900">Pasajero {index + 1} (Adulto)</h2>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <input aria-label={`Nombre del pasajero ${index + 1}`} value={passenger.nombre_pasajero} onChange={(event) => updatePassenger(index, "nombre_pasajero", event.target.value)} placeholder="Nombre"                           className="rounded-xl border border-slate-300 bg-white/90 px-3 py-3 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100" />
-                          <input aria-label={`Apellido del pasajero ${index + 1}`} value={passenger.apellido_pasajero} onChange={(event) => updatePassenger(index, "apellido_pasajero", event.target.value)} placeholder="Apellido" className="rounded-xl border border-slate-300 px-3 py-3 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100" />
-                          <select aria-label={`Tipo de documento del pasajero ${index + 1}`} value={passenger.tipo_documento} onChange={(event) => updatePassenger(index, "tipo_documento", event.target.value)} className="rounded-xl border border-slate-300 bg-white/90 px-3 py-3 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100">
+                      <article key={index} className="rounded-2xl border border-white/80 bg-white/65 p-3 shadow-sm">
+                        <h2 className="mb-2 text-sm font-bold text-slate-900">Pasajero {index + 1} (Adulto)</h2>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <input aria-label={`Nombre del pasajero ${index + 1}`} value={passenger.nombre_pasajero} onChange={(event) => updatePassenger(index, "nombre_pasajero", event.target.value)} placeholder="Nombre" className="rounded-lg border border-slate-300 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100" />
+                          <input aria-label={`Apellido del pasajero ${index + 1}`} value={passenger.apellido_pasajero} onChange={(event) => updatePassenger(index, "apellido_pasajero", event.target.value)} placeholder="Apellido" className="rounded-lg border border-slate-300 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100" />
+                          <select aria-label={`Tipo de documento del pasajero ${index + 1}`} value={passenger.tipo_documento} onChange={(event) => updatePassenger(index, "tipo_documento", event.target.value)} className="rounded-lg border border-slate-300 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100">
                             <option value="">Tipo de documento</option>
                             <option value="DPI">DPI</option>
                             <option value="PASAPORTE">Pasaporte</option>
                           </select>
-                          <input aria-label={`Número de documento del pasajero ${index + 1}`} value={passenger.numero_documento} onChange={(event) => updatePassenger(index, "numero_documento", event.target.value)} placeholder="Número de documento" className="rounded-xl border border-slate-300 px-3 py-3 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100" />
+                          <input aria-label={`Número de documento del pasajero ${index + 1}`} value={passenger.numero_documento} onChange={(event) => updatePassenger(index, "numero_documento", event.target.value)} placeholder="Número de documento" className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100" />
                         </div>
                       </article>
                     );
                   })}
                 </div>
-                <div className="mt-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                  <Clock3 size={21} /><span>Tiempo restante para completar la compra: <strong>{countdown}</strong></span>
+                <div className="mt-3 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800">
+                  <Clock3 size={17} /><span>Tiempo restante: <strong>{countdown}</strong></span>
                 </div>
                 {error && <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
               </>
             ) : (
               <>
-                <div className="mb-7 flex items-center gap-3">
-                  <div className="rounded-2xl bg-violet-100 p-3 text-violet-700"><CreditCard size={25} /></div>
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="rounded-xl bg-violet-100 p-2 text-violet-700"><CreditCard size={21} /></div>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wider text-violet-700">Paso 4 · Pago</p>
-                    <h1 className="text-xl font-extrabold text-slate-900">Selecciona tu método de pago</h1>
-                    <p className="text-sm text-slate-500">Elige cómo deseas completar tu compra.</p>
+                    <h1 className="text-lg font-extrabold text-slate-900">Selecciona tu método de pago</h1>
+                    <p className="text-xs text-slate-500">Elige cómo deseas completar tu compra.</p>
                   </div>
                 </div>
-                <div className="rounded-2xl border-2 border-violet-600 bg-violet-50 p-5">
+                <div className="rounded-2xl border-2 border-violet-600 bg-violet-50 p-2.5">
                   <div className="flex items-center gap-3">
-                    <CreditCard className="text-violet-700" size={25} />
+                    <CreditCard className="text-violet-700" size={21} />
                     <div>
                       <strong className="block text-slate-900">Tarjeta de crédito o débito</strong>
                       <span className="text-sm text-slate-500">Formulario simulado para este entorno de pruebas.</span>
@@ -526,11 +555,11 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     onClick={() => generateChallenge("card")}
-                    className="mt-4 inline-flex items-center justify-center rounded-xl border border-violet-300 bg-white px-4 py-2.5 text-sm font-bold text-violet-700 transition hover:border-violet-500 hover:bg-violet-100"
+                    className="mt-2 inline-flex items-center justify-center rounded-lg border border-violet-300 bg-white px-3 py-2 text-xs font-bold text-violet-700 transition hover:border-violet-500 hover:bg-violet-100"
                   >
                     Resolver minijuego y autocompletar tarjeta
                   </button>
-                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
                     <label className="text-sm font-bold text-slate-700 sm:col-span-2" htmlFor="card-number">
                       Número de tarjeta
                       <input
@@ -545,7 +574,7 @@ export default function CheckoutPage() {
                           number: event.target.value.replace(/\D/g, "").slice(0, 16),
                         })}
                         placeholder="1234123412341234"
-                        className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-mono text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100"
+                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100"
                       />
                     </label>
                     <label className="text-sm font-bold text-slate-700 sm:col-span-2" htmlFor="card-name">
@@ -557,7 +586,7 @@ export default function CheckoutPage() {
                         value={cardData.name}
                         onChange={(event) => setCardData({ ...cardData, name: event.target.value })}
                         placeholder="NOMBRE DEL TITULAR"
-                        className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm uppercase outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100"
+                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm uppercase outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100"
                       />
                     </label>
                     <label className="text-sm font-bold text-slate-700" htmlFor="card-expiration">
@@ -574,7 +603,7 @@ export default function CheckoutPage() {
                           expiration: event.target.value.replace(/\D/g, "").slice(0, 4),
                         })}
                         placeholder="MM/AA"
-                        className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100"
+                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-100"
                       />
                     </label>
                     <label className="text-sm font-bold text-slate-700" htmlFor="card-cvv">
@@ -595,37 +624,37 @@ export default function CheckoutPage() {
                       />
                     </label>
                   </div>
-                  <p className="mt-4 text-xs text-slate-500">
+                  <p className="mt-2 text-[11px] text-slate-500">
                     Estos datos son únicamente visuales y no se envían al servidor.
                   </p>
                 </div>
-                <label className="mt-6 flex cursor-pointer items-start gap-3 text-sm text-slate-600">
+                <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-slate-600">
                   <input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} className="mt-1 h-4 w-4 accent-violet-700" />
                   <span>He revisado los datos de mi compra y acepto las condiciones aplicables.</span>
                 </label>
-                {error && <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
+                {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
               </>
             )}
             </div>
           </section>
 
-          <aside className="col-span-12 mt-8 space-y-6 lg:col-span-4 lg:mt-0 lg:sticky lg:top-32">
-            <div className="rounded-3xl border border-white/80 bg-white/90 p-5 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-7">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-violet-100 p-3 text-violet-700"><Plane size={23} /></div>
-                <h2 className="text-xl font-extrabold text-slate-900">Resumen de compra</h2>
+          <aside className="col-span-12 min-h-0 lg:col-span-4">
+            <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-2.5 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-4">
+              <div className="flex shrink-0 items-center gap-2">
+                <div className="rounded-xl bg-violet-100 p-2 text-violet-700"><Plane size={20} /></div>
+                <h2 className="text-lg font-extrabold text-slate-900">Resumen de compra</h2>
               </div>
-              <div className="mt-5 border-b border-slate-200 pb-5">
+              <div className="mt-3 border-b border-slate-200 pb-3">
                 {checkoutStep === 3 ? (
-                  <button type="button" onClick={continueToPayment} disabled={advancing} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#3b2b7a] px-5 py-4 font-bold text-white transition hover:bg-[#2b205c] disabled:cursor-not-allowed disabled:opacity-60">
+                  <button type="button" onClick={continueToPayment} disabled={advancing} className="btn-primary flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold disabled:opacity-60">
                     {advancing ? <><Loader2 size={19} className="animate-spin" /> Cargando...</> : <><span>Continuar al pago</span><ArrowRight size={19} /></>}
                   </button>
                 ) : (
                   <>
-                    <button type="button" onClick={() => setCheckoutStep(3)} disabled={processing} className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-100 px-5 py-3 font-semibold text-slate-700">
+                    <button type="button" onClick={() => setCheckoutStep(3)} disabled={processing} className="btn-secondary mb-2 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold">
                       <ArrowLeft size={18} /> Revisar pasajeros
                     </button>
-                    <button type="button" onClick={handleFinalPayment} disabled={processing || !acceptedTerms || expired || !cardIsComplete} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#3b2b7a] px-5 py-4 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">
+                    <button type="button" onClick={handleFinalPayment} disabled={processing || !acceptedTerms || expired || !cardIsComplete} className="btn-primary flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold disabled:opacity-50">
                       {processing ? "Procesando..." : <><LockKeyhole size={18} /> Pagar {money(total)}</>}
                     </button>
                     {!cardIsComplete && !processing && (
@@ -635,7 +664,7 @@ export default function CheckoutPage() {
                 )}
                 {expired && <p className="mt-3 text-center text-sm font-semibold text-red-600">La reserva temporal expiró.</p>}
               </div>
-              <div className="mt-5 rounded-2xl border border-white/80 bg-white/65 p-4">
+              <div className="mt-2 rounded-2xl border border-white/80 bg-white/65 p-2.5">
                 {(() => {
                   const metadata = getFlightMetadata(flight);
                   const origin = formatFlightLocation(metadata.origin, flight.origin);
@@ -644,18 +673,18 @@ export default function CheckoutPage() {
                     <>
                       <p className="font-bold text-slate-900">{formatFlightOperator(flight)}</p>
                       <p className="text-sm text-slate-500">Vuelo {metadata.number ?? flight.id}</p>
-                      <div className="mt-4 flex items-center justify-between gap-3 font-extrabold text-violet-800"><span>{origin.code}</span><Plane size={18} /><span>{destination.code}</span></div>
-                      <p className="mt-2 text-xs text-slate-500">Terminal {metadata.terminal ?? "pendiente"} · Puerta {metadata.gate ?? "pendiente"}</p>
+                      <div className="mt-2 flex items-center justify-between gap-3 font-extrabold text-violet-800"><span>{origin.code}</span><Plane size={17} /><span>{destination.code}</span></div>
+                      <p className="mt-1 text-[11px] text-slate-500">Terminal {metadata.terminal ?? "pendiente"} · Puerta {metadata.gate ?? "pendiente"}</p>
                     </>
                   );
                 })()}
               </div>
-              <div className="mt-5 space-y-3 border-t border-slate-200 pt-4 text-sm">
+              <div className="mt-3 space-y-2 border-t border-slate-200 pt-3 text-xs">
                 <div className="flex justify-between text-slate-600"><span>Precio de tiquetes</span><span>{money(subtotal)}</span></div>
                 <div className="flex justify-between text-slate-600"><span>Impuestos y cargos</span><span>{money(taxes)}</span></div>
-                <div className="flex justify-between rounded-2xl bg-[#f0ecfa] p-4 text-base font-extrabold text-[#3b2b7a]"><span>Total a pagar</span><span>{money(total)}</span></div>
+                <div className="flex justify-between rounded-xl bg-[#f0ecfa] p-2.5 text-sm font-extrabold text-[#3b2b7a]"><span>Total a pagar</span><span>{money(total)}</span></div>
               </div>
-              {reservation.fecha_expiracion && <p className="mt-4 text-center text-xs text-slate-500">Reserva temporal hasta {formatExpiration(reservation.fecha_expiracion)}</p>}
+              {reservation.fecha_expiracion && <p className="mt-2 text-center text-[11px] text-slate-500">Reserva temporal hasta {formatExpiration(reservation.fecha_expiracion)}</p>}
             </div>
           </aside>
         </div>

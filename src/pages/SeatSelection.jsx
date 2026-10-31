@@ -32,6 +32,7 @@ const CABIN_THEMES = [
   { name: "emerald", icon: Armchair },
 ];
 const SEAT_SELECTION_INTENT_KEY = "airtravel_seat_selection_intent";
+const COMPLETED_RESERVATION_KEY = "airtravel_completed_reservation";
 
 function readSeatSelectionIntent() {
   try {
@@ -399,6 +400,18 @@ export default function SeatSelection() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingAuth, setPendingAuth] = useState(false);
   const reservationAttemptedRef = useRef(false);
+
+  useEffect(() => {
+    const completedReservationId = sessionStorage.getItem(
+      COMPLETED_RESERVATION_KEY,
+    );
+    if (!completedReservationId) return;
+
+    navigate(`/reservas/${completedReservationId}`, {
+      replace: true,
+      state: { purchaseSuccess: true },
+    });
+  }, [navigate]);
 
   useEffect(() => {
     let cancelado = false;
@@ -1045,11 +1058,11 @@ export default function SeatSelection() {
                 type="button"
                 onClick={handleContinue}
                 disabled={!everyLegComplete || loading || Boolean(error) || reserving}
-                className="w-full bg-[#3b2b7a]
+                className="btn-primary w-full
                            hover:bg-[#2b205c]
                            disabled:opacity-50
                            disabled:cursor-not-allowed
-                           text-white rounded-2xl
+                           rounded-2xl
                            py-3 font-semibold
                            flex items-center justify-center
                            gap-3 transition-colors
@@ -1071,10 +1084,7 @@ export default function SeatSelection() {
               <button
                 type="button"
                 onClick={handleExit}
-                className="w-full text-slate-500
-                           hover:text-[#3b2b7a]
-                           flex items-center justify-center
-                           gap-2 py-2 cursor-pointer"
+                className="btn-secondary w-full py-2 text-sm font-semibold cursor-pointer"
               >
                 <ArrowLeft size={16} />
                 Volver a vuelos

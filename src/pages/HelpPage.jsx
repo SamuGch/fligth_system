@@ -183,7 +183,7 @@ export default function HelpPage() {
                   Mensaje
                   <textarea required name="message" rows="4" value={form.message} onChange={updateField} className="mt-1.5 w-full resize-y rounded-xl border border-slate-200 bg-white/80 p-3 outline-none transition focus:border-[#3b2b7a] focus:ring-2 focus:ring-[#3b2b7a]/15" />
                 </label>
-                <button type="submit" className="mt-1 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3b2b7a] px-4 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#2b205c] hover:shadow-lg">
+                <button type="submit" className="btn-primary mt-1 inline-flex min-h-11 px-4 py-3 text-sm font-bold shadow-md hover:-translate-y-0.5 hover:shadow-lg">
                   <Mail size={17} />
                   Enviar consulta
                 </button>

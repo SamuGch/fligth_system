@@ -30,6 +30,50 @@ body {
 }
 
 @layer utilities {
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    background: #3b2b7a !important;
+    color: #fff !important;
+    transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #2b205c !important;
+    box-shadow: 0 8px 18px rgb(59 43 122 / 22%);
+  }
+
+  .btn-primary:active:not(:disabled),
+  .btn-secondary:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid #d9d4f0 !important;
+    border-radius: 0.75rem;
+    background: #f0ecfa !important;
+    color: #3b2b7a !important;
+    transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    border-color: #b7ace2 !important;
+    background: #e4def6 !important;
+  }
+
+  .btn-primary:disabled,
+  .btn-secondary:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
   .scrollbar-hidden {
     scrollbar-width: none;
     -ms-overflow-style: none;

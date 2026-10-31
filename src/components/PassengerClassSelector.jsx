@@ -139,7 +139,7 @@ export default function PassengerClassSelector({ value, onChange, onFocus, onClo
             })}
           </div>
 
-          <button type="button" onClick={confirmSelection} className="mt-3 w-full rounded-lg bg-[#3b2b7a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2b205c] focus-visible:outline-2 focus-visible:outline-[#3b2b7a] focus-visible:outline-offset-2">
+          <button type="button" onClick={confirmSelection} className="btn-primary mt-3 w-full rounded-lg px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-[#3b2b7a] focus-visible:outline-offset-2">
             Listo
           </button>
         </div>

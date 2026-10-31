@@ -1,38 +1,10 @@
 import { getMyTrips } from "./apiClient";
-import { obtenerDetalleVuelo } from "./flightService";
 
 let cachedToken = null;
 let cachedTrips = null;
 let pendingToken = null;
 let pendingRequest = null;
 let cacheVersion = 0;
-
-function normalizeTrips(payload) {
-  return Array.isArray(payload) ? payload : [];
-}
-
-async function enrichTrips(trips) {
-  return Promise.all(
-    trips.map(async (trip) => {
-      const tramos = await Promise.all(
-        (trip.tramos || []).map(async (segment) => {
-          const flightId = segment.vuelo_id ?? segment.vueloId ?? segment.id;
-          if (!flightId || segment.detalle_vuelo) return segment;
-          try {
-            return {
-              ...segment,
-              detalle_vuelo: await obtenerDetalleVuelo(flightId),
-            };
-          } catch (error) {
-            console.warn("No se pudo completar la información del tramo.", error);
-            return segment;
-          }
-        }),
-      );
-      return { ...trip, tramos };
-    }),
-  );
-}
 
 export function getCachedTrips(accessToken) {
   if (!accessToken || cachedToken !== accessToken) return null;
@@ -59,8 +31,7 @@ export function loadTrips(accessToken, { force = false } = {}) {
   const requestToken = accessToken;
   const requestVersion = cacheVersion;
   const request = getMyTrips()
-    .then(async (payload) => {
-      const trips = await enrichTrips(normalizeTrips(payload));
+    .then((trips) => {
       if (requestVersion === cacheVersion) {
         cachedToken = requestToken;
         cachedTrips = trips;

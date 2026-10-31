@@ -43,6 +43,8 @@ function normalizeCalendarDates(data) {
     .filter((item) => item.fecha);
 }
 
+const COMPLETED_RESERVATION_KEY = "airtravel_completed_reservation";
+
 export default function FlightSearch() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isExpansionVisible, setIsExpansionVisible] = useState(false);
@@ -276,6 +278,7 @@ export default function FlightSearch() {
       }
 
       const response = await buscarVuelos(searchData);
+      sessionStorage.removeItem(COMPLETED_RESERVATION_KEY);
       navigate("/seleccion-vuelos", {
         state: {
           searchData,
@@ -487,7 +490,7 @@ export default function FlightSearch() {
                       transition-all duration-300 ease-in-out
                       ${
                         searchData.tripType === "round"
-                          ? "bg-white text-[#3b2b7a] font-semibold shadow-md"
+                          ? "bg-[#3b2b7a] text-white font-semibold shadow-md"
                           : "bg-transparent text-[#3b2b7a]/70 font-normal hover:text-[#3b2b7a]"
                       }
                     `}
@@ -747,7 +750,7 @@ export default function FlightSearch() {
                   openExpandedSearch();
                   void handleSearch();
                 }}
-                className={`min-w-0 w-full rounded-full bg-[#3b2b7a] px-5 ${isExpanded ? "min-h-[52px] py-3" : "py-1.5"} text-white hover:bg-[#2b205c] disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-3 text-xs sm:text-sm transition-colors shadow-lg shadow-violet-900/20 whitespace-nowrap lg:col-span-2`}
+                className={`btn-primary min-w-0 w-full rounded-full px-5 ${isExpanded ? "min-h-[52px] py-3" : "py-1.5"} disabled:opacity-60 text-xs sm:text-sm shadow-lg shadow-violet-900/20 whitespace-nowrap lg:col-span-2`}
               >
                 {searching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                 <span className="font-semibold">{searching ? "Cargando..." : "Buscar vuelos"}</span>

@@ -31,7 +31,7 @@ export default function ProfilePage() {
           <label className="text-sm font-semibold text-slate-700">Nombre<input value={form.nombre} onChange={(event) => setForm({ ...form, nombre: event.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-violet-500" /></label>
           <label className="text-sm font-semibold text-slate-700">Apellido<input value={form.apellido} onChange={(event) => setForm({ ...form, apellido: event.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-violet-500" /></label>
           <label className="text-sm font-semibold text-slate-700">Correo<input disabled value={client?.email || client?.correo || ""} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-100 p-3 text-slate-500" /></label>
-          <button className="mt-2 rounded-xl bg-violet-700 py-3 font-semibold text-white transition hover:bg-violet-800">Guardar cambios</button>
+          <button className="btn-primary mt-2 rounded-xl py-3 font-semibold">Guardar cambios</button>
           {message && <p className="text-sm text-slate-600">{message}</p>}
         </form>
         <Link to="/reservas" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-violet-700">Ver mis viajes <ArrowRight size={17} /></Link>

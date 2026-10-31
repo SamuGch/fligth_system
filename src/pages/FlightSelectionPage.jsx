@@ -235,7 +235,7 @@ function FlightCard({ flight, selected, disabled, loading, onSelect }) {
       <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-3">
         <p className="text-lg font-bold text-[#3b2b7a]">{formatPrice(flightPrice(flight))}</p>
         <button type="button" disabled={disabled} onClick={() => onSelect(flight)}
-          className={`flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-3 font-semibold text-white ${
+          className={`btn-primary flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-3 font-semibold ${
             selected ? "bg-emerald-600" : "bg-[#3b2b7a] hover:bg-[#2c205e]"
           } disabled:cursor-not-allowed`}>
           {loading ? <><Loader2 size={17} className="animate-spin" /> Cargando...</> : selected ? <><Check size={17} /> Seleccionado</> : <><Plane size={17} /> Seleccionar</>}
@@ -539,7 +539,7 @@ export default function FlightSelectionPage() {
           </div>
           <div className="flex items-center justify-between gap-5 sm:justify-end">
             <p className="text-xl font-bold text-white">${subtotal.toFixed(2)} USD</p>
-            <button type="button" disabled={!canContinue || continuing} onClick={continueToSeats} className="flex min-h-9 items-center gap-2 rounded-full bg-white px-4 py-2 font-semibold text-[#3b2b7a] shadow-lg hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50">{continuing ? <><Loader2 size={17} className="animate-spin" /> Cargando...</> : <>Continuar a selección de asientos <ChevronRight size={17} /></>}</button>
+            <button type="button" disabled={!canContinue || continuing} onClick={continueToSeats} className="btn-secondary flex min-h-9 items-center gap-2 rounded-full px-4 py-2 font-semibold shadow-lg disabled:opacity-50">{continuing ? <><Loader2 size={17} className="animate-spin" /> Cargando...</> : <>Continuar a selección de asientos <ChevronRight size={17} /></>}</button>
           </div>
         </div>
       </aside>
