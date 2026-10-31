@@ -417,7 +417,7 @@ export default function FlightSearch() {
           <div
             className={`relative z-50 ${isExpanded
               ? "w-full"
-              : "-mt-42 sm:-mt-8 md:-mt-16 lg:-mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25"
+              : "mt-6 mx-4 sm:mx-6 md:-mt-16 lg:-mt-23 lg:mx-12 xl:mx-25"
               }`}
           >
             <div className={`relative mx-auto w-full rounded-[32px] border border-white/80 bg-white px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-5 shadow-[0_18px_55px_rgba(51,51,153,0.20),0_0_30px_rgba(140,155,255,0.14)] ${isExpanded

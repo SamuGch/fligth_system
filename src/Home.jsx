@@ -30,18 +30,18 @@ function Home() {
           px-4 sm:px-8 lg:px-10
           pt-6 sm:pt-6 md:pt-0
           md:-mt-10 lg:-mt-25
-          flex flex-col md:flex-row
+          flex flex-row
           items-center justify-between
         "
       >
         {/* Hero Text */}
-        <div className="w-full md:w-1/2 md:pr-8 z-10 text-center md:text-left">
+        <div className="z-10 w-1/2 text-left md:pr-8">
 
           <p className="text-[11px] sm:text-[13px] lg:text-[15px] text-slate-900 font-semibold mb-1 sm:mb-3 uppercase tracking-[0.22em] sm:tracking-[0.35em] leading-normal hidden md:block">
             Explora el mundo
           </p>
 
-          <h2 className="text-[clamp(1.35rem,6vw,2.25rem)] sm:text-[clamp(1.75rem,7vw,2.25rem)] md:text-3xl lg:text-5xl font-bold text-slate-900 mb-2 sm:mb-4 leading-none tracking-[-0.015em]">
+          <h2 className="mb-2 text-[clamp(1.1rem,5.5vw,2rem)] font-bold leading-tight tracking-[-0.015em] text-slate-900 sm:mb-4 sm:text-[clamp(1.75rem,7vw,2.25rem)] md:text-3xl lg:text-5xl">
             Tu próxima aventura
             <br className="hidden md:block" />
             <span
@@ -61,10 +61,10 @@ function Home() {
         {/* 3D Globe Section */}
         <div
           className="
-            w-full md:w-1/2
+            w-1/2 md:w-1/2
             flex justify-center
             relative z-0
-            h-[220px] sm:h-[360px]
+            h-[190px] sm:h-[260px]
             md:h-[460px] lg:h-[512px]
           "
         >
