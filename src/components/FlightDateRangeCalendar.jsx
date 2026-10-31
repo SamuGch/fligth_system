@@ -45,6 +45,9 @@ const formatMonthTitle = (monthDate) =>
     year: "numeric",
   }).format(monthDate).replace(" de ", " ");
 
+const formatMonthYear = (monthDate) =>
+  `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, "0")}`;
+
 const formatPrice = (price) => {
   const amount = Number(price);
   if (!Number.isFinite(amount)) return null;
@@ -55,11 +58,14 @@ const normalizeDateOptions = (options) =>
   options
     .map((option) =>
       typeof option === "string"
-        ? { departureDate: option, price: null }
-        : option
+        ? { fecha: option, precioMinimo: null }
+        : {
+            fecha: option?.fecha ?? option?.departureDate,
+            precioMinimo: option?.precioMinimo ?? option?.price ?? null,
+          }
     )
-    .filter((option) => option?.departureDate)
-    .sort((a, b) => a.departureDate.localeCompare(b.departureDate));
+    .filter((option) => option?.fecha)
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
 
 const getMonthStart = (value) => {
   const date = value instanceof Date ? value : fromISO(value);
@@ -75,22 +81,22 @@ const getInitialMonth = (departureDate, availableDates, phase) => {
   const today = toISO(new Date());
   const futureOptions = normalizeDateOptions(availableDates).filter(
     (option) =>
-      option.departureDate >= today &&
+      option.fecha >= today &&
       !(phase === "return" &&
         departureDate &&
-        option.departureDate < departureDate)
+        option.fecha < departureDate)
   );
 
   if (
     futureOptions.some((option) =>
-      isSameMonth(fromISO(option.departureDate), base)
+      isSameMonth(fromISO(option.fecha), base)
     )
   ) {
     return base;
   }
 
   return futureOptions[0]
-    ? getMonthStart(futureOptions[0].departureDate)
+    ? getMonthStart(futureOptions[0].fecha)
     : base;
 };
 
@@ -103,30 +109,58 @@ export default function FlightDateRangeCalendar({
   onClear,
   availableDates = [],
   loading = false,
+  onMonthChange,
   emptyMessage = "No hay vuelos programados en esta ruta para la cabina seleccionada.",
 }) {
   const [month, setMonth] = useState(() =>
     getInitialMonth(departureDate, availableDates, phase)
   );
   const availabilityRef = useRef(null);
+  const skipMonthRequestRef = useRef("");
   const [hoveredDate, setHoveredDate] = useState("");
+  const [loadingMonth, setLoadingMonth] = useState(false);
   const today = toISO(new Date());
   const currentMonth = new Date();
   currentMonth.setDate(1);
   currentMonth.setHours(0, 0, 0, 0);
 
   const normalizedDateOptions = normalizeDateOptions(availableDates);
-  const dateOptions = new Map(
-    normalizedDateOptions.map((option) => [option.departureDate, option])
-  );
   const validDateOptions = normalizedDateOptions.filter(
     (option) =>
-      option.departureDate >= today &&
+      option.fecha >= today &&
       !(phase === "return" &&
         departureDate &&
-        option.departureDate < departureDate)
+        option.fecha < departureDate)
   );
   const nextAvailableDate = validDateOptions[0] ?? null;
+
+  useEffect(() => {
+    if (!onMonthChange) return undefined;
+
+    let active = true;
+    const currentViewMonth = formatMonthYear(month);
+
+    if (skipMonthRequestRef.current === currentViewMonth) {
+      skipMonthRequestRef.current = "";
+      return undefined;
+    }
+
+    setLoadingMonth(true);
+    Promise.resolve(onMonthChange(currentViewMonth, phase))
+      .then((nextMonth) => {
+        if (active && nextMonth) {
+          skipMonthRequestRef.current = nextMonth;
+          setMonth(getMonthStart(`${nextMonth}-01`));
+        }
+      })
+      .finally(() => {
+        if (active) setLoadingMonth(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [month, onMonthChange, phase]);
 
   useEffect(() => {
     if (availabilityRef.current === availableDates) return;
@@ -135,11 +169,11 @@ export default function FlightDateRangeCalendar({
     if (validDateOptions.length === 0) return;
 
     const hasFlightInVisibleMonth = validDateOptions.some((option) =>
-      isSameMonth(fromISO(option.departureDate), month)
+      isSameMonth(fromISO(option.fecha), month)
     );
 
     if (!hasFlightInVisibleMonth) {
-      const nextMonth = getMonthStart(nextAvailableDate.departureDate);
+      const nextMonth = getMonthStart(nextAvailableDate.fecha);
       const timer = setTimeout(() => setMonth(nextMonth), 0);
       return () => clearTimeout(timer);
     }
@@ -159,21 +193,24 @@ export default function FlightDateRangeCalendar({
       : "");
   const visibleAvailableDates = getDays(month).filter((date) => {
     if (!date) return false;
-    const iso = toISO(date);
+    const dayFormattedString = toISO(date);
     return (
-      dateOptions.has(iso) &&
-      iso >= today &&
-      !(phase === "return" && departureDate && iso < departureDate)
+      normalizedDateOptions.some((item) => item.fecha === dayFormattedString) &&
+      dayFormattedString >= today &&
+      !(phase === "return" &&
+        departureDate &&
+        dayFormattedString < departureDate)
     );
   });
   const totalVuelosValidosEnRuta = validDateOptions.length;
   const vuelosEnMesVisible = visibleAvailableDates.length;
   const hasGlobalAvailability = totalVuelosValidosEnRuta > 0;
   const hasMonthlyAvailability = vuelosEnMesVisible > 0;
+  const isLoading = loading || loadingMonth;
 
   const goToNextAvailableDate = () => {
     if (nextAvailableDate) {
-      setMonth(getMonthStart(nextAvailableDate.departureDate));
+      setMonth(getMonthStart(nextAvailableDate.fecha));
     }
   };
 
@@ -201,14 +238,14 @@ export default function FlightDateRangeCalendar({
       onClick={(event) => event.stopPropagation()}
       className="w-full max-w-sm rounded-3xl border border-gray-100 bg-white p-5 shadow-2xl sm:max-w-md"
     >
-      {loading && (
+      {isLoading && (
         <div className="mb-4 flex items-center justify-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">
           <span className="h-3 w-3 animate-spin rounded-full border-2 border-[#3333CC]/30 border-t-[#3333CC]" />
           Consultando fechas disponibles...
         </div>
       )}
 
-      {!loading && !hasGlobalAvailability && (
+      {!isLoading && !hasGlobalAvailability && (
         <div className="mb-4 flex items-center gap-2.5 rounded-2xl border border-amber-200/70 bg-amber-50/80 p-3.5 text-amber-900">
           <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" />
           <p className="text-xs font-medium leading-snug text-amber-800">
@@ -217,12 +254,12 @@ export default function FlightDateRangeCalendar({
         </div>
       )}
 
-      {!loading && hasGlobalAvailability && !hasMonthlyAvailability && (
+      {!isLoading && hasGlobalAvailability && !hasMonthlyAvailability && (
         <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-blue-200/60 bg-blue-50/70 p-3 text-xs text-blue-900">
           <p>
             Sin vuelos en este mes. Próximo vuelo disponible en{" "}
             <span className="font-semibold capitalize">
-              {formatMonthTitle(fromISO(nextAvailableDate.departureDate))}
+              {formatMonthTitle(fromISO(nextAvailableDate.fecha))}
             </span>
             .
           </p>
@@ -296,17 +333,20 @@ export default function FlightDateRangeCalendar({
         {getDays(month).map((date, index) => {
           if (!date) return <span key={`empty-${index}`} className="h-12" />;
 
-          const iso = toISO(date);
-          const option = dateOptions.get(iso);
+          const dayFormattedString = toISO(date);
+          const option = normalizedDateOptions.find(
+            (item) => item.fecha === dayFormattedString
+          );
+          const iso = dayFormattedString;
           const isSelected = iso === departureDate || iso === returnDate;
           const inRange = Boolean(departureDate && rangeEnd && iso > departureDate && iso < rangeEnd);
           const isAvailable = Boolean(option);
           const disabled =
-            loading ||
+            isLoading ||
             iso < today ||
             !isAvailable ||
             (phase === "return" && departureDate && iso < departureDate);
-          const price = option ? formatPrice(option.price) : null;
+          const price = option ? formatPrice(option.precioMinimo) : null;
 
           return (
             <button

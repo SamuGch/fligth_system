@@ -8,8 +8,10 @@ import {
   PlaneLanding
 } from 'lucide-react';
 import { obtenerAeropuertos } from "../services/aeropuertoService";
-import { obtenerFechasDisponibles } from "../services/flightService";
-import * as Api from "../tools/Api";
+import {
+  buscarVuelos,
+  obtenerFechasDisponibles,
+} from "../services/flightService";
 import AirportCombobox from "./AirportCombobox";
 import FlightDateRangeCalendar from "./FlightDateRangeCalendar";
 import Toast from "./Toast";
@@ -61,6 +63,23 @@ function formatSearchDate(value, placeholder) {
   });
 }
 
+function normalizeCalendarDates(data) {
+  if (!Array.isArray(data)) return [];
+
+  return data
+    .map((item) => {
+      if (typeof item === "string") {
+        return { fecha: item, precioMinimo: null };
+      }
+
+      return {
+        fecha: item?.fecha ?? item?.departureDate,
+        precioMinimo: item?.precioMinimo ?? item?.price ?? null,
+      };
+    })
+    .filter((item) => item.fecha);
+}
+
 export default function FlightSearch() {
   const [modalOpen, setModalOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -81,6 +100,14 @@ export default function FlightSearch() {
     return: [],
   });
   const [loadingAvailableDates, setLoadingAvailableDates] = useState(false);
+  const calendarRequestIds = useRef({
+    departure: 0,
+    return: 0,
+  });
+  const availableDatesRef = useRef(availableDates);
+  useEffect(() => {
+    availableDatesRef.current = availableDates;
+  }, [availableDates]);
 
   const [searchData, setSearchData] = useState({
     tripType: "round",
@@ -90,7 +117,7 @@ export default function FlightSearch() {
     returnDate: "",
     totalPassengers: 1,
     passengerDetails: { adults: 1, children: 0, infants: 0 },
-    seatTypeId: null,
+    seatTypeId: 2,
     seatClassName: "Económica",
   });
 
@@ -183,55 +210,89 @@ export default function FlightSearch() {
     };
   }, []);
 
-  useEffect(() => {
-    let active = true;
+  const loadCalendarMonth = useCallback(async (currentViewMonth, phase) => {
+    const requestId = calendarRequestIds.current[phase] + 1;
+    calendarRequestIds.current[phase] = requestId;
 
     if (!searchData.OrigenID || !searchData.DestinationID) {
-      return undefined;
+      return null;
     }
 
-    async function cargarFechasDisponibles() {
-      setLoadingAvailableDates(true);
+    const request = {
+      totalPassengers: searchData.totalPassengers,
+      seatTypeId: searchData.seatTypeId,
+      mesAnio: currentViewMonth,
+    };
+    const originId =
+      phase === "departure" ? searchData.OrigenID : searchData.DestinationID;
+    const destinationId =
+      phase === "departure" ? searchData.DestinationID : searchData.OrigenID;
 
-      try {
-        const dates = await obtenerFechasDisponibles(
-          searchData.OrigenID,
-          searchData.DestinationID,
-          {
-            totalPassengers: searchData.totalPassengers,
-            passengerDetails: searchData.passengerDetails,
-            seatTypeId: searchData.seatTypeId,
-            seatClassName: searchData.seatClassName,
-          }
+    setLoadingAvailableDates(true);
+
+    try {
+      const data = await obtenerFechasDisponibles(
+        originId,
+        destinationId,
+        request
+      );
+      console.log("FECHAS RECIBIDAS DEL BACKEND:", data);
+      console.log("ESTADO availableDates:", availableDatesRef.current);
+
+      let dates = normalizeCalendarDates(data);
+      let resolvedMonth = currentViewMonth;
+
+      if (dates.length === 0) {
+        const [year, month] = currentViewMonth.split("-").map(Number);
+        const nextDate = new Date(year, month, 1);
+        const nextMonth = `${nextDate.getFullYear()}-${String(
+          nextDate.getMonth() + 1
+        ).padStart(2, "0")}`;
+        const nextData = await obtenerFechasDisponibles(
+          originId,
+          destinationId,
+          { ...request, mesAnio: nextMonth }
         );
+        console.log("FECHAS RECIBIDAS DEL BACKEND:", nextData);
 
-        if (active) setAvailableDates(dates);
-      } catch (error) {
-        if (active) {
-          setAvailableDates({ departure: [], return: [] });
-          setSearchError(
-            error instanceof Error
-              ? error.message
-              : "No se pudieron consultar las fechas disponibles."
-          );
+        const nextDates = normalizeCalendarDates(nextData);
+        if (nextDates.length > 0) {
+          dates = nextDates;
+          resolvedMonth = nextMonth;
         }
-      } finally {
-        if (active) setLoadingAvailableDates(false);
+      }
+
+      if (calendarRequestIds.current[phase] === requestId) {
+        setAvailableDates((current) => ({
+          ...current,
+          [phase]: dates,
+        }));
+      }
+
+      return resolvedMonth === currentViewMonth ? null : resolvedMonth;
+    } catch (error) {
+      if (calendarRequestIds.current[phase] === requestId) {
+        setAvailableDates((current) => ({
+          ...current,
+          [phase]: [],
+        }));
+        setSearchError(
+          error instanceof Error
+            ? error.message
+            : "No se pudieron consultar las fechas disponibles."
+        );
+      }
+      return null;
+    } finally {
+      if (calendarRequestIds.current[phase] === requestId) {
+        setLoadingAvailableDates(false);
       }
     }
-
-    void cargarFechasDisponibles();
-
-    return () => {
-      active = false;
-    };
   }, [
-    searchData.OrigenID,
     searchData.DestinationID,
-    searchData.totalPassengers,
-    searchData.passengerDetails,
+    searchData.OrigenID,
     searchData.seatTypeId,
-    searchData.seatClassName,
+    searchData.totalPassengers,
   ]);
 
   const handleSearch = async () => {
@@ -258,7 +319,7 @@ export default function FlightSearch() {
         return;
       }
 
-      const response = await Api.post("/vuelo/buscar", searchData);
+      const response = await buscarVuelos(searchData);
       setAlternativeDates(getAlternativeDates(response));
       setData(response);
       setModalOpen(true);
@@ -277,7 +338,7 @@ export default function FlightSearch() {
 
     try {
       const updatedSearchData = { ...searchData, departureDate };
-      const response = await Api.post("/vuelo/buscar", updatedSearchData);
+      const response = await buscarVuelos(updatedSearchData);
       setSearchData(updatedSearchData);
       setAlternativeDates((currentDates) =>
         mergeAlternativeDates(currentDates, getAlternativeDates(response))
@@ -381,6 +442,7 @@ export default function FlightSearch() {
                 availableDates[phase]
               }
               loading={loadingAvailableDates}
+              onMonthChange={loadCalendarMonth}
               emptyMessage="No hay vuelos programados en esta ruta para la cabina seleccionada."
               onClear={() => {
                 setSearchData((current) => ({

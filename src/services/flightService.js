@@ -1,53 +1,53 @@
-{/*
-import { mockFlights } from "../data/mockFlights";
-
-export function searchFlights({
-  origin,
-  destination,
-  departureDate,
-  returnDate,
-  tripType,
-  passengers,
-  seatClass,
-}) {
-  const findFlights = (from, to, date) => {
-    return mockFlights.filter((flight) => {
-      const seats = flight.seats[seatClass];
-
-      return (
-        flight.origin === from &&
-        flight.destination === to &&
-        flight.departureDate === date &&
-        seats !== undefined &&
-        seats.available >= passengers
-      );
-    });
-  };
-
-  return {
-    outbound: findFlights(origin, destination, departureDate),
-    inbound:
-      tripType === "round"
-        ? findFlights(destination, origin, returnDate)
-        : [],
-  };
-}
-*/}
-
-
 const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+const DEFAULT_SEAT_TYPE_ID = 2;
 
-async function obtenerDatos(endpoint) {
-  const response = await fetch(`${API_URL}${endpoint}`);
+function buildApiUrl(endpoint) {
+  const normalizedEndpoint = endpoint.startsWith("/api/")
+    ? endpoint.slice(4)
+    : endpoint;
+  const apiPrefix = API_URL.endsWith("/api") ? "" : "/api";
+
+  return `${API_URL}${apiPrefix}${normalizedEndpoint}`;
+}
+
+async function post(endpoint, payload) {
+  const response = await fetch(buildApiUrl(endpoint), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 
   if (!response.ok) {
     throw new Error(`Error consultando ${endpoint}: ${response.status}`);
   }
 
-  const responseData = await response.json();
-  const data = Array.isArray(responseData)
-    ? responseData
-    : responseData?.data;
+  return response.json();
+}
+
+function currentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatMonthYear(value) {
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      throw new Error("El mes de disponibilidad no es válido.");
+    }
+
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  const monthYear = String(value).trim();
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(monthYear)) {
+    throw new Error("El mes de disponibilidad debe tener el formato YYYY-MM.");
+  }
+
+  return monthYear;
+}
+
+function getArrayResponse(response, endpoint) {
+  const data = Array.isArray(response) ? response : response?.data;
 
   if (!Array.isArray(data)) {
     throw new Error(`Respuesta inesperada de ${endpoint}`);
@@ -56,282 +56,51 @@ async function obtenerDatos(endpoint) {
   return data;
 }
 
-function horaLocal(fecha) {
-  return new Date(fecha).toLocaleTimeString("es-GT", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "America/Guatemala",
-  });
-}
-
-function fechaLocal(fecha) {
-  return new Date(fecha).toLocaleDateString("en-CA", {
-    timeZone: "America/Guatemala",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-}
-
-function getSeatTypeId(seat) {
-  return seat.tipoAsientoId ??
-    seat.tipo_asiento_id ??
-    seat.tipoAsiento?.id ??
-    seat.tipo_asiento?.id;
-}
-
-function getSeatTypeName(seat) {
-  return String(
-    seat.tipoAsiento?.nombre ??
-      seat.tipo_asiento?.nombre ??
-      seat.tipoAsiento ??
-      seat.clase ??
-      ""
-  )
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
-
-function getNumericPrice(value) {
-  const price = Number(value);
-  return Number.isFinite(price) && price > 0 ? price : null;
-}
-
-function normalizeClassName(value) {
-  return String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
-}
-
-function isAvailableSeat(seat) {
-  const status = String(seat.estado ?? "").toUpperCase();
-  return (
-    (seat.disponible ??
-      (seat.activo === true || status === "DISPONIBLE")) === true &&
-    !["OCUPADO", "CONFIRMADO", "RESERVADO", "BLOQUEADO"].includes(status)
-  );
-}
-
-function getNestedFlightPrice(flight, requestedTypeId, seatClassName) {
-  const fares = flight.precios ?? flight.tarifas ?? flight.fares;
-  const fareList = Array.isArray(fares)
-    ? fares
-    : fares && typeof fares === "object"
-      ? Object.values(fares)
-      : [];
-  const normalizedClassName = String(seatClassName ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-  const selectedFare = fareList.find(
-    (fare) =>
-      (requestedTypeId != null &&
-        Number(fare.tipoAsientoId ?? fare.seatTypeId) ===
-          Number(requestedTypeId)) ||
-      String(fare.tipoAsiento ?? fare.seatType ?? fare.clase ?? "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase() === normalizedClassName
-  );
-
-  if (fareList.length > 0 && !selectedFare) return null;
-
-  return getNumericPrice(
-    selectedFare?.precio ??
-      selectedFare?.price ??
-      selectedFare?.valor ??
-      flight.precio_base ??
-      flight.tarifa_base ??
-      flight.precioBase ??
-      flight.precio ??
-      flight.price ??
-      flight.tarifa
-  );
-}
-
 export async function obtenerFechasDisponibles(
   origenId,
   destinoId,
-  { totalPassengers = 1, passengerDetails, seatTypeId, seatClassName } = {}
+  { totalPassengers = 1, seatTypeId, mesAnio = currentMonth() } = {}
 ) {
-  if (Number(origenId) === Number(destinoId)) {
+  const normalizedOrigenId = Number(origenId);
+  const normalizedDestinoId = Number(destinoId);
+
+  if (
+    !Number.isInteger(normalizedOrigenId) ||
+    normalizedOrigenId <= 0 ||
+    !Number.isInteger(normalizedDestinoId) ||
+    normalizedDestinoId <= 0
+  ) {
+    throw new Error("El origen y el destino deben ser válidos.");
+  }
+
+  if (normalizedOrigenId === normalizedDestinoId) {
     throw new Error("El origen y el destino deben ser diferentes.");
   }
 
-  const [vuelos, rutas, tipos] = await Promise.all([
-    obtenerDatos("/vuelo"),
-    obtenerDatos("/ruta"),
-    obtenerDatos("/tipo-asiento"),
-  ]);
-
-  const rutasActivas = rutas.filter((ruta) => ruta.activa !== false);
-  const requestedPassengers = passengerDetails
-    ? Object.values(passengerDetails).reduce(
-        (total, count) => total + Number(count || 0),
-        0
-      )
-    : Number(totalPassengers);
-  const selectedType = tipos.find(
-    (tipo) =>
-      (seatTypeId != null && Number(tipo.id) === Number(seatTypeId)) ||
-      (seatClassName &&
-        normalizeClassName(tipo.nombre ?? tipo.name ?? tipo.descripcion) ===
-          normalizeClassName(seatClassName))
-  );
-  const requestedTypeId = selectedType?.id ?? seatTypeId;
-  const selectedClassName = normalizeClassName(
-    selectedType?.nombre ?? selectedType?.name ?? selectedType?.descripcion
-  );
-
-  const evaluateFlightAvailability = async (vuelo) => {
-    let seats = vuelo.asientos;
-    if (!Array.isArray(seats)) {
-      seats = await obtenerDatos(`/vuelo/${vuelo.id}/asientos`);
-    }
-
-    if (!Array.isArray(seats)) return null;
-
-    const selectedSeats = seats.filter((seat) => {
-        const typeMatches =
-          requestedTypeId != null &&
-          Number(getSeatTypeId(seat)) === Number(requestedTypeId);
-        const nameMatches =
-          selectedClassName &&
-          normalizeClassName(getSeatTypeName(seat)) === selectedClassName;
-        return (typeMatches || nameMatches) && isAvailableSeat(seat);
-      });
-
-    if (selectedSeats.length < requestedPassengers) return null;
-
-    const seatPrices = selectedSeats
-      .map((seat) => getNumericPrice(seat.precio ?? seat.price))
-      .filter((price) => price != null);
-    const price =
-      seatPrices.length > 0
-        ? Math.min(...seatPrices)
-        : getNestedFlightPrice(vuelo, requestedTypeId, seatClassName);
-
-    if (price == null) {
-      return null;
-    }
-
-    return { departureDate: fechaLocal(vuelo.fechaSalida), price };
-  };
-
-  const getDatesForRoute = async (from, to) => {
-    const routeIds = new Set(
-      rutasActivas
-        .filter(
-          (ruta) =>
-            Number(ruta.aeropuertoOrigenId) === Number(from) &&
-            Number(ruta.aeropuertoDestinoId) === Number(to)
-        )
-        .map((ruta) => Number(ruta.id))
-    );
-
-    const candidateFlights = vuelos
-      .filter(
-        (vuelo) =>
-          routeIds.has(Number(vuelo.rutaId)) &&
-          vuelo.estado === "PROGRAMADO"
-      );
-    const evaluatedFlights = await Promise.all(
-      candidateFlights.map(evaluateFlightAvailability)
-    );
-
-    const datesByDay = new Map();
-    evaluatedFlights.filter(Boolean).forEach((option) => {
-      if (!option.departureDate) return;
-      const current = datesByDay.get(option.departureDate);
-      if (!current || (current.price == null && option.price != null)) {
-        datesByDay.set(option.departureDate, option);
-      }
-    });
-
-    return [...datesByDay.values()].sort((a, b) =>
-      a.departureDate.localeCompare(b.departureDate)
-    );
-  };
-
-  const [departure, returnDates] = await Promise.all([
-    getDatesForRoute(origenId, destinoId),
-    getDatesForRoute(destinoId, origenId),
-  ]);
-
-  return {
-    departure,
-    return: returnDates,
-  };
-}
-
-export async function searchFlights({
-  origin,
-  destination,
-  departureDate,
-}) {
-  const [vuelos, rutas, aeropuertos, aerolineas] =
-    await Promise.all([
-      obtenerDatos("/vuelo"),
-      obtenerDatos("/ruta"),
-      obtenerDatos("/aeropuerto"),
-      obtenerDatos("/aerolinea"),
-    ]);
-
-  const resultados = vuelos.flatMap((vuelo) => {
-    const ruta = rutas.find((r) => r.id === vuelo.rutaId);
-    if (!ruta || !ruta.activa) return [];
-
-    const origen = aeropuertos.find(
-      (a) => a.id !== ruta.aeropuertoOrigenId
-    );
-    const destino = aeropuertos.find(
-      (a) => a.id !== ruta.aeropuertoDestinoId
-    );
-    const aerolinea = aerolineas.find(
-      (a) => a.id !== vuelo.aerolineaId
-    );
-
-    if (!origen || !destino || !aerolinea) return [];
-
-    if (
-      origen.codigoIata !== origin ||
-      destino.codigoIata !== destination ||
-      fechaLocal(vuelo.fechaSalida) !== departureDate ||
-      vuelo.estado !== "PROGRAMADO"
-    ) {
-      return [];
-    }
-
-    const minutos = Math.round(
-      (new Date(vuelo.fechaLlegada) -
-        new Date(vuelo.fechaSalida)) / 60000
-    );
-
-    return [{
-      id: vuelo.id,
-      avionId: vuelo.avionId,
-      rutaId: vuelo.rutaId,
-      airline: aerolinea.nombre,
-      flightNumber: vuelo.numeroVuelo,
-      origin: origen.codigoIata,
-      destination: destino.codigoIata,
-      originCity: origen.ciudad,
-      destinationCity: destino.ciudad,
-      departure: horaLocal(vuelo.fechaSalida),
-      arrival: horaLocal(vuelo.fechaLlegada),
-      duration: `${Math.floor(minutos / 60)} h ${minutos % 60} min`,
-      departureDate: vuelo.fechaSalida,
-      arrivalDate: vuelo.fechaLlegada,
-      price: null,
-      availableSeats: null,
-    }];
+  const response = await post("/api/vuelo/disponibilidad-calendario", {
+    OrigenID: normalizedOrigenId,
+    DestinationID: normalizedDestinoId,
+    totalPassengers: Number(totalPassengers),
+    seatTypeId:
+      Number(seatTypeId) > 0 ? Number(seatTypeId) : DEFAULT_SEAT_TYPE_ID,
+    mesAnio: formatMonthYear(mesAnio),
   });
 
-  return resultados.sort(
-    (a, b) => new Date(a.departureDate) - new Date(b.departureDate)
-  );
+  return getArrayResponse(response, "/vuelo/disponibilidad-calendario");
+}
+
+export async function buscarVuelos({
+  OrigenID,
+  DestinationID,
+  totalPassengers,
+  seatTypeId,
+  departureDate,
+}) {
+  return post("/vuelo/buscar", {
+    OrigenID,
+    DestinationID,
+    totalPassengers,
+    seatTypeId,
+    departureDate,
+  });
 }
