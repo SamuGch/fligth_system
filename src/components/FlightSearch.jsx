@@ -18,12 +18,10 @@ import PassengerClassSelector from "./PassengerClassSelector";
 function formatSearchDate(value, placeholder) {
   if (!value) return placeholder;
 
-  const [year, month, day] = value.split("-").map(Number);
+  const [year, month, day] = value.split("-");
 
-  return new Date(year, month - 1, day).toLocaleDateString("es-GT", {
-    day: "2-digit",
-    month: "short",
-  });
+  // Formato visual anterior: DD/MM/YYYY. El valor de la API sigue siendo YYYY-MM-DD.
+  return `${day}/${month}/${year}`;
 }
 
 function normalizeCalendarDates(data) {
@@ -340,23 +338,23 @@ export default function FlightSearch() {
           onClick={() => {
             activateDropdown(dropdown);
           }}
-          className={`flex w-full min-w-0 items-center gap-2 rounded-2xl border bg-white px-3 ${isExpanded ? "py-3" : "py-1.5"} text-left transition-all duration-200 focus-visible:outline-2 focus-visible:outline-[#3b2b7a] ${
+          className={`flex h-[66px] w-full min-w-0 items-center gap-2 rounded-2xl border bg-white px-3 py-2.5 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3333CC]/20 ${
             isOpen
-              ? "border-[#3b2b7a] ring-2 ring-[#3b2b7a]/10"
-              : "border-[#DCE3EF] hover:border-[#3b2b7a]"
+              ? "border-[#3333CC] ring-2 ring-[#3333CC]/10"
+              : "border-[#DCE3EF] hover:border-[#3333CC] hover:bg-indigo-50/30"
           } ${
             isDisabled
               ? "cursor-not-allowed opacity-50"
               : "cursor-pointer"
           }`}
         >
-          <CalendarDays className="mr-2 h-8 w-8 flex-shrink-0 text-gray-500" />
+          <CalendarDays className="h-7 w-7 shrink-0 text-[#455675]" />
           <span className="flex min-w-0 flex-1 flex-col justify-center text-left">
-            <span className="mb-1 block text-[11px] font-medium uppercase tracking-wider leading-none text-gray-400">
+            <span className="mb-1 block text-xs font-normal normal-case tracking-normal leading-tight text-[#8292B0]">
               {label}
             </span>
             <span
-              className={`block min-w-0 truncate whitespace-nowrap text-sm font-semibold leading-none ${
+              className={`block min-w-0 truncate whitespace-nowrap text-[14px] font-semibold leading-tight ${
                 value ? "text-[#101936]" : "text-[#64748B]"
               }`}
             >
@@ -409,7 +407,7 @@ export default function FlightSearch() {
       <div
         className={
           isExpanded
-            ? `fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-2 pt-8 backdrop-blur-sm transition-opacity duration-300 ease-out sm:px-4 sm:pt-14 ${
+            ? `fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#151339]/55 px-2 pt-8 backdrop-blur-[6px] transition-opacity duration-300 ease-out sm:px-4 sm:pt-14 ${
                 isExpansionVisible
                   ? "opacity-100"
                   : "pointer-events-none opacity-0"
@@ -435,12 +433,12 @@ export default function FlightSearch() {
           className={`relative z-50 ${
             isExpanded
               ? "w-full"
-              : "mt-0 md:-mt-16 lg:-mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25"
+              : "-mt-42 sm:-mt-8 md:-mt-16 lg:-mt-23 mx-4 sm:mx-6 lg:mx-12 xl:mx-25"
           }`}
         >
-          <div className={`relative mx-auto w-full rounded-3xl border border-white/70 bg-white px-3 py-1.5 shadow-[0_15px_45px_rgba(51,51,153,0.25),0_0_35px_rgba(140,155,255,0.25)] ${
+          <div className={`relative mx-auto w-full rounded-[32px] border border-white/80 bg-white px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-5 shadow-[0_18px_55px_rgba(51,51,153,0.20),0_0_30px_rgba(140,155,255,0.14)] ${
             isExpanded
-              ? "w-[calc(100%-1.5rem)] max-w-[96vw] rounded-3xl p-4 shadow-2xl transition-all duration-300 ease-out sm:w-[calc(100%-3rem)] sm:p-6"
+              ? "w-[calc(100%-1.5rem)] max-w-[96vw] rounded-[32px] p-4 shadow-[0_20px_65px_rgba(51,51,153,0.28)] transition-all duration-300 ease-out sm:w-[calc(100%-3rem)] sm:p-6"
               : ""
           }`}>
             {isExpanded && (
@@ -448,25 +446,25 @@ export default function FlightSearch() {
                 type="button"
                 onClick={closeExpandedSearch}
                 aria-label="Cerrar búsqueda enfocada"
-                className="absolute right-4 top-4 z-50 flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-violet-50 hover:text-[#3b2b7a] focus-visible:outline-2 focus-visible:outline-[#3b2b7a]"
+                className="absolute right-4 top-4 z-50 flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-indigo-50 hover:text-[#333399] focus-visible:outline-2 focus-visible:outline-[#3333CC]"
               >
                 <span aria-hidden="true" className="text-xl leading-none">✕</span>
               </button>
             )}
             {/* Top Row: Selectors */}
-            <div className={`flex items-center gap-3 border-b border-gray-100 ${isExpanded ? "mb-4 pb-4" : "mb-2 pb-2"}`}>
+            <div className="mb-3 flex items-center gap-3 border-b border-[#E7EBF3] pb-3">
               {/* Selector de tipo de viaje */}
               <div className="w-full sm:w-auto">
                 <div
                   role="group"
                   aria-label="Tipo de viaje"
                   className="
-                    flex w-70
+                    flex w-full max-w-[290px] sm:w-[290px]
                     items-center
                     rounded-full
-                    bg-[#eeebf5]
+                    bg-[#E9E6F7]
                     p-1
-                    shadow-inner
+                    shadow-[inset_0_1px_2px_rgba(51,51,153,0.08)]
                   "
                 >
                   {/* Ida y vuelta */}
@@ -484,14 +482,14 @@ export default function FlightSearch() {
                       flex-1
                       min-w-0
                       rounded-full
-                      px-3 py-2
-                      text-xs sm:text-sm
+                      px-3 sm:px-4 py-2 sm:py-2.5
+                      text-[13px] sm:text-sm
                       whitespace-nowrap
                       transition-all duration-300 ease-in-out
                       ${
                         searchData.tripType === "round"
-                          ? "bg-[#3b2b7a] text-white font-semibold shadow-md"
-                          : "bg-transparent text-[#3b2b7a]/70 font-normal hover:text-[#3b2b7a]"
+                          ? "bg-[#333399] text-white font-semibold shadow-[0_6px_16px_rgba(51,51,153,0.22)]"
+                          : "bg-transparent text-[#333399]/75 font-normal hover:text-[#333399]"
                       }
                     `}
                   >
@@ -514,14 +512,14 @@ export default function FlightSearch() {
                       flex-1
                       min-w-0
                       rounded-full
-                      px-3 py-2
-                      text-xs sm:text-sm
+                      px-3 sm:px-4 py-2 sm:py-2.5
+                      text-[13px] sm:text-sm
                       whitespace-nowrap
                       transition-all duration-300 ease-in-out
                       ${
                         searchData.tripType === "one"
-                          ? "bg-white text-[#3b2b7a] font-semibold shadow-md"
-                          : "bg-transparent text-[#3b2b7a]/70 font-normal hover:text-[#3b2b7a]"
+                          ? "bg-[#333399] text-white font-semibold shadow-[0_6px_16px_rgba(51,51,153,0.22)]"
+                          : "bg-transparent text-[#333399]/75 font-normal hover:text-[#333399]"
                       }
                     `}
                   >
@@ -529,129 +527,27 @@ export default function FlightSearch() {
                   </button>
                 </div>
               </div>
-              {/* Pasajeros 
-            <div className="flex items-center gap-2">
-            <label className="text-sm text-slate-600">
-                Pasajeros
-            </label>
 
-            <select
-                value={searchData.passengers}
-                onChange={(e) =>
-                updateSearch("passengers", Number(e.target.value))
-                }
-                className="rounded-full px-4 py-2.5 bg-slate-50
-                        text-slate-700 text-sm cursor-pointer"
-            >
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((number) => (
-                <option key={number} value={number}>
-                    {number}
-                </option>
-                ))}
-            </select>
-            </div>*/}
 
-              {/* Clase 
-            <div className="flex items-center gap-2">
-            <label className="text-sm text-slate-600">
-                Clase
-            </label>
 
-            <select
-                value={searchData.seatClass}
-                onChange={(e) =>
-                updateSearch("seatClass", e.target.value)
-                }
-                className="rounded-full px-4 py-2.5 bg-slate-50
-                        text-slate-700 text-sm cursor-pointer"
-            >
-                <option value="Economica">Económica</option>
-                <option value="Business">Business</option>
-            </select>
-            </div>
 
-                    className={`w-5 h-5 transition-transform ${tripTypeOpen ? "rotate-180" : ""
-                      }`}
-                  />
-                </button>
 
-                {tripTypeOpen && (
-                  <div className="absolute left-0 top-full mt-2 w-43 bg-purple-50 rounded-[10px] shadow-xl border border-purple-300 py-2 z-50 flex flex-col">
-                    <button type="button" onClick={() => {
-                      updateSearch("tripType", "round"); setTripTypeOpen(false);
-                    }}
-                    >
-                      Ida y vuelta
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateSearch("tripType", "one");
-                        setTripTypeOpen(false);
-                      }}
-                    >
-                      Solo ida
-                    </button>
-
-                  </div>
-                )}
-              </div>
-
-              {/* Pasajeros 
-            <div className="flex items-center gap-2">
-            <label className="text-sm text-slate-600">
-                Pasajeros
-            </label>
-
-            <select
-                value={searchData.passengers}
-                onChange={(e) =>
-                updateSearch("passengers", Number(e.target.value))
-                }
-                className="rounded-full px-4 py-2.5 bg-slate-50
-                        text-slate-700 text-sm cursor-pointer"
-            >
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((number) => (
-                <option key={number} value={number}>
-                    {number}
-                </option>
-                ))}
-            </select>
-            </div>*/}
-
-              {/* Clase 
-            <div className="flex items-center gap-2">
-            <label className="text-sm text-slate-600">
-                Clase
-            </label>
-
-            <select
-                value={searchData.seatClass}
-                onChange={(e) =>
-                updateSearch("seatClass", e.target.value)
-                }
-                className="rounded-full px-4 py-2.5 bg-slate-50
-                        text-slate-700 text-sm cursor-pointer"
-            >
-                <option value="Economica">Económica</option>
-                <option value="Business">Business</option>
-            </select>
-            </div>
-
-          </div>*/}
             </div>
 
             {/* Bottom Row: Inputs */}
             <div
-              className={`grid w-full min-w-0 grid-cols-1 items-center gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-12 ${isExpanded ? "lg:gap-3" : ""}`}
+              className={`grid w-full min-w-0 grid-cols-1 items-center gap-3 sm:grid-cols-2 lg:grid-cols-3 ${
+                searchData.tripType === "round"
+                  ? "xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1.1fr)]"
+                  : "xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1.1fr)]"
+              }`}
             >
               {/* Origen */}
-              <div className="min-w-0 sm:col-span-1 lg:col-span-2">
+              <div className="min-w-0">
                 <AirportCombobox
                   label="Origen"
                   icon={PlaneTakeoff}
-                  compact={!isExpanded}
+                  compact={false}
                   airports={airports}
                   value={searchData.OrigenID}
                   active={activeDropdown === "origin"}
@@ -683,11 +579,11 @@ export default function FlightSearch() {
 
 
               {/* Destino */}
-              <div className="min-w-0 sm:col-span-1 lg:col-span-2">
+              <div className="min-w-0">
                 <AirportCombobox
                   label="Destino"
                   icon={PlaneLanding}
-                  compact={!isExpanded}
+                  compact={false}
                   airports={airports.filter((airport) => Number(airport.id) !== Number(searchData.OrigenID))}
                   value={searchData.DestinationID}
                   active={activeDropdown === "destination"}
@@ -715,16 +611,16 @@ export default function FlightSearch() {
 
 
               {/* Salida */}
-              {renderDateSelector("departure", "Salida", searchData.departureDate, "Selecciona tu salida", "lg:col-span-2")}
+              {renderDateSelector("departure", "Salida", searchData.departureDate, "dd/mm/yyyy", "")}
 
               {/* Regreso */}
               {searchData.tripType === "round" &&
-                renderDateSelector("return", "Regreso", searchData.returnDate, "Selecciona tu regreso", "lg:col-span-2")}
+                renderDateSelector("return", "Regreso", searchData.returnDate, "dd/mm/yyyy", "")}
 
-              <div className="min-w-0 lg:col-span-2">
+              <div className="min-w-0">
                 <PassengerClassSelector
                   value={searchData}
-                  compact={!isExpanded}
+                  compact={false}
                   active={activeDropdown === "passengers"}
                   onFocus={() => activateDropdown("passengers")}
                   onClose={() => setActiveDropdown(null)}
@@ -750,7 +646,7 @@ export default function FlightSearch() {
                   openExpandedSearch();
                   void handleSearch();
                 }}
-                className={`btn-primary min-w-0 w-full rounded-full px-5 ${isExpanded ? "min-h-[52px] py-3" : "py-1.5"} disabled:opacity-60 text-xs sm:text-sm shadow-lg shadow-violet-900/20 whitespace-nowrap lg:col-span-2`}
+                className="inline-flex h-[66px] w-full min-w-0 items-center justify-center gap-2 rounded-full bg-[#333399] px-3 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(51,51,153,0.24)] transition-all duration-200 hover:bg-[#2D2DA8] hover:shadow-[0_14px_28px_rgba(51,51,153,0.30)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3333CC]/40 disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap"
               >
                 {searching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                 <span className="font-semibold">{searching ? "Cargando..." : "Buscar vuelos"}</span>
