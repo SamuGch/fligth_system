@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -62,6 +62,22 @@ function flightsFrom(results, direction = "outbound") {
 
 function getReturnFlights(data) {
   return data?.outbound?.flights ?? data?.inbound?.flights ?? data?.flights ?? [];
+}
+
+function getStops(flight) {
+  if (Array.isArray(flight?.segments) && flight.segments.length > 1) {
+    return flight.segments.length - 1;
+  }
+  return Number(flight?.stops ?? flight?.escalas ?? 0) || 0;
+}
+
+function getAlternativeDates(data) {
+  return (
+    data?.outbound?.alternativeDates ??
+    data?.inbound?.alternativeDates ??
+    data?.alternativeDates ??
+    []
+  );
 }
 
 function getAirportLabel(searchData, flight, side) {
@@ -175,8 +191,7 @@ function FlightCard({ flight, selected, disabled, loading, onSelect }) {
   const metadata = getFlightMetadata(flight);
   const origin = formatFlightLocation(metadata.origin, flight.origin);
   const destination = formatFlightLocation(metadata.destination, flight.destination);
-  const segments = Array.isArray(flight.segments) ? flight.segments : [];
-  const stops = Math.max(segments.length - 1, 0);
+  const stops = getStops(flight);
 
   return (
     <article
@@ -288,34 +303,38 @@ export default function FlightSelectionPage() {
     if (!initialSearchData) navigate("/", { replace: true });
   }, [initialSearchData, navigate]);
 
+  const fetchReturnFlights = useCallback(async (data) => {
+    const response = await buscarVuelos({
+      ...data,
+      OrigenID: data.DestinationID,
+      DestinationID: data.OrigenID,
+      departureDate: data.returnDate,
+    });
+
+    return {
+      flights: getReturnFlights(response),
+      alternativeDates: getAlternativeDates(response),
+    };
+  }, []);
+
   useEffect(() => {
     if (
-      initialSearchData?.tripType !== "round" ||
-      !initialSearchData?.returnDate ||
+      searchData.tripType !== "round" ||
+      !searchData.returnDate ||
       !loadingReturn
     ) return;
     let active = true;
-    buscarVuelos({
-      ...initialSearchData,
-      OrigenID: initialSearchData.DestinationID,
-      DestinationID: initialSearchData.OrigenID,
-      departureDate: initialSearchData.returnDate,
-    })
-      .then((response) => {
+    fetchReturnFlights(searchData)
+      .then(({ flights, alternativeDates: nextAlternativeDates }) => {
         if (active) {
-          setReturnFlights(getReturnFlights(response));
-          setReturnAlternativeDates(
-            response?.outbound?.alternativeDates ??
-            response?.inbound?.alternativeDates ??
-            response?.alternativeDates ??
-            [],
-          );
+          setReturnFlights(flights);
+          setReturnAlternativeDates(nextAlternativeDates);
         }
       })
       .catch((requestError) => { if (active) setError(requestError.message || "No se pudieron cargar los vuelos de regreso."); })
       .finally(() => { if (active) setLoadingReturn(false); });
     return () => { active = false; };
-  }, [initialSearchData, loadingReturn]);
+  }, [fetchReturnFlights, loadingReturn, searchData]);
 
   const selectOutbound = (flight) => {
     if (selectingFlightKey) return;
@@ -334,20 +353,11 @@ export default function FlightSelectionPage() {
     setError("");
     try {
       const nextSearchData = { ...searchData, returnDate: date };
-      const response = await buscarVuelos({
-        ...nextSearchData,
-        OrigenID: nextSearchData.DestinationID,
-        DestinationID: nextSearchData.OrigenID,
-        departureDate: date,
-      });
+      const { flights, alternativeDates: nextAlternativeDates } =
+        await fetchReturnFlights(nextSearchData);
       setSearchData(nextSearchData);
-      setReturnFlights(getReturnFlights(response));
-      setReturnAlternativeDates(
-        response?.outbound?.alternativeDates ??
-        response?.inbound?.alternativeDates ??
-        response?.alternativeDates ??
-        [],
-      );
+      setReturnFlights(flights);
+      setReturnAlternativeDates(nextAlternativeDates);
       setSelectedReturn(null);
     } catch (requestError) {
       setError(requestError.message || "No se pudieron consultar los vuelos de regreso.");
@@ -382,15 +392,48 @@ export default function FlightSelectionPage() {
     setLoadingDate(date);
     setError("");
     try {
-      const nextSearchData = { ...searchData, departureDate: date };
+      const requestedReturnDate =
+        searchData.tripType === "round" &&
+        searchData.returnDate &&
+        searchData.returnDate > date
+          ? searchData.returnDate
+          : "";
+      const nextReturnDate =
+        requestedReturnDate ||
+        returnAlternativeDates
+          .map((option) => option?.departureDate)
+          .filter((option) => option && option > date)
+          .sort()[0] ||
+        "";
+      const effectiveTripType =
+        searchData.tripType === "round" && nextReturnDate
+          ? "round"
+          : searchData.tripType;
+      const nextSearchData = {
+        ...searchData,
+        departureDate: date,
+        returnDate: nextReturnDate,
+      };
+      nextSearchData.tripType = effectiveTripType;
+      nextSearchData.returnDate = nextReturnDate;
       const response = await buscarVuelos(nextSearchData);
       setSearchData(nextSearchData);
       setSearchResults(response);
       setSelectedOutbound(null);
       setSelectedReturn(null);
       setStep("outbound");
-      setAlternativeDates(response?.outbound?.alternativeDates ?? response?.alternativeDates ?? alternativeDates);
-      navigate("/seleccion-vuelos", { replace: true, state: { searchData: nextSearchData, searchResults: response, alternativeDates } });
+      setAlternativeDates(getAlternativeDates(response));
+      setReturnFlights([]);
+      setReturnAlternativeDates([]);
+      setLoadingReturn(Boolean(nextReturnDate));
+      navigate("/seleccion-vuelos", {
+        replace: true,
+        state: {
+          searchData: nextSearchData,
+          searchResults: response,
+          alternativeDates: getAlternativeDates(response),
+        },
+      });
     } catch (requestError) {
       setError(requestError.message || "No se pudieron consultar los vuelos para esta fecha.");
     } finally {
