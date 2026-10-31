@@ -154,11 +154,12 @@ function DateRibbon({ dates, selectedDate, loadingDate, onSelect }) {
             key={option.departureDate}
             type="button"
             disabled={selected || Boolean(loadingDate)}
+            aria-pressed={selected}
             onClick={() => onSelect(option.departureDate)}
-            className={`min-w-36 rounded-2xl border border-white/70 bg-white/90 px-4 py-3 text-center text-slate-800 shadow-sm backdrop-blur-md transition ${
+            className={`min-w-36 rounded-2xl border px-4 py-3 text-center shadow-sm backdrop-blur-md transition ${
               selected
-                ? "border-[#3b2b7a] bg-[#f0ecfa] text-[#3b2b7a] shadow-md"
-                : "text-slate-600 hover:-translate-y-0.5 hover:border-[#3b2b7a]/50"
+                ? "border-[#3b2b7a] bg-[#3b2b7a] text-white shadow-md ring-2 ring-[#3b2b7a]/20"
+                : "border-white/70 bg-white/90 text-slate-600 hover:-translate-y-0.5 hover:border-[#3b2b7a]/50"
             } disabled:cursor-default`}
           >
             {loading ? (
@@ -308,7 +309,13 @@ export default function FlightSelectionPage() {
   const initialSearchData = location.state?.searchData;
   const [searchData, setSearchData] = useState(initialSearchData ?? {});
   const [searchResults, setSearchResults] = useState(location.state?.searchResults ?? {});
-  const [alternativeDates, setAlternativeDates] = useState(location.state?.alternativeDates ?? []);
+  const [alternativeDates, setAlternativeDates] = useState(() =>
+    normalizeDateOptions(
+      location.state?.alternativeDates?.length
+        ? location.state.alternativeDates
+        : getAlternativeDates(location.state?.searchResults),
+    ),
+  );
   const [selectedOutbound, setSelectedOutbound] = useState(
     location.state?.outboundFlight ?? null,
   );
@@ -343,6 +350,7 @@ export default function FlightSelectionPage() {
   const [loadingDate, setLoadingDate] = useState("");
   const [error, setError] = useState("");
   const [selectingFlightKey, setSelectingFlightKey] = useState("");
+  const dateRequestId = useRef(0);
 
   const outboundFlights = useMemo(() => flightsFrom(searchResults), [searchResults]);
   const outboundOrigin = getAirportLabel(searchData, outboundFlights[0], "origin");
@@ -439,8 +447,8 @@ export default function FlightSelectionPage() {
       return;
     }
 
-    const requestId = returnRequestId.current + 1;
-    returnRequestId.current = requestId;
+    const requestId = dateRequestId.current + 1;
+    dateRequestId.current = requestId;
     setLoadingDate(date);
     setError("");
     setReturnStatus("loading");
@@ -448,7 +456,7 @@ export default function FlightSelectionPage() {
       const nextSearchData = { ...searchData, returnDate: date };
       const { flights, alternativeDates: nextAlternativeDates } =
         await fetchReturnFlights(nextSearchData);
-      if (returnRequestId.current !== requestId) return;
+      if (dateRequestId.current !== requestId) return;
       setSearchData(nextSearchData);
       setReturnFlights(flights);
       setReturnAlternativeDates(
@@ -457,11 +465,11 @@ export default function FlightSelectionPage() {
       setSelectedReturn(null);
       setReturnStatus("loaded");
     } catch (requestError) {
-      if (returnRequestId.current !== requestId) return;
+      if (dateRequestId.current !== requestId) return;
       setReturnStatus("error");
       setError(requestError.message || "No se pudieron consultar los vuelos de regreso.");
     } finally {
-      if (returnRequestId.current === requestId) setLoadingDate("");
+      if (dateRequestId.current === requestId) setLoadingDate("");
     }
   };
 
@@ -500,8 +508,8 @@ window.setTimeout(() => setSelectingFlightKey(""), 250);
   };
 
   const selectAlternativeDate = async (date) => {
-    const requestId = returnRequestId.current + 1;
-    returnRequestId.current = requestId;
+    const requestId = dateRequestId.current + 1;
+    dateRequestId.current = requestId;
     setLoadingDate(date);
     setError("");
     try {
@@ -525,7 +533,7 @@ window.setTimeout(() => setSelectingFlightKey(""), 250);
         tripType: searchData.tripType,
       };
       const response = await buscarVuelos(nextSearchData);
-      if (returnRequestId.current !== requestId) return;
+      if (dateRequestId.current !== requestId) return;
       let nextReturnAlternativeDates = normalizeDateOptions(
         getInboundAlternativeDates(response),
         date,
@@ -540,6 +548,7 @@ window.setTimeout(() => setSelectingFlightKey(""), 250);
           nextSearchData.OrigenID,
           { totalPassengers: nextSearchData.totalPassengers },
         );
+        if (dateRequestId.current !== requestId) return;
         nextReturnAlternativeDates = normalizeDateOptions(dates, date);
       }
       setSearchData(nextSearchData);
@@ -547,7 +556,10 @@ window.setTimeout(() => setSelectingFlightKey(""), 250);
       setSelectedOutbound(null);
       setSelectedReturn(null);
       setStep("outbound");
-      setAlternativeDates(getAlternativeDates(response));
+      const nextAlternativeDates = normalizeDateOptions(
+        getAlternativeDates(response),
+      );
+      setAlternativeDates(nextAlternativeDates);
       setReturnFlights(nextReturnFlights);
       setReturnAlternativeDates(nextReturnAlternativeDates);
       setLoadingReturn(false);
@@ -563,14 +575,15 @@ window.setTimeout(() => setSelectingFlightKey(""), 250);
         state: {
           searchData: nextSearchData,
           searchResults: response,
-          alternativeDates: getAlternativeDates(response),
+          alternativeDates: nextAlternativeDates,
           returnAlternativeDates: nextReturnAlternativeDates,
         },
       });
     } catch (requestError) {
+      if (dateRequestId.current !== requestId) return;
       setError(requestError.message || "No se pudieron consultar los vuelos para esta fecha.");
     } finally {
-      if (returnRequestId.current === requestId) setLoadingDate("");
+      if (dateRequestId.current === requestId) setLoadingDate("");
     }
   };
 
