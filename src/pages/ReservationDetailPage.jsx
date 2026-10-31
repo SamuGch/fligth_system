@@ -293,13 +293,13 @@ export default function ReservationDetailPage() {
         <ArrowLeft size={19} /> Volver a mis viajes
       </button>
       <div className="space-y-6">
-        <section className="rounded-3xl border border-white/20 bg-slate-950/85 p-5 text-white shadow-[0_20px_55px_rgba(15,23,42,0.22)] backdrop-blur-xl sm:p-7">
+        <section className="rounded-3xl border border-violet-200/80 bg-white/90 p-5 text-slate-900 shadow-[0_20px_55px_rgba(59,43,122,0.12)] backdrop-blur-xl sm:p-7">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-200">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-700">
                 Reserva #{trip.reserva_id}
               </p>
-              <h1 className="mt-2 text-2xl font-black sm:text-3xl">
+              <h1 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">
                 Detalles de tu viaje
               </h1>
             </div>
@@ -321,30 +321,30 @@ export default function ReservationDetailPage() {
                   <XCircle size={18} /> Cancelar reserva
                 </button>
               )}
-              <button type="button" disabled={downloadingTicket} onClick={() => void handleDownloadTicket()} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-white/15 px-4 text-sm font-bold text-white transition hover:bg-white/25 disabled:cursor-wait disabled:opacity-70 sm:w-auto">
+              <button type="button" disabled={downloadingTicket} onClick={() => void handleDownloadTicket()} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-violet-800 disabled:cursor-wait disabled:opacity-70 sm:w-auto">
                 {downloadingTicket ? <><LoaderCircle className="animate-spin" size={18} /> Generando boleto...</> : <><Download size={18} /> Descargar boleto</>}
               </button>
             </div>
           </div>
-          <div className="mt-7 grid grid-cols-1 justify-items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 sm:grid-cols-[1fr_auto_1fr] sm:justify-items-stretch sm:p-5">
+          <div className="mt-7 grid grid-cols-1 justify-items-center gap-3 rounded-2xl border border-violet-100 bg-violet-50/70 p-4 sm:grid-cols-[1fr_auto_1fr] sm:justify-items-stretch sm:p-5">
             <div className="text-center sm:text-left">
-              <p className="text-3xl font-black text-white sm:text-4xl">
+              <p className="text-3xl font-black text-[#3b2b7a] sm:text-4xl">
                 {displayRoute.origin?.codigo_iata || "---"}
               </p>
-              <p className="mt-1 text-xs text-slate-300 sm:text-sm">
+              <p className="mt-1 text-xs text-slate-600 sm:text-sm">
                 {displayRoute.origin?.ciudad || "Origen"}
               </p>
             </div>
-            <div className="flex items-center justify-center gap-2 text-[#7455df]">
-              <span className="hidden h-px w-10 bg-[#7455df]/30 sm:block" />
+            <div className="flex items-center justify-center gap-2 text-violet-600">
+              <span className="hidden h-px w-10 bg-violet-300 sm:block" />
               <Plane size={25} />
-              <span className="hidden h-px w-10 bg-[#7455df]/30 sm:block" />
+              <span className="hidden h-px w-10 bg-violet-300 sm:block" />
             </div>
             <div className="text-center sm:text-right">
-              <p className="text-3xl font-black text-white sm:text-4xl">
+              <p className="text-3xl font-black text-[#3b2b7a] sm:text-4xl">
                 {displayRoute.destination?.codigo_iata || "---"}
               </p>
-              <p className="mt-1 text-xs text-slate-300 sm:text-sm">
+              <p className="mt-1 text-xs text-slate-600 sm:text-sm">
                 {displayRoute.destination?.ciudad || "Destino"}
               </p>
             </div>

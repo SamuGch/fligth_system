@@ -233,12 +233,11 @@ function FlightCard({ flight, selected, disabled, loading, onSelect }) {
       )}
 
       <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-3">
-        <p className="text-lg font-bold text-[#3b2b7a]">{formatPrice(flightPrice(flight))}</p>
         <button type="button" disabled={disabled} onClick={() => onSelect(flight)}
           className={`btn-primary flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-3 font-semibold ${
             selected ? "bg-emerald-600" : "bg-[#3b2b7a] hover:bg-[#2c205e]"
           } disabled:cursor-not-allowed`}>
-          {loading ? <><Loader2 size={17} className="animate-spin" /> Cargando...</> : selected ? <><Check size={17} /> Seleccionado</> : <><Plane size={17} /> Seleccionar</>}
+          {loading ? <><Loader2 size={17} className="animate-spin" /> Cargando...</> : selected ? <><Check size={17} /> Seleccionar</> : <><Plane size={17} /> Seleccionar</>}
         </button>
       </div>
     </article>
@@ -279,11 +278,25 @@ export default function FlightSelectionPage() {
   const [loadingDate, setLoadingDate] = useState("");
   const [error, setError] = useState("");
   const [selectingFlightKey, setSelectingFlightKey] = useState("");
-  const [continuing, setContinuing] = useState(false);
 
   const outboundFlights = useMemo(() => flightsFrom(searchResults), [searchResults]);
   const outboundOrigin = getAirportLabel(searchData, outboundFlights[0], "origin");
   const outboundDestination = getAirportLabel(searchData, outboundFlights[0], "destination");
+
+  const navigateToSeats = (outboundFlight, returnFlight = null) => {
+    navigate("/seleccion-asientos", {
+      state: {
+        outboundFlight,
+        returnFlight,
+        searchData,
+        searchResults,
+        alternativeDates,
+        returnFlights,
+        returnAlternativeDates,
+      },
+    });
+  };
+
   useEffect(() => {
     if (!initialSearchData) navigate("/", { replace: true });
   }, [initialSearchData, navigate]);
@@ -325,6 +338,7 @@ export default function FlightSelectionPage() {
       setStep("inbound");
     } else {
       setSelectedReturn(null);
+      navigateToSeats(flight);
     }
     window.setTimeout(() => setSelectingFlightKey(""), 250);
   };
@@ -360,22 +374,7 @@ export default function FlightSelectionPage() {
     if (selectingFlightKey) return;
     setSelectingFlightKey(flightKey(flight));
     setSelectedReturn(flight);
-    window.setTimeout(() => setSelectingFlightKey(""), 250);
-  };
-
-  const continueToSeats = () => {
-    if (continuing) return;
-    setContinuing(true);
-    const state = {
-      outboundFlight: selectedOutbound,
-      returnFlight: selectedReturn,
-      searchData,
-      searchResults,
-      alternativeDates,
-      returnFlights,
-      returnAlternativeDates,
-    };
-    navigate("/seleccion-asientos", { state });
+    navigateToSeats(selectedOutbound, flight);
   };
 
   const selectAlternativeDate = async (date) => {
@@ -398,7 +397,6 @@ export default function FlightSelectionPage() {
     }
   };
 
-  const canContinue = Boolean(selectedOutbound) && (searchData.tripType !== "round" || Boolean(selectedReturn));
   const subtotal = flightPrice(selectedOutbound) + flightPrice(selectedReturn);
   const currentPrice = outboundFlights.length ? Math.min(...outboundFlights.map(flightPrice)) : null;
   const outboundDateOptions = [...alternativeDates.filter((item) => item?.departureDate !== searchData.departureDate), ...(searchData.departureDate ? [{ departureDate: searchData.departureDate, price: currentPrice }] : [])].sort((a, b) => a.departureDate.localeCompare(b.departureDate));
@@ -425,7 +423,6 @@ export default function FlightSelectionPage() {
       className="min-h-screen overflow-x-hidden bg-cover bg-center bg-fixed font-sans text-slate-800"
       style={{ backgroundImage: 'url("/allFonts.png")' }}
     >
-      <div className="fixed inset-0 z-0 bg-white/35 backdrop-blur-md pointer-events-none"></div>
       <MainNavbar className="!fixed !left-4 !right-4 !top-3 !mx-0 sm:!left-6 sm:!right-6 sm:!top-5 lg:!left-12 lg:!right-12 xl:!left-25 xl:!right-25" />
       <main className="relative z-10 mx-auto max-w-5xl px-4 pb-8 pt-28 sm:px-6 sm:pt-32 lg:px-8 lg:pb-32">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -531,7 +528,7 @@ export default function FlightSelectionPage() {
         )}
       </main>
 
-      <aside className="static lg:fixed lg:bottom-0 lg:left-0 lg:right-0 z-40 mt-6 rounded-2xl border border-white/15 bg-slate-950/80 p-2.5 text-white shadow-[0_12px_30px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:rounded-full sm:p-3 lg:mt-0">
+      {/*<aside className="static lg:fixed lg:bottom-0 lg:left-0 lg:right-0 z-40 mt-6 rounded-2xl border border-white/15 bg-slate-950/80 p-2.5 text-white shadow-[0_12px_30px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:rounded-full sm:p-3 lg:mt-0">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 lg:px-6">
           <div className="min-w-0">
             <p className="text-sm text-slate-300">Resumen de compra</p>
@@ -539,10 +536,12 @@ export default function FlightSelectionPage() {
           </div>
           <div className="flex items-center justify-between gap-5 sm:justify-end">
             <p className="text-xl font-bold text-white">${subtotal.toFixed(2)} USD</p>
+            
             <button type="button" disabled={!canContinue || continuing} onClick={continueToSeats} className="btn-secondary flex min-h-9 items-center gap-2 rounded-full px-4 py-2 font-semibold shadow-lg disabled:opacity-50">{continuing ? <><Loader2 size={17} className="animate-spin" /> Cargando...</> : <>Continuar a selección de asientos <ChevronRight size={17} /></>}</button>
+            
           </div>
         </div>
-      </aside>
+      </aside>*/}
     </div>
   );
 }
