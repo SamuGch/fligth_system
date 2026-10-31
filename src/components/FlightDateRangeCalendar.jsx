@@ -240,7 +240,7 @@ export default function FlightDateRangeCalendar({
     >
       {isLoading && (
         <div className="mb-4 flex items-center justify-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">
-          <span className="h-3 w-3 animate-spin rounded-full border-2 border-[#3333CC]/30 border-t-[#3333CC]" />
+          <span className="h-3 w-3 animate-spin rounded-full border-2 border-[#3b2b7a]/30 border-t-[#3b2b7a]" />
           Consultando fechas disponibles...
         </div>
       )}
@@ -266,7 +266,7 @@ export default function FlightDateRangeCalendar({
           <button
             type="button"
             onClick={goToNextAvailableDate}
-            className="ml-2 shrink-0 text-xs font-semibold text-blue-700 underline hover:text-blue-900"
+            className="ml-2 shrink-0 text-xs font-semibold text-[#3b2b7a] underline hover:text-[#2b205c]"
           >
             Ver fecha próxima
           </button>
@@ -279,7 +279,7 @@ export default function FlightDateRangeCalendar({
           disabled={previousDisabled}
           onClick={() => changeMonth(-1)}
           aria-label="Mes anterior"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-all duration-150 hover:border-blue-200 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-30"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-all duration-150 hover:border-violet-300 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -290,7 +290,7 @@ export default function FlightDateRangeCalendar({
           type="button"
           onClick={() => changeMonth(1)}
           aria-label="Mes siguiente"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-all duration-150 hover:border-blue-200 hover:bg-blue-50"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-all duration-150 hover:border-violet-300 hover:bg-violet-50"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -306,7 +306,7 @@ export default function FlightDateRangeCalendar({
             onClick={handleClear}
             disabled={!departureDate && !returnDate}
             aria-label="Limpiar fechas"
-            className="rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-30"
+            className="rounded-full p-1.5 text-slate-400 transition hover:bg-violet-50 hover:text-[#3b2b7a] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <RotateCcw className="h-4 w-4" />
           </button>
@@ -369,10 +369,10 @@ export default function FlightDateRangeCalendar({
                 disabled
                   ? "pointer-events-none cursor-not-allowed bg-transparent text-gray-400 opacity-20"
                   : isSelected
-                    ? "bg-blue-900 text-white shadow-md shadow-blue-900/20"
+                    ? "bg-[#3b2b7a] text-white shadow-md shadow-violet-900/20"
                     : inRange
-                      ? "bg-blue-50 text-blue-900"
-                      : "cursor-pointer border border-blue-200/60 bg-blue-50/70 text-gray-900 hover:bg-blue-600 hover:text-white"
+                      ? "bg-[#f0ecfa] text-[#3b2b7a]"
+                      : "cursor-pointer border border-violet-200/60 bg-violet-50/70 text-gray-900 hover:bg-[#3b2b7a] hover:text-white"
               }`}
             >
               <span className={`text-sm font-bold ${!isSelected && !disabled ? "group-hover:text-white" : ""}`}>

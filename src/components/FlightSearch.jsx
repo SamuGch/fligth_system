@@ -335,10 +335,10 @@ export default function FlightSearch() {
           onClick={() => {
             activateDropdown(dropdown);
           }}
-          className={`flex w-full min-w-0 items-center gap-2 rounded-2xl border bg-white px-3 ${isExpanded ? "py-3" : "py-1.5"} text-left transition-all duration-200 focus-visible:outline-2 focus-visible:outline-[#3333CC] ${
+          className={`flex w-full min-w-0 items-center gap-2 rounded-2xl border bg-white px-3 ${isExpanded ? "py-3" : "py-1.5"} text-left transition-all duration-200 focus-visible:outline-2 focus-visible:outline-[#3b2b7a] ${
             isOpen
-              ? "border-[#3333CC] ring-2 ring-[#3333CC]/10"
-              : "border-[#DCE3EF] hover:border-[#3333CC]"
+              ? "border-[#3b2b7a] ring-2 ring-[#3b2b7a]/10"
+              : "border-[#DCE3EF] hover:border-[#3b2b7a]"
           } ${
             isDisabled
               ? "cursor-not-allowed opacity-50"
@@ -443,7 +443,7 @@ export default function FlightSearch() {
                 type="button"
                 onClick={closeExpandedSearch}
                 aria-label="Cerrar búsqueda enfocada"
-                className="absolute right-4 top-4 z-50 flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-[#3333CC]"
+                className="absolute right-4 top-4 z-50 flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-violet-50 hover:text-[#3b2b7a] focus-visible:outline-2 focus-visible:outline-[#3b2b7a]"
               >
                 <span aria-hidden="true" className="text-xl leading-none">✕</span>
               </button>
@@ -485,8 +485,8 @@ export default function FlightSearch() {
                       transition-all duration-300 ease-in-out
                       ${
                         searchData.tripType === "round"
-                          ? "bg-slate-950/80 text-white font-semibold shadow-md backdrop-blur-xl"
-                          : "bg-transparent text-slate-700/70 font-normal hover:text-slate-950"
+                          ? "bg-white text-[#3b2b7a] font-semibold shadow-md"
+                          : "bg-transparent text-[#3b2b7a]/70 font-normal hover:text-[#3b2b7a]"
                       }
                     `}
                   >
@@ -515,8 +515,8 @@ export default function FlightSearch() {
                       transition-all duration-300 ease-in-out
                       ${
                         searchData.tripType === "one"
-                          ? "bg-slate-950/80 text-white font-semibold shadow-md backdrop-blur-xl"
-                          : "bg-transparent text-slate-700/70 font-normal hover:text-slate-950"
+                          ? "bg-white text-[#3b2b7a] font-semibold shadow-md"
+                          : "bg-transparent text-[#3b2b7a]/70 font-normal hover:text-[#3b2b7a]"
                       }
                     `}
                   >
@@ -744,7 +744,7 @@ export default function FlightSearch() {
                   openExpandedSearch();
                   handleSearch();
                 }}
-                className={`min-w-0 w-full rounded-full bg-slate-950/80 px-5 ${isExpanded ? "min-h-[52px] py-3" : "py-1.5"} text-white hover:bg-slate-900/90 flex items-center justify-center gap-3 text-xs sm:text-sm transition-colors shadow-lg shadow-slate-950/20 backdrop-blur-xl whitespace-nowrap lg:col-span-2`}
+                className={`min-w-0 w-full rounded-full bg-[#3b2b7a] px-5 ${isExpanded ? "min-h-[52px] py-3" : "py-1.5"} text-white hover:bg-[#2b205c] flex items-center justify-center gap-3 text-xs sm:text-sm transition-colors shadow-lg shadow-violet-900/20 whitespace-nowrap lg:col-span-2`}
               >
                 <Search className="w-5 h-5" />
                 <span className="font-semibold">Buscar vuelos</span>

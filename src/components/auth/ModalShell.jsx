@@ -67,12 +67,12 @@ export default function ModalShell({ children, onClose, titleId }) {
                       bg-[#F5F4FA]
                       text-[#64748B]
                       hover:bg-[#ECE9FA]
-                      hover:text-[#333399]
+                      hover:text-[#3b2b7a]
                       transition-all duration-200
                       cursor-pointer
                       focus-visible:outline-none
                       focus-visible:ring-2
-                      focus-visible:ring-[#3333CC]/40
+                      focus-visible:ring-[#3b2b7a]/40
                     " >
           <X size={20} />
         </button>
@@ -83,4 +83,3 @@ export default function ModalShell({ children, onClose, titleId }) {
     </div>
   );
 }
-

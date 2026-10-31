@@ -153,10 +153,10 @@ export default function PassengerClassSelector({ value, onChange, onFocus, onClo
         onClick={() => {
           if (!active) onFocus?.();
         }}
-        className={`flex w-full min-w-0 items-center gap-2 rounded-2xl border bg-white px-3 ${compact ? "py-1.5" : "py-2"} text-left transition-all duration-200 focus-visible:outline-2 focus-visible:outline-[#3333CC] ${
+        className={`flex w-full min-w-0 items-center gap-2 rounded-2xl border bg-white px-3 ${compact ? "py-1.5" : "py-2"} text-left transition-all duration-200 focus-visible:outline-2 focus-visible:outline-[#3b2b7a] ${
           open
-            ? "border-[#3333CC] ring-2 ring-[#3333CC]/10"
-            : "border-[#DCE3EF] hover:border-[#3333CC]"
+            ? "border-[#3b2b7a] ring-2 ring-[#3b2b7a]/10"
+            : "border-[#DCE3EF] hover:border-[#3b2b7a]"
         }`}
       >
         <Users className={`${compact ? "h-6 w-6" : "h-8 w-8"} mr-2 shrink-0 text-gray-500`} />
@@ -198,11 +198,11 @@ export default function PassengerClassSelector({ value, onChange, onFocus, onClo
                     <p className="truncate text-[10px] text-slate-500">{description}</p>
                   </div>
                   <div className="flex items-center justify-between gap-1">
-                    <button type="button" aria-label={`Disminuir ${label}`} disabled={count <= (type === "adults" ? 1 : 0)} onClick={() => updatePassengerCount(type, -1)} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#DCE3EF] text-[#3333CC] transition hover:bg-[#F5F4FF] disabled:cursor-not-allowed disabled:opacity-40">
+                    <button type="button" aria-label={`Disminuir ${label}`} disabled={count <= (type === "adults" ? 1 : 0)} onClick={() => updatePassengerCount(type, -1)} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#DCE3EF] text-[#3b2b7a] transition hover:bg-[#f0ecfa] disabled:cursor-not-allowed disabled:opacity-40">
                       <Minus className="h-3 w-3" />
                     </button>
                     <span className="w-4 text-center text-sm font-bold text-[#101936]">{count}</span>
-                    <button type="button" aria-label={`Aumentar ${label}`} disabled={totalPassengers >= MAX_PASSENGERS} onClick={() => updatePassengerCount(type, 1)} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#3333CC] text-[#3333CC] transition hover:bg-[#F5F4FF] disabled:cursor-not-allowed disabled:opacity-40">
+                    <button type="button" aria-label={`Aumentar ${label}`} disabled={totalPassengers >= MAX_PASSENGERS} onClick={() => updatePassengerCount(type, 1)} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#3b2b7a] text-[#3b2b7a] transition hover:bg-[#f0ecfa] disabled:cursor-not-allowed disabled:opacity-40">
                       <Plus className="h-3 w-3" />
                     </button>
                   </div>
@@ -220,7 +220,7 @@ export default function PassengerClassSelector({ value, onChange, onFocus, onClo
                 {classes.map((item) => {
                   const selected = String(item.id) === String(draft.seatTypeId) || item.name === draft.seatClassName;
                   return (
-                    <button key={`${item.id}-${item.name}`} type="button" aria-pressed={selected} onClick={() => setDraft((current) => ({ ...current, seatTypeId: item.id, seatClassName: item.name }))} className={`rounded-lg border px-2.5 py-2 text-center text-xs font-medium transition ${selected ? "border-[#3333CC] bg-[#F5F4FF] text-[#3333CC]" : "border-[#DCE3EF] text-[#101936] hover:border-[#3333CC]"}`}>
+                    <button key={`${item.id}-${item.name}`} type="button" aria-pressed={selected} onClick={() => setDraft((current) => ({ ...current, seatTypeId: item.id, seatClassName: item.name }))} className={`rounded-lg border px-2.5 py-2 text-center text-xs font-medium transition ${selected ? "border-[#3b2b7a] bg-[#f0ecfa] text-[#3b2b7a]" : "border-[#DCE3EF] text-[#101936] hover:border-[#3b2b7a]"}`}>
                       <span className="block truncate">{item.name}</span>
                       {selected && <Check className="mx-auto mt-0.5 h-3 w-3" />}
                     </button>
@@ -230,7 +230,7 @@ export default function PassengerClassSelector({ value, onChange, onFocus, onClo
             )}
           </div>
 
-          <button type="button" onClick={confirmSelection} className="mt-3 w-full rounded-lg bg-[#3333CC] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2925A8] focus-visible:outline-2 focus-visible:outline-[#3333CC] focus-visible:outline-offset-2">
+          <button type="button" onClick={confirmSelection} className="mt-3 w-full rounded-lg bg-[#3b2b7a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2b205c] focus-visible:outline-2 focus-visible:outline-[#3b2b7a] focus-visible:outline-offset-2">
             Listo
           </button>
         </div>

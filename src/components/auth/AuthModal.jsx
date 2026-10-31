@@ -25,8 +25,8 @@ const inputClass = `
   outline-none
   transition-all duration-200
   hover:border-[#B8C3DB]
-  focus:border-[#3333CC]
-  focus:ring-4 focus:ring-[#3333CC]/10
+  focus:border-[#3b2b7a]
+  focus:ring-4 focus:ring-[#3b2b7a]/10
 `;
 
 export default function AuthModal({ mode, onClose, onAuthenticated }) {
@@ -245,7 +245,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
             {/* Nombre */}
             <div className="relative group min-w-0">
               <UserRound
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B] group-focus-within:text-[#3333CC] pointer-events-none transition-colors" />
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B] group-focus-within:text-[#3b2b7a] pointer-events-none transition-colors" />
 
               <input
                 required
@@ -262,7 +262,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
             {/* Apellido */}
             <div className="relative group min-w-0">
               <UserRound
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B] group-focus-within:text-[#3333CC] pointer-events-none transition-colors" />
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B] group-focus-within:text-[#3b2b7a] pointer-events-none transition-colors" />
 
               <input
                 required
@@ -281,7 +281,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
 
         <div className="relative group">
           <Mail
-            className=" absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]  group-focus-within:text-[#3333CC] pointer-events-none transition-colors "
+            className=" absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]  group-focus-within:text-[#3b2b7a] pointer-events-none transition-colors "
           />
 
           <input
@@ -298,7 +298,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
 
         <div className="relative group">
           <LockKeyhole
-            className=" absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B] group-focus-within:text-[#3333CC]  pointer-events-none transition-colors " />
+            className=" absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B] group-focus-within:text-[#3b2b7a]  pointer-events-none transition-colors " />
 
           <input
             required
@@ -329,7 +329,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
                       -translate-y-1/2
                       flex items-center justify-center
                       text-[#64748B]
-                      hover:text-[#3333CC]
+                      hover:text-[#3b2b7a]
                       transition-colors
                       cursor-pointer
                     ">
@@ -348,7 +348,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
 
           <div className="relative group">
             <LockKeyhole
-              className=" absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]  group-focus-within:text-[#3333CC] pointer-events-none transition-colors "
+              className=" absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]  group-focus-within:text-[#3b2b7a] pointer-events-none transition-colors "
             />
 
             <input required type={showConfirmation ? "text" : "password"} name="confirmation" autoComplete="new-password" value={form.confirmation} onChange={update} placeholder="Confirmar contraseña" className={`${inputClass} pr-12`} />
@@ -368,7 +368,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
                           -translate-y-1/2
                           flex items-center justify-center
                           text-[#64748B]
-                          hover:text-[#3333CC]
+                          hover:text-[#3b2b7a]
                           transition-colors
                           cursor-pointer ">
               {showConfirmation ? (
@@ -391,21 +391,18 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
                       flex items-center justify-center gap-3
                       rounded-2xl
                       px-5 py-3.5
-                      bg-gradient-to-r
-                      from-[#7500F5]
-                      to-[#333399]
+                      bg-[#3b2b7a]
                       text-white
                       text-[15px]
                       font-semibold
-                      shadow-[0_8px_22px_rgba(51,51,153,0.25)]
+                      shadow-[0_8px_22px_rgba(59,43,122,0.25)]
                       transition-all duration-300
-                      hover:from-[#6900DE]
-                      hover:to-[#28287F]
-                      hover:shadow-[0_10px_26px_rgba(51,51,153,0.35)]
+                      hover:bg-[#2b205c]
+                      hover:shadow-[0_10px_26px_rgba(59,43,122,0.35)]
                       active:scale-[0.99]
                       focus-visible:outline-none
                       focus-visible:ring-4
-                      focus-visible:ring-indigo-400/30
+                      focus-visible:ring-violet-400/30
                       disabled:opacity-60
                       disabled:cursor-not-allowed
                     ">
@@ -453,7 +450,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
                     active:scale-[0.99]
                     focus-visible:outline-none
                     focus-visible:ring-4
-                    focus-visible:ring-indigo-400/20
+                    focus-visible:ring-violet-400/20
                     disabled:opacity-60
                     disabled:cursor-not-allowed
                     cursor-pointer
@@ -487,7 +484,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
 
       <p className="mt-4 sm:mt-6 text-center text-[13px] sm:text-sm text-slate-600">
         {isRegister ? "¿Ya tienes cuenta?" : "¿No tienes una cuenta?"}{" "}
-        <button type="button" onClick={switchMode} className="font-semibold text-[#3333CC] hover:text-[#7500F5] hover:underline underline-offset-4 transition-colors cursor-pointer">
+        <button type="button" onClick={switchMode} className="font-semibold text-[#3b2b7a] hover:text-[#2b205c] hover:underline underline-offset-4 transition-colors cursor-pointer">
           {isRegister ? "Inicia sesión" : "Crear cuenta"}
         </button>
       </p>

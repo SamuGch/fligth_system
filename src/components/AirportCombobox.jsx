@@ -95,8 +95,8 @@ export default function AirportCombobox({
     cursor-text
     transition-all duration-200
     ${open
-            ? "border-[#3333CC] ring-2 ring-[#3333CC]/10"
-            : "border-[#DCE3EF] hover:border-[#3333CC]"
+            ? "border-[#3b2b7a] ring-2 ring-[#3b2b7a]/10"
+            : "border-[#DCE3EF] hover:border-[#3b2b7a]"
           }
     ${disabled ? "opacity-50 cursor-not-allowed" : ""}
   `}
@@ -167,7 +167,7 @@ export default function AirportCombobox({
             />}
           </div>
           {!open && selectedAirport && (
-            <span className="shrink-0 rounded-md bg-[#F0F0FF] px-1.5 py-1 text-[11px] font-bold tracking-wide text-[#3333CC]">
+            <span className="shrink-0 rounded-md bg-[#f0ecfa] px-1.5 py-1 text-[11px] font-bold tracking-wide text-[#3b2b7a]">
               {selectedAirport.iata}
             </span>
           )}
@@ -217,19 +217,18 @@ export default function AirportCombobox({
                     text-left cursor-pointer
                     transition-colors
                     focus-visible:outline-2
-                    focus-visible:outline-[#3333CC]
-                    hover:bg-blue-50/50
+                    focus-visible:outline-[#3b2b7a]
                     ${selected
-                      ? "bg-blue-50 text-blue-900"
-                      : "text-gray-800"
+                      ? "bg-[#f0ecfa] text-[#3b2b7a]"
+                      : "text-[#101936] hover:bg-[#F5F4FF]"
                     }
                   `}
                 >
                   <span className="flex items-center justify-between gap-3">
-                    <span className="min-w-0 truncate text-sm font-semibold text-gray-800">
+                    <span className={`min-w-0 truncate text-sm font-semibold ${selected ? "text-[#3b2b7a]" : "text-[#101936]"}`}>
                       {[airport.ciudad, airport.pais].filter(Boolean).join(", ")}
                     </span>
-                    <span className="shrink-0 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-900">
+                    <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-bold ${selected ? "bg-[#e6def5] text-[#3b2b7a]" : "bg-[#f0ecfa] text-[#3b2b7a]"}`}>
                       {airport.iata}
                     </span>
                   </span>
@@ -237,7 +236,7 @@ export default function AirportCombobox({
                     {airport.nombre || "Aeropuerto"}
                   </span>
                   {selected && (
-                    <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-blue-800" />
+                    <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#3b2b7a]" />
                   )}
                 </button>
               );

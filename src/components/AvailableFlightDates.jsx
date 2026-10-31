@@ -81,10 +81,10 @@ export default function AvailableFlightDates({
         aria-controls={open ? listId : undefined}
         disabled={disabled || loading}
         onClick={() => setOpen((current) => !current)}
-        className={`flex w-full min-w-0 items-center gap-4 rounded-2xl border bg-white px-5 py-3 text-left transition-all duration-200 focus-visible:outline-2 focus-visible:outline-[#3333CC] ${
+        className={`flex w-full min-w-0 items-center gap-4 rounded-2xl border bg-white px-5 py-3 text-left transition-all duration-200 focus-visible:outline-2 focus-visible:outline-[#3b2b7a] ${
           open
-            ? "border-[#3333CC] ring-2 ring-[#3333CC]/10"
-            : "border-[#DCE3EF] hover:border-[#3333CC]"
+            ? "border-[#3b2b7a] ring-2 ring-[#3b2b7a]/10"
+            : "border-[#DCE3EF] hover:border-[#3b2b7a]"
         } ${
           disabled || loading
             ? "cursor-not-allowed opacity-50"
@@ -108,7 +108,7 @@ export default function AvailableFlightDates({
         </span>
 
         {loading ? (
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-indigo-600" />
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-violet-700" />
         ) : (
           <ChevronDown
             className={`h-4 w-4 shrink-0 text-[#455675] transition-transform duration-200 ${
@@ -143,16 +143,16 @@ export default function AvailableFlightDates({
                     setOpen(false);
                     triggerRef.current?.focus();
                   }}
-                  className={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[#3333CC] ${
+                  className={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[#3b2b7a] ${
                     selected
-                      ? "bg-[#EEEDFF] text-[#3333CC]"
+                      ? "bg-[#f0ecfa] text-[#3b2b7a]"
                       : "text-[#101936] hover:bg-[#F5F4FF]"
                   }`}
                 >
                   <CalendarDays className="h-4 w-4 shrink-0" />
                   <span className="min-w-0 flex-1">{formatDate(date)}</span>
                   {selected && (
-                    <Check className="h-4 w-4 shrink-0 text-[#3333CC]" />
+                    <Check className="h-4 w-4 shrink-0 text-[#3b2b7a]" />
                   )}
                 </button>
               );
