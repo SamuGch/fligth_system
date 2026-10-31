@@ -235,7 +235,7 @@ export default function MainNavbar({ className = "" }) {
             gap-1 sm:gap-2 lg:gap-3
           "
         >
-          {/* Idioma */}
+          {/* Idioma 
           <button
             type="button"
             aria-label="Idioma: Español"
@@ -270,9 +270,9 @@ export default function MainNavbar({ className = "" }) {
               className="w-3.5 h-3.5 text-white/50"
               aria-hidden="true"
             />
-          </button>
+          </button>*/}
 
-          {/* Zona horaria */}
+          {/* Zona horaria 
           <button
             type="button"
             aria-label="Zona horaria: America/Guatemala"
@@ -310,7 +310,7 @@ export default function MainNavbar({ className = "" }) {
               className="w-3.5 h-3.5 shrink-0 text-white/50"
               aria-hidden="true"
             />
-          </button>
+          </button>*/}
 
           {/* Separador */}
           <span
