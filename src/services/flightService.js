@@ -75,40 +75,42 @@ function fechaLocal(fecha) {
 }
 
 export async function obtenerFechasDisponibles(origenId, destinoId) {
-  const [vuelos, rutas] = await Promise.all([
-    obtenerDatos("/vuelo"),
-    obtenerDatos("/ruta"),
-  ]);
+  if (Number(origenId) === Number(destinoId)) {
+    throw new Error("El origen y el destino deben ser diferentes.");
+  }
 
-  const rutasActivas = rutas.filter((ruta) => ruta.activa !== false);
-  const getDatesForRoute = (from, to) => {
-    const routeIds = new Set(
-      rutasActivas
-        .filter(
-          (ruta) =>
-            Number(ruta.aeropuertoOrigenId) === Number(from) &&
-            Number(ruta.aeropuertoDestinoId) === Number(to)
-        )
-        .map((ruta) => Number(ruta.id))
-    );
+  const getDatesForRoute = async (from, to) => {
+    const response = await fetch(`${API_URL}/vuelo/fechas-disponibles`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        OrigenID: Number(from),
+        DestinationID: Number(to),
+      }),
+    });
 
-    return [
-      ...new Set(
-        vuelos
-          .filter(
-            (vuelo) =>
-              routeIds.has(Number(vuelo.rutaId)) &&
-              vuelo.estado === "PROGRAMADO"
-          )
-          .map((vuelo) => fechaLocal(vuelo.fechaSalida))
-          .filter(Boolean)
-      ),
-    ].sort();
+    if (!response.ok) {
+      throw new Error(`Error consultando fechas disponibles: ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const dates = payload?.dates ?? payload?.data?.dates;
+
+    if (!Array.isArray(dates)) {
+      throw new Error("Respuesta inesperada al consultar fechas disponibles.");
+    }
+
+    return dates;
   };
 
+  const [departure, returnDates] = await Promise.all([
+    getDatesForRoute(origenId, destinoId),
+    getDatesForRoute(destinoId, origenId),
+  ]);
+
   return {
-    departure: getDatesForRoute(origenId, destinoId),
-    return: getDatesForRoute(destinoId, origenId),
+    departure,
+    return: returnDates,
   };
 }
 

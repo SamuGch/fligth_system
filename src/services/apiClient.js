@@ -108,6 +108,20 @@ export const createTemporaryReservation = ({ clienteId, seatIds }) =>
     }),
   });
 
+export const releaseTemporaryReservationSeats = (
+  reservationId,
+  accessToken,
+  { keepalive = false } = {},
+) =>
+  request(
+    `/clientes/reserva/${encodeURIComponent(reservationId)}/liberar-asientos-temporales`,
+    {
+      method: "POST",
+      accessToken,
+      keepalive,
+    },
+  );
+
 export const purchaseReservation = ({
   reservationId,
   clienteId,

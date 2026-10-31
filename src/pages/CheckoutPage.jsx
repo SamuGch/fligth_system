@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -14,7 +14,10 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { PAYMENT_METHOD_IDS } from "../config/paymentMethods";
-import { purchaseReservation } from "../services/apiClient";
+import {
+  purchaseReservation,
+  releaseTemporaryReservationSeats,
+} from "../services/apiClient";
 import { reservationErrorMessage } from "../services/reservationErrors";
 import { limpiarSeleccion } from "../services/seatSelectionStorage";
 import { invalidateTripsCache } from "../services/tripsCache";
@@ -54,7 +57,7 @@ function formatExpiration(value) {
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { state } = useLocation();
-  const { client } = useAuth();
+  const { client, session } = useAuth();
 
   const flight = state?.flight;
   const seats = useMemo(() => state?.selectedSeats ?? [], [state?.selectedSeats]);
@@ -72,8 +75,11 @@ export default function CheckoutPage() {
     Object.fromEntries(seats.map((seat) => [seatKey(seat), { ...emptyPassenger }])),
   );
   const [processing, setProcessing] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState("");
   const [purchaseResult, setPurchaseResult] = useState(null);
+  const purchaseCompletedRef = useRef(false);
+  const releaseCompletedRef = useRef(false);
   const [paymentDeadline] = useState(() => {
     const storedDeadline = Number(state?.paymentDeadline);
     return Number.isFinite(storedDeadline) && storedDeadline > 0
@@ -89,6 +95,27 @@ export default function CheckoutPage() {
   const selectedSeat = seats.find((seat) => seatKey(seat) === activeSeat) ?? seats[0];
   const selectedPassenger = passengers[activeSeat] ?? emptyPassenger;
   const paymentMethodId = PAYMENT_METHOD_IDS[paymentMethod];
+  const reservationId = reservation?.id;
+  const accessToken = session?.access_token;
+
+  const releaseTemporarySeats = useCallback(
+    async ({ keepalive = false } = {}) => {
+      if (
+        reservationId == null ||
+        purchaseCompletedRef.current ||
+        releaseCompletedRef.current
+      ) {
+        return;
+      }
+
+      await releaseTemporaryReservationSeats(reservationId, accessToken, {
+        keepalive,
+      });
+      releaseCompletedRef.current = true;
+      limpiarSeleccion();
+    },
+    [accessToken, reservationId],
+  );
 
   useEffect(() => {
     const root = document.documentElement;
@@ -118,6 +145,24 @@ export default function CheckoutPage() {
     const intervalId = window.setInterval(updateCountdown, 1000);
     return () => window.clearInterval(intervalId);
   }, [paymentDeadline, purchaseResult]);
+
+  useEffect(() => {
+    if (reservationId == null) return undefined;
+
+    const releaseOnAbandon = () => {
+      void releaseTemporarySeats({ keepalive: true }).catch(() => undefined);
+    };
+
+    // React Router also listens for popstate. Capture lets us start the
+    // keepalive request before the router changes routes and unmounts checkout.
+    window.addEventListener("popstate", releaseOnAbandon, { capture: true });
+    window.addEventListener("pagehide", releaseOnAbandon);
+
+    return () => {
+      window.removeEventListener("popstate", releaseOnAbandon, { capture: true });
+      window.removeEventListener("pagehide", releaseOnAbandon);
+    };
+  }, [releaseTemporarySeats, reservationId]);
 
   const countdown = `${String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:${String(remainingSeconds % 60).padStart(2, "0")}`;
 
@@ -184,6 +229,7 @@ export default function CheckoutPage() {
         paymentMethodId,
         passengers: passengerPayload(),
       });
+      purchaseCompletedRef.current = true;
       invalidateTripsCache();
       setPurchaseResult(result);
     } catch (purchaseError) {
@@ -198,14 +244,29 @@ export default function CheckoutPage() {
     }
   };
 
-  const goBack = () => {
-    navigate("/seleccion-asientos", {
-      replace: true,
-      state: {
-        flight,
-        avionId: flight?.avionId ?? flight?.avion_id,
-      },
-    });
+  const goBack = async () => {
+    if (leaving || processing) return;
+
+    setLeaving(true);
+    setError("");
+
+    try {
+      await releaseTemporarySeats();
+      navigate("/seleccion-asientos", {
+        replace: true,
+        state: {
+          flight,
+          avionId: flight?.avionId ?? flight?.avion_id,
+        },
+      });
+    } catch (releaseError) {
+      setError(
+        releaseError instanceof Error
+          ? releaseError.message
+          : "No se pudieron liberar los asientos. Inténtalo nuevamente.",
+      );
+      setLeaving(false);
+    }
   };
 
   const chooseSeatsAgain = () => {
@@ -364,9 +425,10 @@ export default function CheckoutPage() {
               <button
                 type="button"
                 onClick={goBack}
+                disabled={leaving || processing}
                 className="flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-6 py-4 font-semibold text-slate-700 transition hover:bg-slate-200"
               >
-                <ArrowLeft size={19} /> Regresar
+                <ArrowLeft size={19} /> {leaving ? "Liberando..." : "Regresar"}
               </button>
               <button
                 type="button"
