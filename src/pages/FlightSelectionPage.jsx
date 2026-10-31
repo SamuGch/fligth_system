@@ -68,6 +68,10 @@ function getReturnFlights(data) {
   return data?.outbound?.flights ?? data?.inbound?.flights ?? data?.flights ?? [];
 }
 
+function getInboundFlights(data) {
+  return data?.inbound?.flights ?? [];
+}
+
 function getStops(flight) {
   if (Array.isArray(flight?.segments) && flight.segments.length > 1) {
     return flight.segments.length - 1;
@@ -82,6 +86,10 @@ function getAlternativeDates(data) {
     data?.alternativeDates ??
     []
   );
+}
+
+function getInboundAlternativeDates(data) {
+  return data?.inbound?.alternativeDates ?? [];
 }
 
 function getAirportLabel(searchData, flight, side) {
@@ -282,7 +290,7 @@ export default function FlightSelectionPage() {
       ? location.state.returnFlights
       : location.state?.returnFlight
         ? [location.state.returnFlight]
-        : [],
+        : getInboundFlights(location.state?.searchResults),
   );
   const [returnAlternativeDates, setReturnAlternativeDates] = useState(
     location.state?.returnAlternativeDates ?? [],
@@ -293,11 +301,17 @@ export default function FlightSelectionPage() {
   const [loadingReturn, setLoadingReturn] = useState(
     initialSearchData?.tripType === "round" &&
       Boolean(initialSearchData?.returnDate) &&
-      !location.state?.returnFlights?.length,
+      !(
+        location.state?.returnFlights?.length ||
+        location.state?.returnFlight ||
+        getInboundFlights(location.state?.searchResults).length
+      ),
   );
   const [returnStatus, setReturnStatus] = useState(
     initialSearchData?.tripType === "round" && initialSearchData?.returnDate
-      ? "loading"
+      ? getInboundFlights(location.state?.searchResults).length
+        ? "loaded"
+        : "loading"
       : "idle",
   );
   const [loadingDate, setLoadingDate] = useState("");
@@ -353,6 +367,15 @@ export default function FlightSelectionPage() {
 
   const selectOutbound = (flight) => {
     if (selectingFlightKey) return;
+    if (
+      searchData.tripType === "round" &&
+      (!searchData.returnDate || returnStatus !== "loaded" || !returnFlights.length)
+    ) {
+      setError(
+        "Elige una fecha de regreso con vuelos disponibles antes de seleccionar la ida.",
+      );
+      return;
+    }
     setSelectingFlightKey(flightKey(flight));
     setSelectedOutbound(flight);
     if (searchData.tripType === "round") {
@@ -431,16 +454,22 @@ export default function FlightSelectionPage() {
       };
       const response = await buscarVuelos(nextSearchData);
       let nextReturnAlternativeDates = returnAlternativeDates;
-      if (nextSearchData.tripType === "round" && !nextReturnDate) {
+      let nextReturnFlights = getInboundFlights(response);
+      if (
+        nextSearchData.tripType === "round" &&
+        (!nextReturnDate || !nextReturnFlights.length)
+      ) {
         const dates = await obtenerFechasDisponiblesRuta(
           nextSearchData.DestinationID,
           nextSearchData.OrigenID,
           { totalPassengers: nextSearchData.totalPassengers },
         );
-        nextReturnAlternativeDates = dates.map((departureDate) => ({
-          departureDate,
-          price: null,
-        }));
+        nextReturnAlternativeDates = dates
+          .filter((departureDate) => departureDate > date)
+          .map((departureDate) => ({
+            departureDate,
+            price: null,
+          }));
       }
       setSearchData(nextSearchData);
       setSearchResults(response);
@@ -448,14 +477,22 @@ export default function FlightSelectionPage() {
       setSelectedReturn(null);
       setStep("outbound");
       setAlternativeDates(getAlternativeDates(response));
-      setReturnFlights([]);
+      setReturnFlights(nextReturnFlights);
       if (nextReturnDate) {
-        setReturnAlternativeDates([]);
+        setReturnAlternativeDates(getInboundAlternativeDates(response));
       } else {
         setReturnAlternativeDates(nextReturnAlternativeDates);
       }
-      setLoadingReturn(Boolean(nextReturnDate));
-      setReturnStatus(nextReturnDate ? "loading" : "idle");
+      setLoadingReturn(false);
+      setReturnStatus(
+        nextReturnDate
+          ? nextReturnFlights.length
+            ? "loaded"
+            : "unavailable"
+          : nextReturnAlternativeDates.length
+            ? "idle"
+            : "unavailable",
+      );
       navigate("/seleccion-vuelos", {
         replace: true,
         state: {
@@ -463,7 +500,7 @@ export default function FlightSelectionPage() {
           searchResults: response,
           alternativeDates: getAlternativeDates(response),
           returnAlternativeDates: nextReturnDate
-            ? []
+            ? getInboundAlternativeDates(response)
             : nextReturnAlternativeDates,
         },
       });
@@ -486,6 +523,9 @@ export default function FlightSelectionPage() {
       ? [{ departureDate: searchData.returnDate, price: flightPrice(selectedReturn) || null }]
       : []),
   ].sort((a, b) => a.departureDate.localeCompare(b.departureDate));
+  const canSelectOutbound =
+    searchData.tripType !== "round" ||
+    (returnStatus === "loaded" && returnFlights.length > 0 && Boolean(searchData.returnDate));
   const nextReturnDate = returnAlternativeDates
     .map((option) => option?.departureDate)
     .filter(
@@ -545,8 +585,7 @@ export default function FlightSelectionPage() {
                 <p className="mt-1 font-medium text-slate-700">{formatDate(searchData.departureDate)}</p>
               </div>
               {searchData.tripType === "round" &&
-                returnStatus === "loaded" &&
-                !returnFlights.length && (
+                (!canSelectOutbound || (returnStatus === "loaded" && !returnFlights.length)) && (
                   <div
                     role="status"
                     className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/95 p-4 text-amber-950 shadow-sm"
@@ -554,14 +593,38 @@ export default function FlightSelectionPage() {
                     <AlertTriangle className="mt-0.5 shrink-0 text-amber-600" size={20} />
                     <div>
                       <p className="font-semibold">
-                        Esta búsqueda no tiene vuelos de regreso disponibles.
+                        {returnStatus === "unavailable"
+                          ? "No hay vuelos de regreso futuros para esta salida."
+                          : returnStatus === "idle"
+                            ? "Elige primero una fecha de regreso disponible."
+                            : returnStatus === "loading"
+                              ? "Estamos comprobando los vuelos de regreso."
+                              : "Esta búsqueda no tiene vuelos de regreso disponibles."}
                       </p>
                       <p className="mt-1 text-sm leading-6 text-amber-900/80">
-                        Puedes elegir la ida, pero después tendrás que seleccionar
-                        otra fecha de regreso o modificar la búsqueda.
+                        {returnStatus === "idle"
+                          ? "No se puede seleccionar una ida de un viaje redondo sin confirmar su regreso."
+                          : returnStatus === "loading"
+                            ? "Espera un momento mientras actualizamos las opciones de regreso."
+                            : "Selecciona otra fecha de regreso o modifica la búsqueda para continuar."}
                       </p>
                     </div>
                   </div>
+                )}
+              {searchData.tripType === "round" &&
+                !canSelectOutbound &&
+                inboundDateOptions.length > 0 && (
+                  <section className="mb-6">
+                    <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
+                      <CalendarDays size={17} /> Fechas de regreso disponibles
+                    </h2>
+                    <DateRibbon
+                      dates={inboundDateOptions}
+                      selectedDate={searchData.returnDate}
+                      loadingDate={loadingDate}
+                      onSelect={loadReturnFlights}
+                    />
+                  </section>
                 )}
               <section className="mb-6">
                 <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800"><CalendarDays size={17} /> Fechas de salida</h2>
@@ -569,7 +632,7 @@ export default function FlightSelectionPage() {
               </section>
               {outboundFlights.length ? <div className="space-y-4">{outboundFlights.map((flight, index) => {
                 const isSelected = flightKey(selectedOutbound) === flightKey(flight);
-                return <FlightCard key={`${flight.flightNumber ?? "flight"}-${index}`} flight={flight} selected={isSelected} loading={selectingFlightKey === flightKey(flight)} disabled={Boolean(selectedOutbound && !isSelected) || Boolean(selectingFlightKey)} onSelect={selectOutbound} />;
+                return <FlightCard key={`${flight.flightNumber ?? "flight"}-${index}`} flight={flight} selected={isSelected} loading={selectingFlightKey === flightKey(flight)} disabled={!canSelectOutbound || Boolean(selectedOutbound && !isSelected) || Boolean(selectingFlightKey)} onSelect={selectOutbound} />;
               })}</div> : <NoFlightsFound onModifySearch={() => navigate("/")} />}
             </>
           ) : selectedOutbound ? (
