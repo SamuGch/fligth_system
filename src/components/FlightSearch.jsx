@@ -9,7 +9,11 @@ import {
 } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { obtenerAeropuertos } from "../services/aeropuertoService";
-import { buscarVuelos, obtenerFechasDisponibles } from "../services/flightService";
+import {
+  buscarVuelos,
+  obtenerFechasDisponibles,
+  obtenerFechasDisponiblesRuta,
+} from "../services/flightService";
 import AirportCombobox from "./AirportCombobox";
 import FlightDateRangeCalendar from "./FlightDateRangeCalendar";
 import Toast from "./Toast";
@@ -24,7 +28,7 @@ function formatSearchDate(value, placeholder) {
   return `${day}/${month}/${year}`;
 }
 
-function normalizeCalendarDates(data) {
+function normalizeCalendarDates(data, minimumDate = "") {
   if (!Array.isArray(data)) return [];
 
   return data
@@ -38,7 +42,12 @@ function normalizeCalendarDates(data) {
         precioMinimo: item?.precioMinimo ?? item?.price ?? null,
       };
     })
-    .filter((item) => item.fecha);
+    .filter(
+      (item) =>
+        item.fecha &&
+        /^\d{4}-\d{2}-\d{2}$/.test(item.fecha) &&
+        (!minimumDate || item.fecha >= minimumDate)
+    );
 }
 
 const COMPLETED_RESERVATION_KEY = "airtravel_completed_reservation";
@@ -184,6 +193,10 @@ export default function FlightSearch() {
       phase === "departure" ? searchData.OrigenID : searchData.DestinationID;
     const destinationId =
       phase === "departure" ? searchData.DestinationID : searchData.OrigenID;
+    const minimumDate =
+      phase === "return" && searchData.departureDate
+        ? searchData.departureDate
+        : "";
 
     setLoadingAvailableDates(true);
 
@@ -193,23 +206,29 @@ export default function FlightSearch() {
         destinationId,
         request
       );
-      let dates = normalizeCalendarDates(data);
+      let dates = normalizeCalendarDates(data, minimumDate);
       let resolvedMonth = currentViewMonth;
 
       if (dates.length === 0) {
-        const [year, month] = currentViewMonth.split("-").map(Number);
-        const nextDate = new Date(year, month, 1);
-        const nextMonth = `${nextDate.getFullYear()}-${String(
-          nextDate.getMonth() + 1
-        ).padStart(2, "0")}`;
-        const nextData = await obtenerFechasDisponibles(
+        const routeDates = await obtenerFechasDisponiblesRuta(
           originId,
           destinationId,
-          { ...request, mesAnio: nextMonth }
+          request
         );
-        const nextDates = normalizeCalendarDates(nextData);
-        if (nextDates.length > 0) {
-          dates = nextDates;
+        const firstAvailableDate = routeDates.find(
+          (date) =>
+            date >= `${currentViewMonth}-01` &&
+            (!minimumDate || date >= minimumDate)
+        );
+
+        if (firstAvailableDate) {
+          const nextMonth = firstAvailableDate.slice(0, 7);
+          const nextData = await obtenerFechasDisponibles(
+            originId,
+            destinationId,
+            { ...request, mesAnio: nextMonth }
+          );
+          dates = normalizeCalendarDates(nextData, minimumDate);
           resolvedMonth = nextMonth;
         }
       }
@@ -243,6 +262,7 @@ export default function FlightSearch() {
   }, [
     searchData.DestinationID,
     searchData.OrigenID,
+    searchData.departureDate,
     searchData.totalPassengers,
   ]);
 

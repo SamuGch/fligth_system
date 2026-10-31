@@ -696,18 +696,18 @@ export default function SeatSelection() {
 
   return (
     <div
-      className="relative flex w-full flex-col bg-cover bg-center bg-fixed px-4 pb-4 pt-20 font-sans text-slate-800 sm:px-6 min-h-screen lg:h-screen lg:overflow-hidden"
+      className="relative flex min-h-screen w-full flex-col bg-cover bg-center bg-fixed px-4 pb-4 pt-20 font-sans text-slate-800 sm:px-6 lg:h-screen lg:overflow-hidden lg:px-12 xl:px-[160px]"
       style={{ backgroundImage: 'url("/allFonts.png")' }}
     >
       <div className="flex min-h-0 flex-1 flex-col">
         <MainNavbar className="!fixed !left-4 !right-4 !top-3 !mx-0 sm:!left-6 sm:!right-6 sm:!top-5 lg:!left-12 lg:!right-12 xl:!left-25 xl:!right-25" />
 
-        <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col sm:pt-4">
-          <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3">
+        <div className="relative z-10 mx-auto flex min-h-0 w-full flex-1 flex-col sm:pt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_max-content] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-x-5 lg:gap-y-3">
+          <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 lg:contents">
             <button
               type="button"
               onClick={handleExit}
-              className="flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-md transition hover:bg-white hover:text-[#3b2b7a]"
+              className="flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-md transition hover:bg-white hover:text-[#3b2b7a] lg:justify-self-start"
             >
               <ArrowLeft size={17} /> Volver a vuelos
             </button>
@@ -733,10 +733,10 @@ export default function SeatSelection() {
           </div>
 
           <div
-            className="grid min-h-0 flex-1 grid-cols-12 items-stretch gap-5"
+            className="grid min-h-0 flex-1 grid-cols-12 items-stretch gap-5 lg:contents"
           >
           {/* Columna izquierda */}
-          <main className="col-span-12 flex flex-col lg:col-span-8 lg:h-full lg:min-h-0">
+          <main className="col-span-12 flex min-w-0 flex-col lg:col-span-1 lg:h-full lg:min-h-0">
             <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-3 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-4">
               <div
                 className="mb-3 flex flex-col justify-between gap-2 rounded-2xl border border-white/80 bg-[#f0ecfa]/90 p-3 sm:flex-row sm:items-center"
@@ -925,7 +925,7 @@ export default function SeatSelection() {
           </main>
 
           {/* Columna derecha */}
-          <aside className="col-span-12 flex flex-col justify-between mt-8 lg:col-span-4 lg:h-full lg:mt-0">
+          <aside className="col-span-12 flex min-w-0 flex-col justify-between mt-8 lg:col-span-1 lg:h-full lg:mt-0">
             <div className="flex h-full max-h-full flex-col justify-between overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-3 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md">
             <div className="flex items-center justify-between gap-2 border-b border-slate-200/80 pb-2">
               <h2 className="text-lg font-bold text-[#21194d]">

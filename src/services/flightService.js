@@ -17,7 +17,16 @@ async function post(endpoint, payload) {
   });
 
   if (!response.ok) {
-    throw new Error(`Error consultando ${endpoint}: ${response.status}`);
+    let detail;
+    try {
+      const body = await response.json();
+      detail = body?.error ?? body?.message ?? "";
+    } catch {
+      detail = undefined;
+    }
+    throw new Error(
+      detail || `Error consultando ${endpoint}: ${response.status}`
+    );
   }
 
   return response.json();
@@ -101,7 +110,7 @@ async function enrichFlightResults(response) {
     };
   }
   if (Array.isArray(result.flights)) enriched.flights = await enrichList(result.flights);
-  return response?.data ? { ...response, data: enriched } : enriched;
+  return enriched;
 }
 
 export async function obtenerDetalleVuelo(flightId) {
@@ -144,6 +153,41 @@ export async function obtenerFechasDisponibles(
   });
 
   return getArrayResponse(response, "/vuelo/disponibilidad-calendario");
+}
+
+export async function obtenerFechasDisponiblesRuta(
+  origenId,
+  destinoId,
+  { totalPassengers = 1 } = {}
+) {
+  const normalizedOrigenId = Number(origenId);
+  const normalizedDestinoId = Number(destinoId);
+
+  if (
+    !Number.isInteger(normalizedOrigenId) ||
+    normalizedOrigenId <= 0 ||
+    !Number.isInteger(normalizedDestinoId) ||
+    normalizedDestinoId <= 0
+  ) {
+    throw new Error("El origen y el destino deben ser válidos.");
+  }
+
+  if (normalizedOrigenId === normalizedDestinoId) {
+    throw new Error("El origen y el destino deben ser diferentes.");
+  }
+
+  const response = await post("/vuelo/fechas-disponibles", {
+    OrigenID: normalizedOrigenId,
+    DestinationID: normalizedDestinoId,
+    totalPassengers: Number(totalPassengers),
+  });
+  const dates = response?.dates ?? response?.data ?? response;
+
+  if (!Array.isArray(dates)) {
+    throw new Error("Respuesta inesperada de /vuelo/fechas-disponibles");
+  }
+
+  return dates.filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date));
 }
 
 export async function buscarVuelos(searchData) {
