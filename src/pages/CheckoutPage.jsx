@@ -8,6 +8,7 @@ import {
   Clock3,
   CreditCard,
   LockKeyhole,
+  Loader2,
   Plane,
   UserRound,
   X,
@@ -124,6 +125,7 @@ export default function CheckoutPage() {
     ),
   );
   const [processing, setProcessing] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState("");
   const [purchaseResult, setPurchaseResult] = useState(null);
@@ -367,11 +369,17 @@ export default function CheckoutPage() {
   };
 
   const continueToPayment = () => {
+    if (advancing) return;
     try {
       passengerPayload();
       setError("");
-      setCheckoutStep(4);
+      setAdvancing(true);
+      window.setTimeout(() => {
+        setCheckoutStep(4);
+        setAdvancing(false);
+      }, 150);
     } catch (validationError) {
+      setAdvancing(false);
       setError(validationError instanceof Error
         ? validationError.message
         : "Completa los datos de los pasajeros para continuar.");
@@ -609,8 +617,8 @@ export default function CheckoutPage() {
               </div>
               <div className="mt-5 border-b border-slate-200 pb-5">
                 {checkoutStep === 3 ? (
-                  <button type="button" onClick={continueToPayment} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#3b2b7a] px-5 py-4 font-bold text-white transition hover:bg-[#2b205c]">
-                    <span>Continuar al pago</span><ArrowRight size={19} />
+                  <button type="button" onClick={continueToPayment} disabled={advancing} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#3b2b7a] px-5 py-4 font-bold text-white transition hover:bg-[#2b205c] disabled:cursor-not-allowed disabled:opacity-60">
+                    {advancing ? <><Loader2 size={19} className="animate-spin" /> Cargando...</> : <><span>Continuar al pago</span><ArrowRight size={19} /></>}
                   </button>
                 ) : (
                   <>

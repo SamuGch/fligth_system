@@ -9,7 +9,8 @@ import {
   UserRound,
   Eye,
   EyeOff,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from "lucide-react";
 
 const inputClass = `
@@ -38,7 +39,12 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
     ? ""
     : sessionStorage.getItem("airtravel_auth_notice") || "";
 
-  const { signIn, signUp, signInWithGoogle, isSupabaseConfigured } = useAuth();
+  const {
+    signIn,
+    signUp,
+    signInWithGoogle,
+    isSupabaseConfigured,
+  } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState({
@@ -168,8 +174,18 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
   };
 
   const continueWithGoogle = async () => {
+    if (status.loading) return;
     setStatus({ loading: true, error: "", success: false });
     try {
+      const returnLocation = location.state?.backgroundLocation || location;
+      sessionStorage.setItem(
+        "oauth_redirect_path",
+        `${returnLocation.pathname || "/"}${returnLocation.search || ""}${returnLocation.hash || ""}`,
+      );
+      sessionStorage.setItem(
+        "oauth_redirect_state",
+        JSON.stringify(returnLocation.state || {}),
+      );
       sessionStorage.setItem(
         "authRedirect",
         JSON.stringify({
@@ -479,7 +495,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
           />
         </svg>
 
-        <span>Continuar con Google</span>
+        {status.loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Cargando...</> : <span>Continuar con Google</span>}
       </button>
 
       <p className="mt-4 sm:mt-6 text-center text-[13px] sm:text-sm text-slate-600">

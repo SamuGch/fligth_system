@@ -113,7 +113,7 @@ export default function MainNavbar({ className = "" }) {
           <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
         </button>
         <Link
-          to="/"
+          to="/ayuda"
           className="hidden items-center gap-1.5 px-2 py-2 text-sm font-medium tracking-wide text-slate-300 transition-colors hover:text-white sm:flex"
         >
           <HelpCircle className="h-4 w-4" aria-hidden="true" />

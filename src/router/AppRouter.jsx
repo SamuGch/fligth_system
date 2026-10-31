@@ -1,4 +1,6 @@
-import { Route, Routes, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import Home from "../Home";
 import AuthModal from "../components/auth/AuthModal";
 import {
@@ -14,16 +16,41 @@ import CheckoutPage from "../pages/CheckoutPage";
 import DepositPaymentPage from "../pages/DepositPaymentPage";
 import PassengerConfirmationPage from "../pages/PassengerConfirmationPage";
 import FlightSelectionPage from "../pages/FlightSelectionPage";
+import HelpPage from "../pages/HelpPage";
 
 export default function AppRouter() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { session, loading: authLoading, syncStatus } = useAuth();
   const backgroundLocation = location.state?.backgroundLocation;
+
+  useEffect(() => {
+    if (authLoading || !session || syncStatus !== "synced") return;
+
+    const pendingPath = sessionStorage.getItem("oauth_redirect_path");
+    if (!pendingPath) return;
+
+    let pendingState = {};
+    try {
+      pendingState = JSON.parse(
+        sessionStorage.getItem("oauth_redirect_state") || "{}",
+      );
+    } catch (parseError) {
+      console.error("No se pudo restaurar el contexto de OAuth.", parseError);
+    }
+
+    sessionStorage.removeItem("oauth_redirect_path");
+    sessionStorage.removeItem("oauth_redirect_state");
+    sessionStorage.removeItem("authRedirect");
+    navigate(pendingPath, { state: pendingState, replace: true });
+  }, [authLoading, navigate, session, syncStatus]);
 
   return (
     <>
       <Routes location={backgroundLocation || location}>
         <Route path="/" element={<Home />} />
         <Route path="/seleccion-vuelos" element={<FlightSelectionPage />} />
+        <Route path="/ayuda" element={<HelpPage />} />
         <Route path="/seleccion-asientos" element={<SeatSelection />} />
 
         <Route element={<ProtectedRoute />}>

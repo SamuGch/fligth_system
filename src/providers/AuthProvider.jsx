@@ -9,6 +9,9 @@ import { AuthContext } from "../context/AuthContext";
 
 const configurationError =
   "La autenticación no está configurada. Revisa las variables de entorno de Supabase.";
+const authRedirectUrl =
+  import.meta.env.VITE_AUTH_REDIRECT_URL ||
+  `${window.location.origin}/auth/callback`;
 
 export default function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
@@ -126,7 +129,9 @@ export default function AuthProvider({ children }) {
     if (!supabase) throw new Error(configurationError);
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: authRedirectUrl,
+      },
     });
     if (authError) {
       setError(authError.message);

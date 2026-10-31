@@ -8,7 +8,18 @@ El frontend necesita tres variables en `.env` antes de iniciar Vite:
 VITE_API_URL=http://localhost:8080/api
 VITE_SUPABASE_URL=https://<proyecto>.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=<publishable-or-anon-key>
+VITE_AUTH_REDIRECT_URL=http://localhost:5173/auth/callback
 ```
+
+Para Google OAuth, registra en Supabase Authentication > URL Configuration las
+URLs de callback de cada entorno:
+
+- `http://localhost:5173/auth/callback`
+- `https://fly.astracode.org/auth/callback`
+
+En cada despliegue, `VITE_AUTH_REDIRECT_URL` debe apuntar al callback del mismo
+origen que sirve la aplicación. No mezcles `localhost` con `fly.astracode.org`:
+`sessionStorage` y la sesión del navegador son aislados por origen.
 
 Puedes copiar `.env.example` como punto de partida. `VITE_API_URL` debe
 incluir el prefijo `/api`; por ejemplo, el backend desplegado usa

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Search,
+  Loader2,
   ChevronDown,
   CalendarDays,
   PlaneTakeoff,
@@ -52,6 +53,7 @@ export default function FlightSearch() {
   const [loadingAirports, setLoadingAirports] = useState(true);
   const [airportsError, setAirportsError] = useState("");
   const [searchError, setSearchError] = useState("");
+  const [searching, setSearching] = useState(false);
   const [availableDates, setAvailableDates] = useState({
     departure: [],
     return: [],
@@ -250,7 +252,9 @@ export default function FlightSearch() {
   ]);
 
   const handleSearch = async () => {
+    if (searching) return;
     setSearchError("");
+    setSearching(true);
 
     try {
       if (!searchData.OrigenID || !searchData.DestinationID) {
@@ -288,6 +292,8 @@ export default function FlightSearch() {
           ? error.message
           : "No se pudieron buscar vuelos.",
       );
+    } finally {
+      setSearching(false);
     }
   };
 
@@ -736,14 +742,15 @@ export default function FlightSearch() {
               {/* Botón Buscar */}
               <button
                 type="button"
+                disabled={searching || loadingAirports || Boolean(airportsError)}
                 onClick={() => {
                   openExpandedSearch();
-                  handleSearch();
+                  void handleSearch();
                 }}
-                className={`min-w-0 w-full rounded-full bg-[#3b2b7a] px-5 ${isExpanded ? "min-h-[52px] py-3" : "py-1.5"} text-white hover:bg-[#2b205c] flex items-center justify-center gap-3 text-xs sm:text-sm transition-colors shadow-lg shadow-violet-900/20 whitespace-nowrap lg:col-span-2`}
+                className={`min-w-0 w-full rounded-full bg-[#3b2b7a] px-5 ${isExpanded ? "min-h-[52px] py-3" : "py-1.5"} text-white hover:bg-[#2b205c] disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-3 text-xs sm:text-sm transition-colors shadow-lg shadow-violet-900/20 whitespace-nowrap lg:col-span-2`}
               >
-                <Search className="w-5 h-5" />
-                <span className="font-semibold">Buscar vuelos</span>
+                {searching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+                <span className="font-semibold">{searching ? "Cargando..." : "Buscar vuelos"}</span>
               </button>
             </div>
           </div>

@@ -60,7 +60,6 @@ export function AuthCallbackModal() {
     !loading &&
     Boolean(session) &&
     syncStatus === "synced";
-
   const continueAfterGoogle = useCallback(() => {
     if (!completed) return;
 
@@ -199,4 +198,3 @@ export function ConfirmEmailModal() {
     </ModalShell>
   );
 }
-

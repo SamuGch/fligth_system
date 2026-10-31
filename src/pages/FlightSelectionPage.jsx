@@ -6,6 +6,7 @@ import {
   Check,
   ChevronRight,
   Clock3,
+  Loader2,
   Plane,
   PlaneLanding,
   PlaneTakeoff,
@@ -170,7 +171,7 @@ function RouteDivider({ label }) {
   );
 }
 
-function FlightCard({ flight, selected, disabled, onSelect }) {
+function FlightCard({ flight, selected, disabled, loading, onSelect }) {
   const metadata = getFlightMetadata(flight);
   const origin = formatFlightLocation(metadata.origin, flight.origin);
   const destination = formatFlightLocation(metadata.destination, flight.destination);
@@ -237,7 +238,7 @@ function FlightCard({ flight, selected, disabled, onSelect }) {
           className={`flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-3 font-semibold text-white ${
             selected ? "bg-emerald-600" : "bg-[#3b2b7a] hover:bg-[#2c205e]"
           } disabled:cursor-not-allowed`}>
-          {selected ? <><Check size={17} /> Seleccionado</> : <><Plane size={17} /> Seleccionar</>}
+          {loading ? <><Loader2 size={17} className="animate-spin" /> Cargando...</> : selected ? <><Check size={17} /> Seleccionado</> : <><Plane size={17} /> Seleccionar</>}
         </button>
       </div>
     </article>
@@ -277,6 +278,8 @@ export default function FlightSelectionPage() {
   );
   const [loadingDate, setLoadingDate] = useState("");
   const [error, setError] = useState("");
+  const [selectingFlightKey, setSelectingFlightKey] = useState("");
+  const [continuing, setContinuing] = useState(false);
 
   const outboundFlights = useMemo(() => flightsFrom(searchResults), [searchResults]);
   const outboundOrigin = getAirportLabel(searchData, outboundFlights[0], "origin");
@@ -315,12 +318,15 @@ export default function FlightSelectionPage() {
   }, [initialSearchData, loadingReturn]);
 
   const selectOutbound = (flight) => {
+    if (selectingFlightKey) return;
+    setSelectingFlightKey(flightKey(flight));
     setSelectedOutbound(flight);
     if (searchData.tripType === "round") {
       setStep("inbound");
     } else {
       setSelectedReturn(null);
     }
+    window.setTimeout(() => setSelectingFlightKey(""), 250);
   };
 
   const loadReturnFlights = async (date) => {
@@ -351,10 +357,15 @@ export default function FlightSelectionPage() {
   };
 
   const selectReturn = (flight) => {
+    if (selectingFlightKey) return;
+    setSelectingFlightKey(flightKey(flight));
     setSelectedReturn(flight);
+    window.setTimeout(() => setSelectingFlightKey(""), 250);
   };
 
   const continueToSeats = () => {
+    if (continuing) return;
+    setContinuing(true);
     const state = {
       outboundFlight: selectedOutbound,
       returnFlight: selectedReturn,
@@ -454,7 +465,7 @@ export default function FlightSelectionPage() {
               </section>
               {outboundFlights.length ? <div className="space-y-4">{outboundFlights.map((flight, index) => {
                 const isSelected = flightKey(selectedOutbound) === flightKey(flight);
-                return <FlightCard key={`${flight.flightNumber ?? "flight"}-${index}`} flight={flight} selected={isSelected} disabled={Boolean(selectedOutbound && !isSelected)} onSelect={selectOutbound} />;
+                return <FlightCard key={`${flight.flightNumber ?? "flight"}-${index}`} flight={flight} selected={isSelected} loading={selectingFlightKey === flightKey(flight)} disabled={Boolean(selectedOutbound && !isSelected) || Boolean(selectingFlightKey)} onSelect={selectOutbound} />;
               })}</div> : <NoFlightsFound onModifySearch={() => navigate("/")} />}
             </>
           ) : selectedOutbound ? (
@@ -506,7 +517,8 @@ export default function FlightSelectionPage() {
                     disabled={Boolean(
                       selectedReturn &&
                       flightKey(selectedReturn) !== flightKey(flight),
-                    )}
+                    ) || Boolean(selectingFlightKey)}
+                    loading={selectingFlightKey === flightKey(flight)}
                     onSelect={selectReturn}
                   />
                 ))}
@@ -527,7 +539,7 @@ export default function FlightSelectionPage() {
           </div>
           <div className="flex items-center justify-between gap-5 sm:justify-end">
             <p className="text-xl font-bold text-white">${subtotal.toFixed(2)} USD</p>
-            <button type="button" disabled={!canContinue} onClick={continueToSeats} className="flex min-h-9 items-center gap-2 rounded-full bg-white px-4 py-2 font-semibold text-[#3b2b7a] shadow-lg hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50">Continuar a selección de asientos <ChevronRight size={17} /></button>
+            <button type="button" disabled={!canContinue || continuing} onClick={continueToSeats} className="flex min-h-9 items-center gap-2 rounded-full bg-white px-4 py-2 font-semibold text-[#3b2b7a] shadow-lg hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50">{continuing ? <><Loader2 size={17} className="animate-spin" /> Cargando...</> : <>Continuar a selección de asientos <ChevronRight size={17} /></>}</button>
           </div>
         </div>
       </aside>
