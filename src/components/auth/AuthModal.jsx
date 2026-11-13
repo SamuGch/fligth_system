@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import ModalShell from "./ModalShell";
+import { getAuthErrorMessage } from "../../lib/authErrorMessage";
 
 import {
   Mail,
@@ -58,11 +59,16 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
     loading: false,
     error: "",
     success: false,
+    accountExists: false,
   });
   const backgroundLocation = useMemo(
     () => location.state?.backgroundLocation || { pathname: "/" },
     [location.state?.backgroundLocation],
   );
+  const seatSelectionData = location.state?.seatSelectionData;
+  const shouldContinueToSeatSelection =
+    location.state?.returnTo === "/seleccion-asientos" &&
+    (seatSelectionData?.flight || seatSelectionData?.outboundFlight);
 
   const close = useCallback(() => {
     if (onClose) {
@@ -83,12 +89,11 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
   const continueAfterAuth = useCallback(() => {
     const returnTo = location.state?.returnTo;
     const checkoutData = location.state?.checkoutData;
-    const seatSelectionData = location.state?.seatSelectionData;
 
      // Nuevo flujo: autenticación antes de seleccionar asientos
     if (
       returnTo === "/seleccion-asientos" &&
-      (seatSelectionData?.flight || seatSelectionData?.outboundFlight)
+      shouldContinueToSeatSelection
     ) {
       navigate("/seleccion-asientos", {
         replace: true,
@@ -107,7 +112,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
     }
 
     close();
-  }, [location.state, navigate, close]);
+  }, [location.state, navigate, close, seatSelectionData, shouldContinueToSeatSelection]);
 
   const switchMode = () => {
     navigate(isRegister ? "/login" : "/registro", {
@@ -141,11 +146,41 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
       return;
     }
 
-    setStatus({ loading: true, error: "", success: false });
+    setStatus({ loading: true, error: "", success: false, accountExists: false });
     try {
       if (isRegister) {
+        sessionStorage.removeItem("authRedirect");
+        sessionStorage.removeItem("oauth_redirect_path");
+        sessionStorage.removeItem("oauth_redirect_state");
+        try {
+          localStorage.removeItem("airtravel_pending_auth_redirect");
+        } catch (storageError) {
+          console.error(
+            "No se pudo limpiar el viaje pendiente de una verificación anterior.",
+            storageError,
+          );
+        }
         const data = await signUp(form);
         if (!data.session) {
+          if (shouldContinueToSeatSelection) {
+            try {
+              localStorage.setItem(
+                "airtravel_pending_auth_redirect",
+                JSON.stringify({
+                  flow: "email-signup",
+                  returnTo: "/seleccion-asientos",
+                  seatSelectionData,
+                  backgroundLocation,
+                  createdAt: Date.now(),
+                }),
+              );
+            } catch (storageError) {
+              console.error(
+                "No se pudo guardar el viaje para después de verificar el correo.",
+                storageError,
+              );
+            }
+          }
           navigate("/auth/confirm-email", {
             replace: true,
             state: {
@@ -163,12 +198,17 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
         onAuthenticated();
         return;
       }
+      if (shouldContinueToSeatSelection) {
+        continueAfterAuth();
+        return;
+      }
       setStatus({ loading: false, error: "", success: true });
     } catch (authError) {
       setStatus({
         loading: false,
-        error: authError.message || "No fue posible completar la solicitud.",
+        error: getAuthErrorMessage(authError),
         success: false,
+        accountExists: authError.code === "email_already_registered",
       });
     }
   };
@@ -178,17 +218,24 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
     setStatus({ loading: true, error: "", success: false });
     try {
       const returnLocation = location.state?.backgroundLocation || location;
+      const redirectPath = shouldContinueToSeatSelection
+        ? "/seleccion-asientos"
+        : `${returnLocation.pathname || "/"}${returnLocation.search || ""}${returnLocation.hash || ""}`;
+      const redirectState = shouldContinueToSeatSelection
+        ? seatSelectionData
+        : returnLocation.state || {};
       sessionStorage.setItem(
         "oauth_redirect_path",
-        `${returnLocation.pathname || "/"}${returnLocation.search || ""}${returnLocation.hash || ""}`,
+        redirectPath,
       );
       sessionStorage.setItem(
         "oauth_redirect_state",
-        JSON.stringify(returnLocation.state || {}),
+        JSON.stringify(redirectState),
       );
       sessionStorage.setItem(
         "authRedirect",
         JSON.stringify({
+          flow: "oauth",
           backgroundLocation,
           returnTo: location.state?.returnTo,
           checkoutData: location.state?.checkoutData,
@@ -213,7 +260,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
             onClick={continueAfterAuth}
             className="mt-5 rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white"
           >
-            {location.state?.returnTo === "/seleccion-asientos" && location.state?.seatSelectionData?.flight
+            {shouldContinueToSeatSelection
               ? "Seleccionar mis asientos"
               : location.state?.returnTo === "/checkout"
               ? "Continuar al pago"
@@ -232,6 +279,8 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
       <p className=" mt-2 text-[14px] sm:text-[15px] font-normal leading-relaxed text-[#64748B] ">
         {isRegister
           ? "Regístrate para administrar tus viajes."
+          : shouldContinueToSeatSelection
+            ? "Inicia sesión para continuar con tu viaje y elegir tus asientos."
           : "Inicia sesión para continuar."}
       </p>
 
@@ -246,9 +295,18 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
         </p>
       )}
       {status.error && (
-        <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-          {status.error}
-        </p>
+        <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          <p role="alert">{status.error}</p>
+          {status.accountExists && (
+            <button
+              type="button"
+              onClick={switchMode}
+              className="mt-2 font-semibold underline underline-offset-2"
+            >
+              Iniciar sesión
+            </button>
+          )}
+        </div>
       )}
 
       <form

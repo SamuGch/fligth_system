@@ -11,8 +11,8 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<publishable-or-anon-key>
 VITE_AUTH_REDIRECT_URL=http://localhost:5173/auth/callback
 ```
 
-Para Google OAuth, registra en Supabase Authentication > URL Configuration las
-URLs de callback de cada entorno:
+Para confirmación de correo y Google OAuth, registra en Supabase Authentication
+> URL Configuration las URLs de callback de cada entorno:
 
 - `http://localhost:5173/auth/callback`
 - `https://fly.astracode.org/auth/callback`

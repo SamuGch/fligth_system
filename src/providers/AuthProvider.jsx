@@ -113,17 +113,42 @@ export default function AuthProvider({ children }) {
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { first_name: firstName, last_name: lastName } },
+        options: {
+          data: { first_name: firstName, last_name: lastName },
+          emailRedirectTo: authRedirectUrl,
+        },
       });
       if (authError) {
         setError(authError.message);
         throw authError;
+      }
+      if (!data.session && data.user?.identities?.length === 0) {
+        const duplicateEmailError = new Error(
+          "Este correo ya tiene una cuenta creada. Inicia sesión.",
+        );
+        duplicateEmailError.code = "email_already_registered";
+        setError(duplicateEmailError.message);
+        throw duplicateEmailError;
       }
       if (data.session) await syncProfile(data.session);
       return data;
     },
     [syncProfile],
   );
+
+  const resendConfirmation = useCallback(async (email) => {
+    if (!supabase) throw new Error(configurationError);
+    setError(null);
+    const { error: authError } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: authRedirectUrl },
+    });
+    if (authError) {
+      setError(authError.message);
+      throw authError;
+    }
+  }, []);
 
   const signInWithGoogle = useCallback(async () => {
     if (!supabase) throw new Error(configurationError);
@@ -170,6 +195,7 @@ export default function AuthProvider({ children }) {
     updateProfile,
     signIn,
     signUp,
+    resendConfirmation,
     signInWithGoogle,
     signOut,
   };

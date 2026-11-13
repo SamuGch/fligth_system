@@ -78,7 +78,7 @@ export default function FlightSearch() {
   });
 
   const [searchData, setSearchData] = useState({
-    tripType: "round",
+    tripType: "one",
     OrigenID: 0,
     DestinationID: 0,
     departureDate: "",
@@ -290,11 +290,16 @@ export default function FlightSearch() {
         return;
       }
 
-      const response = await buscarVuelos(searchData);
+      const oneWaySearchData = {
+        ...searchData,
+        tripType: "one",
+        returnDate: "",
+      };
+      const response = await buscarVuelos(oneWaySearchData);
       sessionStorage.removeItem(COMPLETED_RESERVATION_KEY);
       navigate("/seleccion-vuelos", {
         state: {
-          searchData,
+          searchData: oneWaySearchData,
           searchResults: response,
           alternativeDates:
             response?.outbound?.alternativeDates ??
@@ -435,8 +440,8 @@ export default function FlightSearch() {
               : "mt-6 mx-4 sm:mx-6 md:-mt-16 lg:-mt-23 lg:mx-12 xl:mx-25"
               }`}
           >
-            <div className={`relative mx-auto w-full rounded-[32px] border border-white/80 bg-white px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-5 shadow-[0_18px_55px_rgba(51,51,153,0.20),0_0_30px_rgba(140,155,255,0.14)] ${isExpanded
-              ? "w-[calc(100%-1.5rem)] max-w-[96vw] rounded-[32px] p-4 shadow-[0_20px_65px_rgba(51,51,153,0.28)] transition-all duration-300 ease-out sm:w-[calc(100%-3rem)] sm:p-6"
+            <div className={`relative mx-auto w-full rounded-4xl border border-white/80 bg-white px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-5 shadow-[0_18px_55px_rgba(51,51,153,0.20),0_0_30px_rgba(140,155,255,0.14)] ${isExpanded
+              ? "w-[calc(100%-1.5rem)] max-w-[96vw] rounded-4xl p-4 shadow-[0_20px_65px_rgba(51,51,153,0.28)] transition-all duration-300 ease-out sm:w-[calc(100%-3rem)] sm:p-6"
               : ""
               }`}>
               {isExpanded && (
@@ -449,9 +454,8 @@ export default function FlightSearch() {
                   <span aria-hidden="true" className="text-xl leading-none">✕</span>
                 </button>
               )}
-              {/* Top Row: Selectors */}
+              {/* Selector de tipo de viaje desactivado; botones conservados para uso futuro.
               <div className="mb-3 flex items-center gap-3 border-b border-[#E7EBF3] pb-3">
-                {/* Selector de tipo de viaje */}
                 <div className="w-full sm:w-auto">
                   <div
                     role="group"
@@ -465,7 +469,6 @@ export default function FlightSearch() {
                     shadow-[inset_0_1px_2px_rgba(51,51,153,0.08)]
                   "
                   >
-                    {/* Ida y vuelta */}
                     <button
                       type="button"
                       onClick={() => {
@@ -493,7 +496,6 @@ export default function FlightSearch() {
                       Ida y vuelta
                     </button>
 
-                    {/* Solo ida */}
                     <button
                       type="button"
                       onClick={() => {
@@ -523,12 +525,8 @@ export default function FlightSearch() {
                     </button>
                   </div>
                 </div>
-
-
-
-
-
               </div>
+              */}
 
               {/* Bottom Row: Inputs */}
               <div

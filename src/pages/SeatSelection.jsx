@@ -15,6 +15,11 @@ import {
 import { obtenerTiposAsiento } from "../services/asientoService";
 import { createTemporaryReservation } from "../services/apiClient";
 import { reservationErrorMessage } from "../services/reservationErrors";
+import {
+  guardarSeleccionParaCheckout,
+  limpiarSeleccionParaCheckout,
+  obtenerSeleccionParaCheckout,
+} from "../services/seatSelectionStorage";
 import { invalidateTripsCache } from "../services/tripsCache";
 import { useAuth } from "../context/AuthContext";
 import AuthModal from "../components/auth/AuthModal";
@@ -158,7 +163,8 @@ const currency = (amount) =>
     maximumFractionDigits: 2,
   })} USD`;
 
-const createPaymentDeadline = () => Date.now() + 5 * 60 * 1000;
+const createPaymentDeadline = (passengerCount) =>
+  Date.now() + 5 * 60 * 1000 * passengerCount;
 
 function Seat({ seat, selected, onClick }) {
   const status = selected ? "Seleccionado" : seat.status;
@@ -367,6 +373,7 @@ export default function SeatSelection() {
   const location = useLocation();
   const { client, session } = useAuth();
   const [savedIntent] = useState(() => readSeatSelectionIntent());
+  const [savedCheckoutSelection] = useState(() => obtenerSeleccionParaCheckout());
   const searchData = useMemo(
     () => location.state?.searchData ?? savedIntent?.searchData ?? {},
     [location.state?.searchData, savedIntent?.searchData],
@@ -389,7 +396,11 @@ export default function SeatSelection() {
     [selectedFlight],
   );
   const [selectedSeatsByFlight, setSelectedSeatsByFlight] = useState(
-    () => savedIntent?.selectedSeatsByFlight ?? {},
+    () =>
+      location.state?.selectedSeatsByFlight ??
+      savedIntent?.selectedSeatsByFlight ??
+      savedCheckoutSelection ??
+      {},
   );
   const [asientos, setAsientos] = useState([]);
   const [activeFlightIndex, setActiveFlightIndex] = useState(0);
@@ -532,16 +543,16 @@ export default function SeatSelection() {
 
   const handleSeatClick = (seat) => {
     setMessage("");
-    if (
-      !seat.activo ||
-      seat.ocupado ||
-      (selectedSeats.length >= totalPassengers &&
-        !selectedSeats.some((item) => item.selectionId === seat.selectionId))
-    ) return;
-
     const existe = selectedSeats.some(
       (item) => item.selectionId === seat.selectionId,
     );
+    if (
+      !existe &&
+      (!seat.activo ||
+        seat.ocupado ||
+        selectedSeats.length >= totalPassengers)
+    ) return;
+
     const nextSeats = existe
       ? selectedSeats.filter((item) => item.selectionId !== seat.selectionId)
       : [...selectedSeats, seat];
@@ -585,6 +596,7 @@ export default function SeatSelection() {
   const total = subtotal + serviceFee;
 
   const handleExit = () => {
+    limpiarSeleccionParaCheckout();
     navigate("/seleccion-vuelos", {
       state: {
         searchData,
@@ -607,8 +619,16 @@ export default function SeatSelection() {
       return;
     }
 
-    setReserving(true);
     setMessage("");
+    try {
+      guardarSeleccionParaCheckout(selectedSeatsByFlight);
+    } catch (storageError) {
+      console.error("No se pudieron guardar los asientos seleccionados.", storageError);
+      setMessage("No pudimos guardar tus asientos. Inténtalo nuevamente.");
+      return;
+    }
+
+    setReserving(true);
 
     try {
       const reservation = await createTemporaryReservation({
@@ -633,7 +653,7 @@ export default function SeatSelection() {
           selectedSeatsByFlight,
           legs,
           reservation,
-          paymentDeadline: createPaymentDeadline(),
+          paymentDeadline: createPaymentDeadline(totalPassengers),
         },
       });
       sessionStorage.removeItem(SEAT_SELECTION_INTENT_KEY);
@@ -1074,7 +1094,7 @@ export default function SeatSelection() {
                   </>
                 ) : (
                   <>
-                    Continuar al pago
+                    Continuar a pasajeros
                     <ArrowRight size={20} />
                   </>
                 )}

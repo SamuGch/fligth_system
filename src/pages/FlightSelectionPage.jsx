@@ -474,37 +474,8 @@ export default function FlightSelectionPage() {
   };
 
   const selectReturn = (flight) => {
-    if (selectingFlightKey) return;
-    setSelectingFlightKey(flightKey(flight));
-    setSelectedReturn(flight);
-window.setTimeout(() => setSelectingFlightKey(""), 250);
-  };
-
-  const continueToSeats = () => {
-    if (continuing) return;
-    if (
-      !selectedOutbound ||
-      (searchData.tripType === "round" &&
-        (!selectedReturn ||
-          !searchData.returnDate ||
-          searchData.returnDate <= searchData.departureDate))
-    ) {
-      setError(
-        "Selecciona un vuelo de ida y un vuelo de regreso en fechas válidas para continuar.",
-      );
-      return;
-    }
-    setContinuing(true);
-    const state = {
-      outboundFlight: selectedOutbound,
-      returnFlight: selectedReturn,
-      searchData,
-      searchResults,
-      alternativeDates,
-      returnFlights,
-      returnAlternativeDates,
-    };
-    navigate("/seleccion-asientos", { state });
+    if (selectingFlightKey || !selectedOutbound) return;
+    navigateToSeats(selectedOutbound, flight);
   };
 
   const selectAlternativeDate = async (date) => {
@@ -587,7 +558,6 @@ window.setTimeout(() => setSelectingFlightKey(""), 250);
     }
   };
 
-  const subtotal = flightPrice(selectedOutbound) + flightPrice(selectedReturn);
   const currentPrice = outboundFlights.length ? Math.min(...outboundFlights.map(flightPrice)) : null;
   const outboundDateOptions = [...alternativeDates.filter((item) => item?.departureDate !== searchData.departureDate), ...(searchData.departureDate ? [{ departureDate: searchData.departureDate, price: currentPrice }] : [])].sort((a, b) => a.departureDate.localeCompare(b.departureDate));
   const inboundDateOptions = [
@@ -610,14 +580,6 @@ window.setTimeout(() => setSelectingFlightKey(""), 250);
         date !== searchData.returnDate,
     )
     .sort()[0];
-  const itinerarySummary = !selectedOutbound
-    ? "Selecciona tu vuelo de ida"
-    : searchData.tripType !== "round"
-      ? `Ida: ${formatTime(selectedOutbound.departure)} → ${formatTime(selectedOutbound.arrival)}`
-      : selectedReturn
-        ? `Ida: ${formatTime(selectedOutbound.departure)} → ${formatTime(selectedOutbound.arrival)} | Regreso: ${formatTime(selectedReturn.departure)} → ${formatTime(selectedReturn.arrival)}`
-        : `Ida: ${formatTime(selectedOutbound.departure)} → ${formatTime(selectedOutbound.arrival)} | Selecciona tu vuelo de regreso`;
-
   if (!initialSearchData) return null;
 
   return (
@@ -787,21 +749,6 @@ window.setTimeout(() => setSelectingFlightKey(""), 250);
           </>
         )}
       </main>
-
-      {/*<aside className="static lg:fixed lg:bottom-0 lg:left-0 lg:right-0 z-40 mt-6 rounded-2xl border border-white/15 bg-slate-950/80 p-2.5 text-white shadow-[0_12px_30px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:rounded-full sm:p-3 lg:mt-0">
-        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 lg:px-6">
-          <div className="min-w-0">
-            <p className="text-sm text-slate-300">Resumen de compra</p>
-            <p className="truncate font-semibold text-white">{itinerarySummary}</p>
-          </div>
-          <div className="flex items-center justify-between gap-5 sm:justify-end">
-            <p className="text-xl font-bold text-white">${subtotal.toFixed(2)} USD</p>
-            
-            <button type="button" disabled={!canContinue || continuing} onClick={continueToSeats} className="btn-secondary flex min-h-9 items-center gap-2 rounded-full px-4 py-2 font-semibold shadow-lg disabled:opacity-50">{continuing ? <><Loader2 size={17} className="animate-spin" /> Cargando...</> : <>Continuar a selección de asientos <ChevronRight size={17} /></>}</button>
-            
-          </div>
-        </div>
-      </aside>*/}
     </div>
   );
 }

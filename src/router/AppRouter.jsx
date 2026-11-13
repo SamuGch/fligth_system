@@ -51,9 +51,9 @@ export default function AppRouter() {
         <Route path="/" element={<Home />} />
         <Route path="/seleccion-vuelos" element={<FlightSelectionPage />} />
         <Route path="/ayuda" element={<HelpPage />} />
-        <Route path="/seleccion-asientos" element={<SeatSelection />} />
 
         <Route element={<ProtectedRoute />}>
+          <Route path="/seleccion-asientos" element={<SeatSelection />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/perfil" element={<ProfilePage />} />
           <Route path="/reservas" element={<ReservationsPage />} />

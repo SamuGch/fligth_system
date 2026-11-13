@@ -20,7 +20,10 @@ import {
   releaseTemporaryReservationSeats,
 } from "../services/apiClient";
 import { reservationErrorMessage } from "../services/reservationErrors";
-import { limpiarSeleccion } from "../services/seatSelectionStorage";
+import {
+  limpiarSeleccion,
+  limpiarSeleccionParaCheckout,
+} from "../services/seatSelectionStorage";
 import { invalidateTripsCache } from "../services/tripsCache";
 import MainNavbar from "../components/MainNavbar";
 import {
@@ -115,7 +118,7 @@ export default function CheckoutPage() {
   const [paymentDeadline] = useState(() =>
     Number(storedDeadline) > 0
       ? Number(storedDeadline)
-      : Date.now() + 5 * 60 * 1000,
+      : Date.now() + 5 * 60 * 1000 * passengerCount,
   );
   const [passengers, setPassengers] = useState(() =>
     Object.fromEntries(
@@ -207,6 +210,7 @@ export default function CheckoutPage() {
       await releaseTemporaryReservationSeats(reservationId, accessToken, { keepalive });
       releaseCompletedRef.current = true;
       limpiarSeleccion();
+      sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);
     },
     [accessToken, reservationId],
   );
@@ -321,6 +325,7 @@ export default function CheckoutPage() {
       completedReservationIdRef.current = result?.id ?? reservationId;
       invalidateTripsCache();
       limpiarSeleccion();
+      limpiarSeleccionParaCheckout();
       sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);
       sessionStorage.setItem(
         COMPLETED_RESERVATION_KEY,
@@ -422,7 +427,7 @@ export default function CheckoutPage() {
     try {
       await releaseTemporarySeats();
       allowBrowserNavigationRef.current = true;
-      navigate(backGuardInstalledRef.current ? -2 : "/seleccion-asientos", {
+      navigate(backGuardInstalledRef.current ? -1 : "/seleccion-asientos", {
         replace: !backGuardInstalledRef.current,
         state: backGuardInstalledRef.current ? undefined : {
           flight,
@@ -439,6 +444,7 @@ export default function CheckoutPage() {
 
   const goHome = () => {
     limpiarSeleccion();
+    limpiarSeleccionParaCheckout();
     sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);
     navigate("/", { replace: true });
   };
@@ -497,7 +503,7 @@ export default function CheckoutPage() {
 
         <div className="grid min-h-0 flex-1 grid-cols-12 items-stretch gap-5 lg:contents">
           <section className="col-span-12 flex min-h-0 min-w-0 flex-col rounded-3xl border border-white/80 bg-white/90 p-4 shadow-[0_16px_45px_rgba(47,43,122,0.12)] backdrop-blur-md sm:p-6 lg:col-span-1 xl:p-8">
-            <div className="min-h-0 flex-1 overflow-y-auto pr-0 lg:overflow-hidden lg:pr-1">
+            <div className="scrollbar-hidden min-h-0 flex-1 overflow-y-auto pr-0 lg:pr-1">
             {checkoutStep === 3 ? (
               <>
                 <div className="mb-2 flex items-center gap-2">
