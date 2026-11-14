@@ -119,6 +119,7 @@ export default function AirportCombobox({
             ref={searchRef}
             id={`airport-${label}`}
             type="text"
+            maxLength={100}
             value={query}
             disabled={disabled}
             autoComplete="off"

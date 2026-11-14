@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import AccountLayout from "../components/account/AccountLayout";
+import { NAME_MAX_LENGTH, filterNameInput, nameValidationError } from "../tools/formValidation";
 
 const faqs = [
   {
@@ -80,15 +81,23 @@ export default function HelpPage() {
   const [openFaq, setOpenFaq] = useState(0);
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const updateField = (event) => {
     const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
+    setForm((current) => ({ ...current, [name]: name === "name" ? filterNameInput(value) : value }));
     setSubmitted(false);
+    setFormError("");
   };
 
   const submitForm = (event) => {
     event.preventDefault();
+    const validationError = nameValidationError(form.name) ||
+      (!form.subject.trim() || !form.message.trim() ? "Completa el asunto y el mensaje." : "");
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
     setSubmitted(true);
     setForm({ name: "", email: "", subject: "", message: "" });
   };
@@ -118,6 +127,7 @@ export default function HelpPage() {
               <span className="sr-only">Buscar en ayuda</span>
               <input
                 type="search"
+                maxLength={100}
                 placeholder="Busca una pregunta o tema"
                 className="w-full bg-transparent py-3 text-sm text-slate-800 outline-none placeholder:text-slate-400"
               />
@@ -169,20 +179,21 @@ export default function HelpPage() {
               <form onSubmit={submitForm} className="mt-5 grid gap-3">
                 <label className="text-sm font-semibold text-slate-700">
                   Nombre
-                  <input required name="name" value={form.name} onChange={updateField} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white/80 p-3 outline-none transition focus:border-[#3b2b7a] focus:ring-2 focus:ring-[#3b2b7a]/15" />
+                  <input required maxLength={NAME_MAX_LENGTH} name="name" value={form.name} onChange={updateField} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white/80 p-3 outline-none transition focus:border-[#3b2b7a] focus:ring-2 focus:ring-[#3b2b7a]/15" />
                 </label>
                 <label className="text-sm font-semibold text-slate-700">
                   Correo electrónico
-                  <input required type="email" name="email" value={form.email} onChange={updateField} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white/80 p-3 outline-none transition focus:border-[#3b2b7a] focus:ring-2 focus:ring-[#3b2b7a]/15" />
+                  <input required type="email" maxLength={254} name="email" value={form.email} onChange={updateField} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white/80 p-3 outline-none transition focus:border-[#3b2b7a] focus:ring-2 focus:ring-[#3b2b7a]/15" />
                 </label>
                 <label className="text-sm font-semibold text-slate-700">
                   Asunto
-                  <input required name="subject" value={form.subject} onChange={updateField} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white/80 p-3 outline-none transition focus:border-[#3b2b7a] focus:ring-2 focus:ring-[#3b2b7a]/15" />
+                  <input required maxLength={100} name="subject" value={form.subject} onChange={updateField} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white/80 p-3 outline-none transition focus:border-[#3b2b7a] focus:ring-2 focus:ring-[#3b2b7a]/15" />
                 </label>
                 <label className="text-sm font-semibold text-slate-700">
                   Mensaje
-                  <textarea required name="message" rows="4" value={form.message} onChange={updateField} className="mt-1.5 w-full resize-y rounded-xl border border-slate-200 bg-white/80 p-3 outline-none transition focus:border-[#3b2b7a] focus:ring-2 focus:ring-[#3b2b7a]/15" />
+                  <textarea required maxLength={2000} name="message" rows="4" value={form.message} onChange={updateField} className="mt-1.5 w-full resize-y rounded-xl border border-slate-200 bg-white/80 p-3 outline-none transition focus:border-[#3b2b7a] focus:ring-2 focus:ring-[#3b2b7a]/15" />
                 </label>
+                {formError && <p role="alert" className="text-sm text-red-700">{formError}</p>}
                 <button type="submit" className="btn-primary mt-1 inline-flex min-h-11 px-4 py-3 text-sm font-bold shadow-md hover:-translate-y-0.5 hover:shadow-lg">
                   <Mail size={17} />
                   Enviar consulta

@@ -84,7 +84,6 @@ export default function FlightSearch() {
     departureDate: "",
     returnDate: "",
     totalPassengers: 1,
-    passengerDetails: { adults: 1, children: 0, infants: 0 },
   });
   const navigate = useNavigate();
 

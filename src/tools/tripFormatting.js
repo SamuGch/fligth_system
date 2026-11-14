@@ -24,9 +24,11 @@ const statusOptions = {
   CONFIRMADO: { label: "Viaje confirmado", classes: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
   CONFIRMADA: { label: "Viaje confirmado", classes: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
   COMPLETADO: { label: "Viaje completado", classes: "bg-slate-100 text-slate-700 ring-slate-200" },
+  COMPLETADA: { label: "Viaje completado", classes: "bg-slate-100 text-slate-700 ring-slate-200" },
   CANCELADO: { label: "Reserva cancelada", classes: "bg-red-50 text-red-700 ring-red-200" },
   CANCELADA: { label: "Reserva cancelada", classes: "bg-red-50 text-red-700 ring-red-200" },
   EXPIRADA: { label: "Reserva expirada", classes: "bg-red-50 text-red-700 ring-red-200" },
+  EXPIRADO: { label: "Reserva expirada", classes: "bg-red-50 text-red-700 ring-red-200" },
 };
 
 export function parseDate(value) {
@@ -70,6 +72,23 @@ export function requiresPassengerConfirmation(trip) {
     trip?.debe_completar_pasajeros ??
     status === "PENDIENTE_DATOS",
   );
+}
+
+export function canDownloadTicket(trip) {
+  if (!trip) return false;
+  const statuses = [trip.estado_resumen, trip.estado_reserva]
+    .filter((status) => status != null && String(status).trim() !== "")
+    .map((status) => String(status).trim().toUpperCase());
+  const eligibleStatuses = ["CONFIRMADA", "CONFIRMADO", "COMPLETADA", "COMPLETADO"];
+  const paymentStatus = String(trip.pago?.estado ?? "").trim().toUpperCase();
+
+  return statuses.length > 0 &&
+    statuses.every((status) => eligibleStatuses.includes(status)) &&
+    (!paymentStatus || ["APROBADO", "CONFIRMADO", "PAGADO", "COMPLETADO"].includes(paymentStatus)) &&
+    trip.debe_registrar_pago !== true &&
+    trip.pago_completo !== false &&
+    !(trip.saldo_pendiente != null && Number(trip.saldo_pendiente) > 0) &&
+    !requiresPassengerConfirmation(trip);
 }
 
 export function tripCategory(trip) {

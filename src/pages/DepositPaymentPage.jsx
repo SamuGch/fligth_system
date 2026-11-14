@@ -11,6 +11,7 @@ import useReservationTrip from "../hooks/useReservationTrip";
 import { registerDepositPayment } from "../services/apiClient";
 import { invalidateTripsCache } from "../services/tripsCache";
 import { formatDateTime, money } from "../tools/tripFormatting";
+import { depositValidationError } from "../tools/formValidation";
 
 function paymentRecords(trip) {
   const records = trip?.depositos ?? trip?.pagos;
@@ -57,7 +58,12 @@ export default function DepositPaymentPage() {
   const submitDeposit = async (event) => {
     event.preventDefault();
     const numericAmount = Number(amount);
-    if (!reference.trim() || !bank || !Number.isFinite(numericAmount) || numericAmount <= 0 || submitting) return;
+    if (submitting) return;
+    const validationError = depositValidationError(amount, reference);
+    if (validationError || !bank) {
+      setFormError(validationError || "Selecciona un banco.");
+      return;
+    }
     if (clienteId == null) {
       setFormError("No pudimos identificar tu cuenta. Inicia sesión nuevamente.");
       return;
@@ -96,12 +102,12 @@ export default function DepositPaymentPage() {
           <div className="flex items-center gap-3"><div className="rounded-2xl bg-violet-100 p-3 text-violet-700"><Landmark size={24} /></div><div><h2 className="text-xl font-extrabold text-slate-900">Boleta de depósito</h2><p className="text-sm text-slate-500">Ingresa la referencia exactamente como aparece en tu comprobante.</p></div></div>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <label className="text-sm font-bold text-slate-700">Banco<select required value={bank} onChange={(event) => setBank(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 outline-none focus:border-violet-500"><option value="">Selecciona un banco</option>{GUATEMALAN_BANKS.map((bankName) => <option key={bankName} value={bankName}>{bankName}</option>)}</select></label>
-            <label className="text-sm font-bold text-slate-700">Monto depositado<input required type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="0.00" className="mt-2 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-violet-500" /></label>
+            <label className="text-sm font-bold text-slate-700">Monto depositado<input required type="text" inputMode="decimal" maxLength={15} value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="0.00" className="mt-2 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-violet-500" /></label>
           </div>
-          <label className="mt-4 block text-sm font-bold text-slate-700">Número de referencia<input required value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Ej. BOLETA-BANRURAL-987654" className="mt-2 w-full rounded-xl border border-slate-200 p-3 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100" /></label>
+          <label className="mt-4 block text-sm font-bold text-slate-700">Número de referencia<input required maxLength={50} value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Ej. BOLETA-BANRURAL-987654" className="mt-2 w-full rounded-xl border border-slate-200 p-3 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100" /></label>
           <p className="mt-3 text-xs leading-5 text-slate-500">Los depósitos pendientes de revisión todavía no reducen el saldo. El saldo se actualiza cuando un depósito es aprobado.</p>
           {formError && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{formError}</p>}
-          <button type="submit" disabled={submitting || !reference.trim() || !bank || Number(amount) <= 0 || paymentComplete} className="btn-primary mt-6 inline-flex min-h-12 w-full px-5 font-bold disabled:opacity-50">{submitting ? <><LoaderCircle className="animate-spin" size={19} /> Registrando…</> : paymentComplete ? <><CreditCard size={19} /> Pago completado</> : <><CreditCard size={19} /> Registrar depósito</>}</button>
+          <button type="submit" disabled={submitting || paymentComplete} className="btn-primary mt-6 inline-flex min-h-12 w-full px-5 font-bold disabled:opacity-50">{submitting ? <><LoaderCircle className="animate-spin" size={19} /> Registrando…</> : paymentComplete ? <><CreditCard size={19} /> Pago completado</> : <><CreditCard size={19} /> Registrar depósito</>}</button>
         </form>
 
         <aside className="space-y-4">

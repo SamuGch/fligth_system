@@ -3,21 +3,16 @@ import { Armchair, CircleAlert, FileCheck2, LoaderCircle, UserRound } from "luci
 import { useParams } from "react-router-dom";
 import ActionResultModal from "../components/account/ActionResultModal";
 import ReservationActionLayout from "../components/account/ReservationActionLayout";
+import DocumentNumberInput from "../components/DocumentNumberInput";
 import { useAuth } from "../context/AuthContext";
 import usePendingSeats from "../hooks/usePendingSeats";
 import useReservationTrip from "../hooks/useReservationTrip";
 import { confirmReservationPassengers } from "../services/apiClient";
 import { invalidatePendingSeats } from "../services/pendingSeatsCache";
 import { invalidateTripsCache } from "../services/tripsCache";
+import { NAME_MAX_LENGTH, filterNameInput, normalizeDocumentNumber, normalizeName, passengerValidationError } from "../tools/formValidation";
 
 const passengerFields = ["nombre_pasajero", "apellido_pasajero", "tipo_documento", "numero_documento"];
-
-const fieldLabels = {
-  nombre_pasajero: "nombre",
-  apellido_pasajero: "apellido",
-  tipo_documento: "tipo de documento",
-  numero_documento: "número de documento",
-};
 
 function pendingSeatDetails(response) {
   return (response?.asientos || [])
@@ -54,7 +49,10 @@ export default function PassengerConfirmationPage() {
 
   const valuesFor = (detail) => ({ ...detail, ...(form[String(detail.vuelo_asiento_id)] || {}) });
   const updatePassenger = (seatId, field, value) => {
-    setForm((current) => ({ ...current, [String(seatId)]: { ...(current[String(seatId)] || {}), [field]: value } }));
+    const nextValue = field === "nombre_pasajero" || field === "apellido_pasajero"
+      ? filterNameInput(value)
+      : value;
+    setForm((current) => ({ ...current, [String(seatId)]: { ...(current[String(seatId)] || {}), [field]: nextValue } }));
     setFormError("");
   };
 
@@ -65,18 +63,20 @@ export default function PassengerConfirmationPage() {
       const values = valuesFor(detail);
       return Object.fromEntries([
         ["vuelo_asiento_id", detail.vuelo_asiento_id],
-        ...passengerFields.map((field) => [field, String(values[field] || "").trim()]),
+        ...passengerFields.map((field) => [
+          field,
+          field === "nombre_pasajero" || field === "apellido_pasajero"
+            ? normalizeName(String(values[field] || ""))
+            : field === "numero_documento"
+              ? normalizeDocumentNumber(String(values[field] || ""))
+              : String(values[field] || "").trim(),
+        ]),
       ]);
     });
 
-    const firstIncompleteIndex = passengers.findIndex((passenger) =>
-      passengerFields.some((field) => !passenger[field]),
-    );
-    if (firstIncompleteIndex >= 0) {
-      const missingFields = passengerFields
-        .filter((field) => !passengers[firstIncompleteIndex][field])
-        .map((field) => fieldLabels[field]);
-      setFormError(`En el asiento ${pendingDetails[firstIncompleteIndex].asiento} falta completar: ${missingFields.join(", ")}.`);
+    const invalidIndex = passengers.findIndex((passenger) => passengerValidationError(passenger));
+    if (invalidIndex >= 0) {
+      setFormError(`Asiento ${pendingDetails[invalidIndex].asiento}: ${passengerValidationError(passengers[invalidIndex])}`);
       return;
     }
     if (clienteId == null) {
@@ -116,10 +116,10 @@ export default function PassengerConfirmationPage() {
               <section key={detail.vuelo_asiento_id} className="overflow-hidden rounded-3xl border border-slate-200">
                 <header className="flex items-center gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4"><span className="grid h-10 w-10 place-items-center rounded-xl bg-violet-100 text-violet-700"><Armchair size={21} /></span><div><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Pasajero {index + 1}</p><h2 className="font-extrabold text-slate-900">{detail.asiento}</h2></div></header>
                 <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
-                  <label className="text-sm font-bold text-slate-700">Nombre<input value={values.nombre_pasajero} onChange={(event) => updatePassenger(detail.vuelo_asiento_id, "nombre_pasajero", event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-violet-500" /></label>
-                  <label className="text-sm font-bold text-slate-700">Apellido<input value={values.apellido_pasajero} onChange={(event) => updatePassenger(detail.vuelo_asiento_id, "apellido_pasajero", event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-violet-500" /></label>
-                  <label className="text-sm font-bold text-slate-700">Tipo de documento<select value={values.tipo_documento} onChange={(event) => updatePassenger(detail.vuelo_asiento_id, "tipo_documento", event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 outline-none focus:border-violet-500"><option value="">Selecciona un tipo</option><option value="PASAPORTE">Pasaporte</option><option value="DPI">DPI</option><option value="OTRO">Otro</option></select></label>
-                  <label className="text-sm font-bold text-slate-700">Número de documento<input value={values.numero_documento} onChange={(event) => updatePassenger(detail.vuelo_asiento_id, "numero_documento", event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-violet-500" /></label>
+                  <label className="text-sm font-bold text-slate-700">Nombre<input maxLength={NAME_MAX_LENGTH} value={values.nombre_pasajero} onChange={(event) => updatePassenger(detail.vuelo_asiento_id, "nombre_pasajero", event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-violet-500" /></label>
+                  <label className="text-sm font-bold text-slate-700">Apellido<input maxLength={NAME_MAX_LENGTH} value={values.apellido_pasajero} onChange={(event) => updatePassenger(detail.vuelo_asiento_id, "apellido_pasajero", event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-violet-500" /></label>
+                  <label className="text-sm font-bold text-slate-700">Tipo de documento<select value={values.tipo_documento} onChange={(event) => updatePassenger(detail.vuelo_asiento_id, "tipo_documento", event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 outline-none focus:border-violet-500"><option value="">Selecciona un tipo</option><option value="PASAPORTE">Pasaporte</option><option value="DPI">DPI</option></select></label>
+                  <label className="text-sm font-bold text-slate-700">Número de documento<DocumentNumberInput value={values.numero_documento} onChange={(value) => updatePassenger(detail.vuelo_asiento_id, "numero_documento", value)} className="mt-2 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-violet-500" /></label>
                 </div>
               </section>
             );

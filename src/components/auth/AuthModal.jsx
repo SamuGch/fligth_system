@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import ModalShell from "./ModalShell";
 import { getAuthErrorMessage } from "../../lib/authErrorMessage";
+import { NAME_MAX_LENGTH, filterNameInput, nameValidationError, normalizeName } from "../../tools/formValidation";
 
 import {
   Mail,
@@ -127,12 +128,21 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
   const update = (event) =>
     setForm((current) => ({
       ...current,
-      [event.target.name]: event.target.value,
+      [event.target.name]: event.target.name === "firstName" || event.target.name === "lastName"
+        ? filterNameInput(event.target.value)
+        : event.target.value,
     }));
 
   const submit = async (event) => {
     event.preventDefault();
     sessionStorage.removeItem("airtravel_auth_notice");
+    if (isRegister) {
+      const validationError = nameValidationError(form.firstName, "El nombre") || nameValidationError(form.lastName, "El apellido");
+      if (validationError) {
+        setStatus({ loading: false, error: validationError, success: false, accountExists: false });
+        return;
+      }
+    }
     if (isRegister && form.password !== form.confirmation) {
       setStatus({ loading: false, error: "Las contraseñas no coinciden.", success: false });
       return;
@@ -160,7 +170,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
             storageError,
           );
         }
-        const data = await signUp(form);
+        const data = await signUp({ ...form, firstName: normalizeName(form.firstName), lastName: normalizeName(form.lastName) });
         if (!data.session) {
           if (shouldContinueToSeatSelection) {
             try {
@@ -325,6 +335,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
                 required
                 type="text"
                 name="firstName"
+                maxLength={NAME_MAX_LENGTH}
                 autoComplete="given-name"
                 value={form.firstName}
                 onChange={update}
@@ -342,6 +353,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
                 required
                 type="text"
                 name="lastName"
+                maxLength={NAME_MAX_LENGTH}
                 autoComplete="family-name"
                 value={form.lastName}
                 onChange={update}
@@ -362,6 +374,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
             required
             type="email"
             name="email"
+            maxLength={254}
             autoComplete="email"
             value={form.email}
             onChange={update}
@@ -377,6 +390,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
           <input
             required
             minLength="6"
+            maxLength={isRegister ? 128 : undefined}
             type={showPassword ? "text" : "password"}
             name="password"
             autoComplete={
@@ -425,7 +439,7 @@ export default function AuthModal({ mode, onClose, onAuthenticated }) {
               className=" absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]  group-focus-within:text-[#3b2b7a] pointer-events-none transition-colors "
             />
 
-            <input required type={showConfirmation ? "text" : "password"} name="confirmation" autoComplete="new-password" value={form.confirmation} onChange={update} placeholder="Confirmar contraseña" className={`${inputClass} pr-12`} />
+            <input required maxLength={128} type={showConfirmation ? "text" : "password"} name="confirmation" autoComplete="new-password" value={form.confirmation} onChange={update} placeholder="Confirmar contraseña" className={`${inputClass} pr-12`} />
 
 
             <button

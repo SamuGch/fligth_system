@@ -17,11 +17,12 @@ import {
   XCircle,
 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { cancelReservation } from "../services/apiClient";
+import { cancelReservation, getMyTrips } from "../services/apiClient";
 import AccountLayout from "../components/account/AccountLayout";
 import useTrips from "../hooks/useTrips";
 import { invalidateTripsCache } from "../services/tripsCache";
 import {
+  canDownloadTicket,
   formatDateTime,
   money,
   requiresPassengerConfirmation,
@@ -169,14 +170,11 @@ export default function ReservationDetailPage() {
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [downloadingTicket, setDownloadingTicket] = useState(false);
+  const [ticketError, setTicketError] = useState("");
   const [cancelFeedback, setCancelFeedback] = useState(null);
   const [updatedTrip, setUpdatedTrip] = useState(null);
-  const stateTrip = location.state?.trip;
-  const needsFetch = String(stateTrip?.reserva_id) !== String(reservaId);
-  const { trips, loading, error, reload } = useTrips(needsFetch);
-  const fetchedTrip = needsFetch
-    ? trips.find((item) => String(item.reserva_id) === String(reservaId))
-    : stateTrip;
+  const { trips, loading, error, reload } = useTrips(true, true);
+  const fetchedTrip = trips.find((item) => String(item.reserva_id) === String(reservaId));
   const trip = updatedTrip || fetchedTrip;
   const action = location.state?.action;
 
@@ -190,10 +188,21 @@ export default function ReservationDetailPage() {
   };
 
   const handleDownloadTicket = async () => {
-    if (downloadingTicket) return;
+    if (downloadingTicket || !canDownloadTicket(trip)) return;
+    setTicketError("");
     setDownloadingTicket(true);
     try {
-      await downloadTicket(trip);
+      const latestTrips = await getMyTrips();
+      const latestTrip = latestTrips.find((item) => String(item.reserva_id) === String(reservaId));
+      if (!latestTrip) {
+        setTicketError("No encontramos esta reserva. Vuelve a Mis viajes y actualiza la página.");
+        return;
+      }
+      setUpdatedTrip(latestTrip);
+      if (!canDownloadTicket(latestTrip)) return;
+      await downloadTicket(latestTrip);
+    } catch {
+      setTicketError("No pudimos verificar la reserva o generar el boleto. Inténtalo nuevamente.");
     } finally {
       setDownloadingTicket(false);
     }
@@ -238,7 +247,7 @@ export default function ReservationDetailPage() {
     }
   };
 
-  if ((needsFetch && loading) || (!trip && loading))
+  if (loading)
     return (
       <AccountLayout>
         <div className="grid min-h-72 place-items-center">
@@ -247,7 +256,7 @@ export default function ReservationDetailPage() {
       </AccountLayout>
     );
 
-  if (!trip) {
+  if (!trip || error) {
     return (
       <AccountLayout>
         <div className="rounded-3xl bg-white p-8 text-center shadow-sm">
@@ -282,7 +291,11 @@ export default function ReservationDetailPage() {
   }
 
   const status = tripStatus(trip);
-  const displayRoute = getDisplayRoute(trip);
+  const ticketAvailable = canDownloadTicket(trip);
+  const displayRoute = ticketAvailable ? getDisplayRoute(trip) : null;
+  const isClosedReservation = [trip.estado_resumen, trip.estado_reserva].some((value) =>
+    ["EXPIRADA", "EXPIRADO", "CANCELADA", "CANCELADO"].includes(String(value ?? "").trim().toUpperCase()),
+  );
   return (
     <AccountLayout>
       <button
@@ -292,6 +305,40 @@ export default function ReservationDetailPage() {
       >
         <ArrowLeft size={19} /> Volver a mis viajes
       </button>
+      {ticketError && (
+        <p role="alert" className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800">
+          {ticketError}
+        </p>
+      )}
+      {!ticketAvailable ? (
+        <section className="rounded-3xl border border-amber-200 bg-white/90 p-6 text-slate-900 shadow-lg sm:p-8">
+          <CircleAlert className="text-amber-600" size={32} />
+          <h1 className="mt-4 text-2xl font-black">Viaje inconcluso</h1>
+          <p className="mt-2 text-sm font-bold text-slate-700">{status.label}</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            {isClosedReservation
+              ? "Esta reserva no cuenta con un boleto válido y ya no puede completarse. Busca un nuevo vuelo para viajar."
+              : "Esta reserva no cuenta con un boleto válido. El boleto estará disponible únicamente cuando la reserva esté pagada y confirmada."}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            {!isClosedReservation && trip.debe_registrar_pago && (
+              <button type="button" onClick={() => navigate(`/reservas/${trip.reserva_id}/registrar-pago`, { state: { trip } })} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-amber-500 px-5 text-sm font-bold text-white hover:bg-amber-600">
+                <CreditCard size={18} /> Registrar pago
+              </button>
+            )}
+            {!isClosedReservation && requiresPassengerConfirmation(trip) && (
+              <button type="button" onClick={() => navigate(`/reservas/${trip.reserva_id}/confirmar-datos`, { state: { trip } })} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white hover:bg-emerald-700">
+                <FileCheck2 size={18} /> Confirmar datos
+              </button>
+            )}
+            {!isClosedReservation && trip.puede_cancelar === true && (
+              <button type="button" onClick={openCancellationModal} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-bold text-white hover:bg-red-700">
+                <XCircle size={18} /> Cancelar reserva
+              </button>
+            )}
+          </div>
+        </section>
+      ) : (
       <div className="space-y-6">
         <section className="rounded-3xl border border-violet-200/80 bg-white/90 p-5 text-slate-900 shadow-[0_20px_55px_rgba(59,43,122,0.12)] backdrop-blur-xl sm:p-7">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -505,6 +552,7 @@ export default function ReservationDetailPage() {
           )}
         </div>
       </div>
+      )}
 
       {cancelModalOpen && (
         <div

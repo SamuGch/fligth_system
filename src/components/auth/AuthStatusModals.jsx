@@ -289,6 +289,7 @@ export function ConfirmEmailModal() {
           <input
             id="confirmation-email"
             type="email"
+            maxLength={254}
             autoComplete="email"
             required
             value={email}

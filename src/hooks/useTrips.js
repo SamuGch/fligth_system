@@ -5,12 +5,12 @@ import {
   loadTrips,
 } from "../services/tripsCache";
 
-export default function useTrips(enabled = true) {
+export default function useTrips(enabled = true, force = false) {
   const { session } = useAuth();
   const accessToken = session?.access_token;
-  const [trips, setTrips] = useState(() => getCachedTrips(accessToken) || []);
+  const [trips, setTrips] = useState(() => force ? [] : getCachedTrips(accessToken) || []);
   const [loading, setLoading] = useState(
-    () => enabled && Boolean(accessToken) && !getCachedTrips(accessToken),
+    () => enabled && Boolean(accessToken) && (force || !getCachedTrips(accessToken)),
   );
   const [error, setError] = useState("");
 
@@ -30,7 +30,7 @@ export default function useTrips(enabled = true) {
   useEffect(() => {
     if (!enabled || !accessToken) return undefined;
     let active = true;
-    loadTrips(accessToken)
+    loadTrips(accessToken, { force })
       .then((payload) => {
         if (active) setTrips(payload);
       })
@@ -43,7 +43,7 @@ export default function useTrips(enabled = true) {
     return () => {
       active = false;
     };
-  }, [accessToken, enabled]);
+  }, [accessToken, enabled, force]);
 
   return { trips, loading, error, reload: load };
 }

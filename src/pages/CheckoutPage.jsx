@@ -25,6 +25,8 @@ import {
   limpiarSeleccionParaCheckout,
 } from "../services/seatSelectionStorage";
 import { invalidateTripsCache } from "../services/tripsCache";
+import { NAME_MAX_LENGTH, filterNameInput, isValidCardExpiration, nameValidationError, normalizeDocumentNumber, normalizeName, passengerValidationError } from "../tools/formValidation";
+import DocumentNumberInput from "../components/DocumentNumberInput";
 import MainNavbar from "../components/MainNavbar";
 import {
   formatFlightLocation,
@@ -41,12 +43,6 @@ const emptyPassenger = {
   numero_documento: "",
 };
 const passengerFields = Object.keys(emptyPassenger);
-const passengerFieldLabels = {
-  nombre_pasajero: "nombre",
-  apellido_pasajero: "apellido",
-  tipo_documento: "tipo de documento",
-  numero_documento: "número de documento",
-};
 
 const money = (value) =>
   `$${Number(value || 0).toLocaleString("en-US", {
@@ -148,8 +144,8 @@ export default function CheckoutPage() {
   const paymentMethodId = PAYMENT_METHOD_IDS.card;
   const cardIsComplete =
     /^\d{16}$/.test(cardData.number) &&
-    cardData.name.trim().length > 0 &&
-    /^\d{4}$/.test(cardData.expiration) &&
+    !nameValidationError(cardData.name, "El nombre en la tarjeta") &&
+    isValidCardExpiration(cardData.expiration) &&
     /^\d{3}$/.test(cardData.cvv);
   const reservationId = reservation?.id;
   const accessToken = session?.access_token;
@@ -263,9 +259,12 @@ export default function CheckoutPage() {
   }, [navigate, releaseTemporarySeats, reservationId]);
 
   const updatePassenger = (passengerIndex, field, value) => {
+    const nextValue = field === "nombre_pasajero" || field === "apellido_pasajero"
+      ? filterNameInput(value)
+      : value;
     setPassengers((previous) => ({
       ...previous,
-      [passengerIndex]: { ...previous[passengerIndex], [field]: value },
+      [passengerIndex]: { ...previous[passengerIndex], [field]: nextValue },
     }));
     setError("");
   };
@@ -274,20 +273,18 @@ export default function CheckoutPage() {
     const normalizedPassengers = Array.from({ length: passengerCount }, (_, index) => {
       const values = passengers[index] ?? emptyPassenger;
       return Object.fromEntries(
-        passengerFields.map((field) => [field, values[field].trim()]),
+        passengerFields.map((field) => [
+          field,
+          field === "nombre_pasajero" || field === "apellido_pasajero"
+            ? normalizeName(values[field])
+            : field === "numero_documento" ? normalizeDocumentNumber(values[field]) : values[field].trim(),
+        ]),
       );
     });
-    const incompleteIndex = normalizedPassengers.findIndex((values) =>
-      passengerFields.some((field) => !values[field]),
-    );
-    if (incompleteIndex !== -1) {
-      const missingFields = passengerFields
-        .filter((field) => !normalizedPassengers[incompleteIndex][field])
-        .map((field) => passengerFieldLabels[field]);
-      throw new Error(
-        `Completa los datos de Pasajero ${incompleteIndex + 1}: ${missingFields.join(", ")}.`,
-      );
-    }
+    normalizedPassengers.forEach((values, index) => {
+      const validationError = passengerValidationError(values);
+      if (validationError) throw new Error(`Pasajero ${index + 1}: ${validationError}`);
+    });
 
     return seats.map((seat, seatIndex) => {
       const flightSeats = selectedSeatsByFlight[seat.vueloId] ?? [];
@@ -521,14 +518,14 @@ export default function CheckoutPage() {
                       <article key={index} className="rounded-2xl border border-white/80 bg-white/65 p-3 shadow-sm">
                         <h2 className="mb-2 text-sm font-bold text-slate-900">Pasajero {index + 1} (Adulto)</h2>
                         <div className="grid gap-2 sm:grid-cols-2">
-                          <input aria-label={`Nombre del pasajero ${index + 1}`} value={passenger.nombre_pasajero} onChange={(event) => updatePassenger(index, "nombre_pasajero", event.target.value)} placeholder="Nombre" className="rounded-lg border border-slate-300 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100" />
-                          <input aria-label={`Apellido del pasajero ${index + 1}`} value={passenger.apellido_pasajero} onChange={(event) => updatePassenger(index, "apellido_pasajero", event.target.value)} placeholder="Apellido" className="rounded-lg border border-slate-300 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100" />
+                          <input aria-label={`Nombre del pasajero ${index + 1}`} maxLength={NAME_MAX_LENGTH} value={passenger.nombre_pasajero} onChange={(event) => updatePassenger(index, "nombre_pasajero", event.target.value)} placeholder="Nombre" className="rounded-lg border border-slate-300 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100" />
+                          <input aria-label={`Apellido del pasajero ${index + 1}`} maxLength={NAME_MAX_LENGTH} value={passenger.apellido_pasajero} onChange={(event) => updatePassenger(index, "apellido_pasajero", event.target.value)} placeholder="Apellido" className="rounded-lg border border-slate-300 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100" />
                           <select aria-label={`Tipo de documento del pasajero ${index + 1}`} value={passenger.tipo_documento} onChange={(event) => updatePassenger(index, "tipo_documento", event.target.value)} className="rounded-lg border border-slate-300 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100">
                             <option value="">Tipo de documento</option>
                             <option value="DPI">DPI</option>
                             <option value="PASAPORTE">Pasaporte</option>
                           </select>
-                          <input aria-label={`Número de documento del pasajero ${index + 1}`} value={passenger.numero_documento} onChange={(event) => updatePassenger(index, "numero_documento", event.target.value)} placeholder="Número de documento" className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100" />
+                          <DocumentNumberInput aria-label={`Número de documento del pasajero ${index + 1}`} value={passenger.numero_documento} onChange={(value) => updatePassenger(index, "numero_documento", value)} placeholder="Número de documento" className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100" />
                         </div>
                       </article>
                     );
@@ -588,11 +585,15 @@ export default function CheckoutPage() {
                         id="card-name"
                         type="text"
                         autoComplete="cc-name"
+                        maxLength={NAME_MAX_LENGTH}
                         value={cardData.name}
-                        onChange={(event) => setCardData({ ...cardData, name: event.target.value })}
+                        onChange={(event) => setCardData({ ...cardData, name: filterNameInput(event.target.value) })}
                         placeholder="NOMBRE DEL TITULAR"
                         className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm uppercase outline-none transition focus:border-violet-600 focus:ring-2 focus:ring-violet-100"
                       />
+                      {cardData.name && nameValidationError(cardData.name, "El nombre en la tarjeta") && (
+                        <span className="block text-xs font-normal text-red-700">{nameValidationError(cardData.name, "El nombre en la tarjeta")}</span>
+                      )}
                     </label>
                     <label className="text-sm font-bold text-slate-700" htmlFor="card-expiration">
                       Fecha de expiración
@@ -610,6 +611,9 @@ export default function CheckoutPage() {
                         placeholder="MM/AA"
                         className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-100"
                       />
+                      {cardData.expiration.length === 4 && !isValidCardExpiration(cardData.expiration) && (
+                        <span className="block text-xs font-normal text-red-700">Ingresa un mes válido y una fecha no vencida.</span>
+                      )}
                     </label>
                     <label className="text-sm font-bold text-slate-700" htmlFor="card-cvv">
                       Código de seguridad / CVV
@@ -734,13 +738,14 @@ export default function CheckoutPage() {
               Tu respuesta
               <input
                 id="security-answer"
-                type="number"
+                type="text"
                 inputMode="numeric"
+                maxLength={3}
                 autoComplete="off"
                 autoFocus
                 value={challenge.answer}
                 onChange={(event) => {
-                  setChallenge({ ...challenge, answer: event.target.value });
+                  setChallenge({ ...challenge, answer: event.target.value.replace(/\D/g, "").slice(0, 3) });
                   setChallengeError("");
                 }}
                 onKeyDown={(event) => {

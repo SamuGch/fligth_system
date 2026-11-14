@@ -37,6 +37,19 @@ npm install
 npm run dev
 ```
 
+## Validación de formularios
+
+Los nombres y apellidos requieren de 4 letras a 20 caracteres en total; se
+permiten letras acentuadas y espacios entre palabras. Para pasajeros, el DPI
+requiere 13 dígitos y el pasaporte entre 6 y 20 dígitos. Los documentos se
+muestran en grupos de cuatro dígitos y se envían sin espacios. Solo se
+admiten estos dos tipos de documento. Los demás campos tienen límites acordes
+con su uso, como importes decimales y referencias de depósito.
+Los campos de nombre y apellido filtran números y símbolos al escribir o pegar.
+
+Estas comprobaciones son únicamente del frontend y no sustituyen la validación
+en la API ni el bloqueo transaccional de asientos en la base de datos.
+
 ## React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
